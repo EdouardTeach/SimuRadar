@@ -1,74 +1,78 @@
-# Simulateur radar — déploiement statique
+# ⚓ SimuRadar — Maritime Radar Simulator & Scenario Generator
 
-Dossier prêt à publier sur GitHub Pages ou GitLab Pages.
+> **Live Web Access via GitHub Pages:**  
+> 🌐 [https://edouardteach.github.io/SimuRadar/](https://edouardteach.github.io/SimuRadar/)
 
-## Fichiers publiés
+---
 
-- `index.html` — copie de `simulateur.html`, point d’entrée du site.
-- `generator.html` — copie de `generator.html`.
-- `coast_data.js` — garde-fou local : le HTML source le référence, mais aucun fichier de données correspondant n’a été fourni. Il initialise `window.NE_COAST_RINGS` à un tableau vide.
-- `.gitlab-ci.yml` — pipeline GitLab Pages.
-- `LICENSE` — avis de licence PolyForm Noncommercial 1.0.0.
+## ⚠️ 100% Vibecoded Project
 
-Les anciens fichiers d’attente et le portail de démonstration ont été retirés du dossier de publication.
+> This project is **100% vibecoded**, developed iteratively with the assistance of advanced artificial intelligence models, notably:
+>
+> - **Claude Sonnet 3.5 & 3.7** (Anthropic)
+> - **GPT-4o / GPT-5 / Luna** (OpenAI)
+> - **Gemini 2.5 / 3.1 Pro** (Google)
+>
+> Special thanks to [Mammouth AI](https://mammouth.ai/), whose platform made it possible to seamlessly orchestrate and switch between all these models throughout the entire development process.
 
-## Références vérifiées
+---
 
-Les deux HTML ne référencent ni `costdata.js`, ni un fichier JSON de coûts, ni `fetch()`, `XMLHttpRequest`, `import` ou `require` pour des données de coûts.
+## 🎯 Project Overview & Educational Purpose
 
-`generator.html` référence :
+The primary goal of **SimuRadar** is to provide a **free, open, browser-based maritime training tool** designed to:
+1. **Learn and master marine radar fundamentals**, including Automatic Radar Plotting Aids (**ARPA**) and target tracking.
+2. **Practice collision avoidance rules (COLREGs / RIPAM)** through realistic encounter scenarios.
+3. **Design, export, and load custom training exercises** using a dedicated scenario generator.
 
-- `coast_data.js` (désormais fourni dans ce dossier) ;
-- Leaflet 1.9.4 via `https://unpkg.com` (CSS et JavaScript) ;
-- des fonds cartographiques externes Esri, OpenTopoMap et OpenSeaMap lorsque la fonction « Côte réelle » est utilisée ;
-- des chemins optionnels `cotes/*.json` pour les presets locaux, mais aucun dossier `cotes/` n’était présent dans les fichiers fournis.
+---
 
-Les deux pages contiennent un beacon Cloudflare Insights répété dans la source reçue. Il a été retiré des copies publiables : il n’est pas nécessaire au fonctionnement de l’application.
+## 🌊 Key Features
 
-Les imports de côtes GeoJSON, GPX, OSM et XML restent locaux via le sélecteur de fichier. Sans connexion, l’interface radar et les scénarios intégrés fonctionnent ; Leaflet et les fonds de carte externes ne seront pas disponibles tant qu’ils ne sont pas vendus/localisés.
+### 1. Interactive Radar PPI Display (`index.html`)
+- **Real-time Plan Position Indicator (PPI)**: customizable antenna sweep rate, adjustable range scales (from short-range harbor navigation up to long-range offshore detection).
+- **Realistic Coastline Data**: built-in tools to download, import, and render real-world geographic coastal vectors for authentic radar land echoes.
+- **Display Modes**:
+  - *Head-Up* (relative heading)
+  - *North-Up* (true motion orientation)
+  - *Course-Up* (stabilized on intended track)
+- **True & Relative Motion Vectors**: instant assessment of collision risks (crossing situations, head-on encounters, overtaking).
+- **Full ARPA Telemetry**: Closest Point of Approach (**CPA**), Time to CPA (**TCPA**), bearing, range, true/relative course, and speed over ground / through water.
 
-## Navigation
+### 2. Vessel Dynamics & Manoeuvring
+- **Turning Circle & Rate of Turn (Giration)**: vessels do not pivot instantaneously on a point; realistic rudder response, inertia, turning radius, and angular speed are fully simulated.
+- **Dynamic ARPA Consign Effects**: modifying ARPA parameters or target ship orders immediately translates into genuine kinematic behavioral changes (speed adjustments, heading alterations).
 
-- `index.html` → `generator.html` via le lien « Générateur ».
-- `generator.html` → `index.html` via le lien « Simulateur ».
+### 3. Special Routes & Trawling Operations
+- **Complex Navigation Paths**: program custom multi-waypoint routes, patrols, and timed course/speed changes.
+- **Fishing / Trawling Tracks**: simulate commercial fishing vessels actively trawling or deploying gear, featuring restricted maneuverability and characteristic lower-speed navigation patterns.
 
-Le lien retour pointe volontairement vers `index.html`, afin de fonctionner sur GitHub Pages, GitLab Pages et sous un chemin de projet.
+### 4. Collision Avoidance Scenario Generator (`generator.html`)
+- Dedicated visual canvas to build tailored pedagogical exercises.
+- Freely place own ship and targets with predefined initial vector kinematics.
+- Export and import scenarios directly via lightweight JSON files for effortless distribution between instructors and trainees.
 
-## Publication gratuite
+---
 
-GitHub Pages et GitLab Pages peuvent héberger gratuitement ce site statique : aucun serveur à administrer, aucune base de données et aucun coût de serveur/logistique n’est requis pour ce déploiement. Les limites, quotas, disponibilité et conditions d’utilisation des plateformes restent applicables.
+## 🚀 How to Run
 
-### GitHub ou GitLab ?
+### Online (Recommended)
+SimuRadar runs directly in any modern web browser (Firefox, Chromium, Chrome, Safari, Edge) without requiring any installation or plugins:  
+👉 **[https://edouardteach.github.io/SimuRadar/](https://edouardteach.github.io/SimuRadar/)**
 
-- GitHub est très répandu et ses Pages sont simples à activer ; la plateforme est propriétaire et appartient à Microsoft.
-- GitLab fournit une offre Pages et GitLab CE est une édition open-core / open source de la plateforme, mais le service GitLab.com lui-même n’est pas identique à une instance libre auto-hébergée.
-- Pour une philosophie FOSS, GitLab auto-hébergé ou une forge communautaire peut être préférable ; pour le coût et la simplicité, GitHub Pages et GitLab Pages conviennent tous deux.
+### Locally (on your computer)
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/EdouardTeach/SimuRadar.git
+   cd SimuRadar
+   📜 License & Free Open-Source Philosophy (FOSS)
 
-Avec ce `.gitlab-ci.yml`, GitLab publie `index.html`, `generator.html`, `coast_data.js` et, s’ils existent, `costdata.js` et `cotes/`.
+This project is built around the ethos of Free and Open Source Software (FOSS) — keeping maritime education tools freely accessible and collaborative.
 
-## Licence : non-commercial et FOSS
+The source code and documentation are released under the terms of the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0):
 
-La licence fournie est **PolyForm Noncommercial 1.0.0**. Elle exprime clairement l’interdiction d’usage commercial, mais elle n’est pas une licence Open Source approuvée par l’OSI : l’Open Source Definition exige notamment l’absence de restriction discriminatoire sur les domaines d’activité, ce qui exclut une clause « non-commercial ».
+    ✅ Free Sharing & Redistribution: anyone may share, copy, and redistribute the material in any medium or format for educational and non-commercial purposes.
+    ✅ Adaptation & Remixing: you are welcome to modify, tweak, and build upon the work.
+    ❌ Non-Commercial: the material may not be used for direct commercial advantage or monetary compensation.
+    🔄 ShareAlike: if you remix, transform, or build upon the material, you must distribute your contributions under the exact same license.
 
-**CC BY-NC-SA** peut être adaptée à des contenus pédagogiques, mais Creative Commons déconseille généralement ses licences pour les logiciels ; elle combine attribution, non-commercial et partage dans les mêmes conditions, et n’est pas OSI-approved.
-
-**AGPL/GPL** sont des licences libres approuvées par l’OSI et imposent le copyleft (l’AGPL ajoute des obligations pour les logiciels utilisés via réseau), mais elles autorisent l’usage commercial. On ne peut donc pas avoir simultanément une licence OSI/FOSS standard et une interdiction générale d’usage commercial. Faire valider le choix par un juriste et vérifier les licences des composants et données tiers avant diffusion.
-
-## Site web ou application téléchargeable ?
-
-- **Site statique** : partage immédiat, mises à jour centralisées, aucun installateur ni support de plateformes ; dépend des CDN/cartes si ceux-ci restent externes.
-- **ZIP hors ligne / HTML local** : simple à distribuer et très proche du site ; certains navigateurs limitent les modules, les requêtes locales et les APIs depuis `file://`. Tester via un petit serveur local est plus fiable.
-- **PWA** : permet une installation et un cache hors ligne, mais demande un service worker, des tests de cache/version et HTTPS pour l’installation complète.
-- **Tauri** : exécutable léger et plus proche d’une application native ; nécessite des builds et tests Windows/macOS/Linux.
-- **Electron** : intégration riche et mature, mais paquets plus lourds et coût de maintenance supérieur.
-
-Pour ce projet, le meilleur premier choix est **site statique + archive ZIP hors ligne**. Ajouter ensuite une PWA si l’usage terrain exige une installation hors ligne ; ne passer à Tauri/Electron que si des fonctions natives deviennent nécessaires.
-
-## Test local
-
-```bash
-python3 -m http.server 8000
-# ouvrir http://localhost:8000/
-```
-
-Tester les deux liens et la console du navigateur. La carte « Côte réelle » nécessite les CDN et services cartographiques externes ; pour un hors-ligne strict, empaqueter Leaflet, les tuiles et les fichiers `cotes/*.json` avec les licences/attributions correspondantes.
+See the LICENSE file for the full legal deed.
