@@ -1,0 +1,976 @@
+<!-- V85 — Traductions, bruit de fond perceptible et routes spécialisées : paramètres P1/P2 actifs pour pêche/erratique, route voilier restaurée ; génération aléatoire protégée des côtes importées. -->
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="strict-origin-when-cross-origin"><title>Radar // Générateur d'exercices V84</title>
+<style>
+@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
+.real-modal{position:fixed;inset:0;z-index:60;background:#071018ee;display:flex;align-items:center;justify-content:center;padding:12px}.real-card{width:min(980px,100%);height:min(760px,100%);display:flex;flex-direction:column;background:#0c151d;border:1px solid var(--accent);border-radius:9px;box-shadow:0 20px 70px #000d;overflow:hidden}.real-head{display:flex;gap:8px;align-items:center;padding:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}.real-head h3{margin-right:auto}.real-head .real-actions{display:flex;gap:6px;margin-left:auto;align-items:center}.real-head .real-import{order:0}.real-head .real-close{order:2}.real-head .real-locate{order:1}.real-head .real-radius-select{min-width:92px}.real-map .leaflet-interactive{cursor:default}.real-head h3{margin:0;color:var(--accent);font:600 16px Georgia,serif;margin-right:auto}.real-head label{color:var(--muted)}.real-head select{min-height:32px}.real-map{flex:1;min-height:260px}.real-foot{padding:9px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}.real-foot small{color:var(--muted);flex:1;min-width:180px}.real-status{color:var(--accent);min-height:1.2em}.leaflet-container{background:#b9d8df}.leaflet-control-attribution{font-size:9px}@media(max-width:620px){.real-modal{padding:0}.real-card{height:100%;border-radius:0}.real-head{padding:8px}.real-foot button{flex:1}.real-map{min-height:0}}
+
+:root{--bg:#070b10;--ink:#e9eef2;--muted:#8796a3;--line:#293541;--grid:#3c5c68;--accent:#f3c64f;--safe:#63e0bc;--danger:#ff7c86;--coast:#d9b86a;--sail:#9d8cff;--radar:#08151a}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:12px ui-monospace,SFMono-Regular,Consolas,monospace}body.classic{--bg:#06110c;--ink:#dff5e6;--muted:#79a48e;--line:#285441;--grid:#2d694d;--accent:#69e2bf;--safe:#67e1a0;--sail:#c3a7ff;--radar:#06130e}#app{width:100vw;height:100vh;position:relative;overflow:hidden}.radar{position:absolute;inset:0;touch-action:none}canvas{width:100%;height:100%;display:block}.toolbar{position:absolute;z-index:3;top:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;align-items:center;padding:5px 7px;background:#091017d9;border:1px solid var(--line);border-radius:6px;box-shadow:0 7px 22px #0008;backdrop-filter:blur(8px)}button,select,input{font:inherit}button,select{background:#15202a;color:var(--ink);border:1px solid var(--line);border-radius:4px;min-height:29px;padding:4px 8px;cursor:pointer}button:hover{filter:brightness(1.2)}button.active,.primary{background:var(--accent);color:#151711;border-color:var(--accent);font-weight:bold}.toolbar label{color:var(--muted);padding-left:4px}.corner{position:absolute;z-index:2;left:16px;bottom:15px;color:var(--muted);line-height:1.6;pointer-events:none}.legend{color:var(--accent);letter-spacing:.08em}.context{position:fixed;z-index:20;min-width:225px;background:#101a22f5;border:1px solid var(--line);border-radius:6px;box-shadow:0 15px 38px #000b;padding:5px}.context button{display:block;text-align:left;width:100%;border:0;background:transparent;padding:7px 9px}.context button:hover{background:#243441}.context hr{border:0;border-top:1px solid var(--line);margin:4px 0}.sub{display:flex;gap:4px;flex-wrap:wrap;padding:3px}.sub button{font-size:10px}.popup{position:fixed;z-index:15;width:290px;background:#111c25f7;border:1px solid var(--accent);border-radius:7px;box-shadow:0 16px 45px #000b;padding:10px}
+/* V81 — fenêtres flottantes déplaçables : seuls les bandeaux-titres capturent le geste,
+   afin de laisser les champs, boutons, cartes et poignées tactiles fonctionner normalement. */
+.real-card{position:relative}
+.popup h3,.panel h3,.shapePanel h3,.generator-dialog h3,.real-head{cursor:grab;touch-action:none;user-select:none}
+.popup h3:active,.panel h3:active,.shapePanel h3:active,.generator-dialog h3:active,.real-head:active{cursor:grabbing}
+.context{padding-top:25px}
+.context::before{content:"⠿  déplacer";position:absolute;left:7px;right:7px;top:4px;height:17px;color:var(--muted);font-size:9px;line-height:17px;cursor:grab;touch-action:none;user-select:none;border-bottom:1px solid var(--line)}
+.context.dragging::before{cursor:grabbing}
+.floating-dragging{user-select:none}
+/* OWN start point: visible only in the generator, never in the simulator. */
+.startpoint-flag{display:none!important;position:fixed;z-index:12;width:24px;height:28px;pointer-events:none;filter:drop-shadow(0 2px 3px #0009)}
+.startpoint-flag::before{content:"⚑";display:block;color:var(--accent);font:24px/28px Georgia,serif;text-shadow:0 1px 2px #000}
+.startpoint-flag.hidden{display:none}
+.startpoint-modal{position:fixed;inset:0;z-index:70;background:#071018d9;display:flex;align-items:center;justify-content:center;padding:12px}
+.startpoint-card{width:min(360px,100%);background:#101a22f7;border:1px solid var(--accent);border-radius:8px;box-shadow:0 18px 60px #000d;padding:14px}
+.startpoint-card h3{margin:0 0 12px;color:var(--accent);font:600 16px Georgia,serif}
+.startpoint-card .start-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
+.startpoint-card label{display:block;color:var(--muted);font-size:10px}.startpoint-card input{width:100%;margin-top:4px;min-height:32px;background:#09131a;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:5px}
+.startpoint-compass-wrap{grid-column:1/-1;display:flex;justify-content:center;align-items:center;gap:12px}.startpoint-compass{width:94px;height:94px;border:1px solid var(--line);border-radius:50%;background:#0b151c;position:relative;cursor:crosshair;touch-action:none;box-shadow:inset 0 0 0 5px #0b151c,0 2px 10px #0008}.startpoint-compass::before{content:"N";position:absolute;top:4px;left:42px;color:var(--accent);font:bold 11px monospace}.startpoint-compass::after{content:"";position:absolute;inset:13px;border:1px dashed #58707b;border-radius:50%}.startpoint-needle{position:absolute;left:45px;top:18px;width:3px;height:29px;background:var(--accent);transform-origin:1.5px 29px;z-index:2}.startpoint-needle i{position:absolute;left:-5px;top:-7px;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--accent);width:0;height:0}.startpoint-card .actions{display:flex;justify-content:flex-end;gap:7px;margin-top:14px}
+.popup h3{margin:0 0 7px;color:var(--accent);font:600 14px Georgia,serif}.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.grid label{display:block;color:var(--muted);font-size:10px;margin:4px 0}.grid input,.grid select{width:100%;min-height:30px;background:#09131a;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:5px}.metrics{margin:7px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 0;color:var(--muted);line-height:1.65}.metrics b{color:var(--ink)}.popup .actions{display:flex;justify-content:space-between;margin-top:8px}.danger{color:var(--danger);border-color:#713943}.panel{position:absolute;z-index:8;right:14px;bottom:14px;width:min(570px,calc(100vw - 28px));max-height:45vh;overflow:auto;background:#0c151ddd;border:1px solid var(--line);border-radius:7px;padding:9px;backdrop-filter:blur(8px)}.panel h3{color:var(--accent);font:600 13px Georgia,serif;margin:0 0 6px}.panel table{border-collapse:collapse;width:100%;font-size:10px}.panel th,.panel td{padding:4px 6px;border-bottom:1px solid #24323c;text-align:left}.panel th{color:var(--muted);font-weight:normal}.hidden{display:none!important}.coastActive #editor,.dstActive #editor{cursor:crosshair}.coastActive #hint{color:var(--accent)}#coastStatus{color:var(--accent);font-weight:bold}.toast{position:fixed;z-index:30;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:#141710;border-radius:4px;padding:7px 12px;font-weight:bold}.rangeText{color:var(--accent);min-width:34px;text-align:center}#coastTools{display:inline-flex;gap:4px}#coastTools.hidden{display:none}@media(max-width:620px){.toolbar{left:8px;right:8px;transform:none;overflow-x:auto;justify-content:flex-start}.toolbar button,.toolbar select{flex:none}.corner{font-size:10px}.panel{bottom:8px;right:8px}}
+.shapePanel{position:absolute;z-index:9;right:14px;top:72px;width:245px;background:#111c25f7;border:1px solid var(--accent);border-radius:7px;padding:9px;box-shadow:0 16px 45px #000b}.shapePanel h3{margin:0 0 6px;color:var(--accent);font:600 14px Georgia,serif}.shapePanel button{margin:2px;font-size:11px}.shapeHelp{color:var(--muted);font-size:10px;margin:6px 2px;line-height:1.35}.shapePanel .danger{width:100%;margin-top:5px}.echo-degradation{right:14px;left:auto;bottom:14px;width:min(330px,calc(100vw - 28px));max-height:45vh}.echo-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.echo-grid label{display:grid;grid-template-columns:1fr auto;gap:3px;color:var(--muted);font-size:10px}.echo-grid input{grid-column:1/-1;width:100%;accent-color:var(--accent)}.echo-grid b{color:var(--accent)}@media(max-width:620px){.echo-degradation{right:8px;left:auto;bottom:52px;width:min(330px,calc(100vw - 16px));max-height:42vh;overflow:auto}.toolbar button,.toolbar select,.toolbar input{min-height:44px}.panel{max-height:40vh}.echo-grid{grid-template-columns:1fr 1fr}}@media(pointer:coarse){button,select,input{min-height:44px}}''
+.route-generator{z-index:26;width:min(520px,calc(100vw - 24px))}.generator-dialog{position:fixed;z-index:25;left:50%;top:50%;transform:translate(-50%,-50%);width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 40px);overflow:auto;background:#101a22f7;border:1px solid var(--accent);border-radius:8px;box-shadow:0 18px 60px #000d;padding:14px}.generator-dialog h3{margin:0 0 10px;color:var(--accent);font:600 16px Georgia,serif}.generator-dialog .gen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.generator-dialog label{display:block;color:var(--muted);font-size:10px}.generator-dialog input,.generator-dialog select{width:100%;margin-top:3px}.generator-dialog fieldset{border:1px solid var(--line);border-radius:5px;margin:10px 0;padding:8px}.generator-dialog legend{color:var(--accent);font-size:11px}.generator-dialog .checkrow{display:flex;gap:12px;flex-wrap:wrap}.generator-dialog .checkrow label{color:var(--ink);font-size:11px}.generator-dialog .checkrow input{width:auto;margin-right:4px}.generator-dialog .actions{display:flex;justify-content:flex-end;gap:7px;margin-top:10px}.generator-dialog .hint{color:var(--muted);font-size:10px;line-height:1.4;margin-top:7px}
+/* V81 : import GeoJSON/OSM et cadran OWN sans champ numérique. */
+.own-heading-control{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font:10px monospace}.own-compass{width:42px;height:42px;border:1px solid var(--line);border-radius:50%;background:#0b151c;position:relative;cursor:crosshair;touch-action:none;box-shadow:inset 0 0 0 3px #0b151c,0 1px 5px #0008;flex:none}.own-compass:before{content:"N";position:absolute;top:1px;left:17px;color:var(--accent);font:bold 8px monospace}.own-compass:after{content:"";position:absolute;inset:6px;border:1px dashed #58707b;border-radius:50%}.own-compass-needle{position:absolute;left:20px;top:8px;width:2px;height:13px;background:var(--accent);transform-origin:1px 13px;transform:rotate(0deg);z-index:2;box-shadow:0 0 3px #000}.own-compass-needle i{position:absolute;left:-3px;top:-4px;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid var(--accent);width:0;height:0}.own-compass-tick{position:absolute;left:20px;top:3px;width:2px;height:4px;background:#738894;transform-origin:1px 18px}.own-heading-control b{color:var(--accent);min-width:34px} .real-circle-handle{background:#f3c64f;border:2px solid #111;border-radius:50%;box-sizing:border-box;box-shadow:0 1px 4px #0008;width:15px!important;height:15px!important}/* V81 — contrôle visuel unifié des boutons */
+:root{--control-height:29px;--control-pad-x:8px;--control-line-height:1}
+button,select{height:var(--control-height);min-height:var(--control-height);padding:0 var(--control-pad-x);line-height:var(--control-line-height);display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.toolbar{align-items:center}
+.popup .actions{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:6px;white-space:nowrap}
+.popup .actions>span{display:inline-flex;flex:0 0 auto;align-items:center;gap:6px}
+.popup .actions button{flex:0 0 auto}
+.context button{display:flex;align-items:center;justify-content:flex-start}
+@media(max-width:620px){.toolbar button,.toolbar select{height:44px;min-height:44px}.popup button,.popup select{height:44px;min-height:44px}}
+@media(pointer:coarse){button,select{height:44px;min-height:44px}}
+/* V81 — Côte réelle : clic carte pour centrer, rayon discret, fermeture compacte */
+.real-head{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin}
+.real-head h3{flex:0 0 auto}
+.real-head label,.real-head .real-actions{display:inline-flex;align-items:center;flex:0 0 auto;white-space:nowrap}
+.real-head button,.real-head select{height:30px;min-height:30px;padding:3px 6px;font-size:11px}
+.real-head .real-actions{margin-left:0}
+.real-head .real-actions button{white-space:nowrap}
+.real-map .leaflet-interactive{pointer-events:none}
+.real-head{gap:5px}
+.real-head label{font-size:10px;gap:3px}
+.real-head label:first-of-type select{width:156px}
+.real-head label:nth-of-type(2) select{width:118px}
+.real-head label:nth-of-type(3) select{width:62px}
+.real-head button,.real-head select{height:30px;min-height:30px;padding:3px 5px;font-size:10px}
+.real-head .real-actions{gap:4px}
+.real-head .real-actions button{padding-left:5px;padding-right:5px}
+.real-head .real-close{width:30px;padding:0;font-size:18px}
+@media(max-width:620px){.real-head{gap:4px;padding:6px}.real-head h3{font-size:14px}.real-head label:first-of-type select{width:140px}.real-head label:nth-of-type(2) select{width:105px}.real-head label:nth-of-type(3) select{width:58px}.real-head button,.real-head select{height:30px;min-height:30px;font-size:10px;padding:3px 4px}.real-head .real-actions{gap:3px}}
+
+/* V81 — barre supérieure flottante, aimantée aux quatre bords. */
+.toolbar{position:absolute;z-index:3;top:8px;left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);display:flex;flex-direction:row;flex-wrap:nowrap;white-space:nowrap;justify-content:flex-start;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:none}
+.toolbar::-webkit-scrollbar{display:none}
+.toolbar button,.toolbar select,.toolbar input{flex:0 0 auto}
+.toolbar.toolbar-side-top{top:8px;bottom:auto;left:50%;right:auto;transform:translateX(-50%);flex-direction:row;max-width:calc(100vw - 16px);max-height:none;overflow-x:auto;overflow-y:hidden}
+.toolbar.toolbar-side-bottom{top:auto;bottom:8px;left:50%;right:auto;transform:translateX(-50%);flex-direction:row;max-width:calc(100vw - 16px);max-height:none;overflow-x:auto;overflow-y:hidden}
+.toolbar.toolbar-side-left{left:8px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);flex-direction:column;width:max-content;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow-x:hidden;overflow-y:auto}
+.toolbar.toolbar-side-right{left:auto;right:8px;top:50%;bottom:auto;transform:translateY(-50%);flex-direction:column;width:max-content;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow-x:hidden;overflow-y:auto}
+.toolbar-side-left .toolbar-drag-handle,.toolbar-side-right .toolbar-drag-handle{margin:0 auto 2px}
+.toolbar-drag-handle{display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:26px;margin-right:2px;color:var(--muted);font-size:15px;letter-spacing:-3px;line-height:1;cursor:grab;user-select:none;touch-action:none}
+.toolbar-drag-handle:active,.toolbar.dragging .toolbar-drag-handle{cursor:grabbing;color:var(--accent)}
+.toolbar.toolbar-dragging{user-select:none}
+@media(max-width:620px){.toolbar button,.toolbar select,.toolbar input{min-height:38px;height:38px;padding-left:6px;padding-right:6px}.toolbar-drag-handle{height:34px}}
+
+/* V81 — barre verticale compacte : largeur uniforme, grille dense et lisible. */
+.toolbar.toolbar-side-left,
+.toolbar.toolbar-side-right{
+  width:148px;
+  max-width:148px;
+  padding:5px;
+  gap:3px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-auto-rows:minmax(27px,auto);
+  align-content:start;
+  justify-content:stretch;
+  align-items:stretch;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+.toolbar.toolbar-side-left > *,
+.toolbar.toolbar-side-right > *{min-width:0;max-width:none;margin:0}
+.toolbar.toolbar-side-left .toolbar-drag-handle,
+.toolbar.toolbar-side-right .toolbar-drag-handle{grid-column:1/-1;width:100%;height:21px;min-height:21px}
+.toolbar.toolbar-side-left > label:not(.own-heading-control),
+.toolbar.toolbar-side-right > label:not(.own-heading-control),
+.toolbar.toolbar-side-left > select,
+.toolbar.toolbar-side-right > select,
+.toolbar.toolbar-side-left > button,
+.toolbar.toolbar-side-right > button,
+.toolbar.toolbar-side-left > .rangeText,
+.toolbar.toolbar-side-right > .rangeText{width:100%;min-width:0;min-height:27px;height:27px;padding:0 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toolbar.toolbar-side-left > label:not(.own-heading-control),
+.toolbar.toolbar-side-right > label:not(.own-heading-control){display:flex;align-items:center;justify-content:center;font-size:9px;padding:0}
+.toolbar.toolbar-side-left > .rangeText,
+.toolbar.toolbar-side-right > .rangeText{font-size:9px}
+/* L’échelle est une paire compacte (libellé + select); le cap occupe une ligne dédiée. */
+.toolbar.toolbar-side-left > #range,
+.toolbar.toolbar-side-right > #range{grid-column:2}
+.toolbar.toolbar-side-left > .own-heading-control,
+.toolbar.toolbar-side-right > .own-heading-control{
+  grid-column:1/-1;width:100%;height:31px;min-height:31px;display:flex;justify-content:space-between;gap:3px;padding:1px 3px;font-size:9px;overflow:hidden
+}
+.toolbar.toolbar-side-left .own-compass,
+.toolbar.toolbar-side-right .own-compass{width:27px;height:27px;flex:0 0 27px}
+.toolbar.toolbar-side-left .own-compass:before,
+.toolbar.toolbar-side-right .own-compass:before{left:10px;font-size:7px}
+.toolbar.toolbar-side-left .own-compass-needle,
+.toolbar.toolbar-side-right .own-compass-needle{left:12px;top:5px;height:9px;transform-origin:1px 9px}
+.toolbar.toolbar-side-left .own-compass-tick,
+.toolbar.toolbar-side-right .own-compass-tick{left:12px;top:2px;transform-origin:1px 12px}
+.toolbar.toolbar-side-left .own-heading-control b,
+.toolbar.toolbar-side-right .own-heading-control b{min-width:31px;font-size:9px}
+.toolbar.toolbar-side-left > #coastTools,
+.toolbar.toolbar-side-right > #coastTools{display:contents}
+.toolbar.toolbar-side-left > #coastTools > button,
+.toolbar.toolbar-side-right > #coastTools > button{width:100%;min-width:0;min-height:27px;height:27px;padding:0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-height:820px){
+  .toolbar.toolbar-side-left,.toolbar.toolbar-side-right{width:136px;max-width:136px;padding:4px;gap:2px;grid-auto-rows:minmax(24px,auto)}
+  .toolbar.toolbar-side-left > label:not(.own-heading-control),.toolbar.toolbar-side-right > label:not(.own-heading-control),
+  .toolbar.toolbar-side-left > select,.toolbar.toolbar-side-right > select,
+  .toolbar.toolbar-side-left > button,.toolbar.toolbar-side-right > button,
+  .toolbar.toolbar-side-left > #coastTools > button,.toolbar.toolbar-side-right > #coastTools > button{height:24px;min-height:24px;font-size:10px}
+  .toolbar.toolbar-side-left > .own-heading-control,.toolbar.toolbar-side-right > .own-heading-control{height:28px;min-height:28px}
+  .toolbar.toolbar-side-left .own-compass,.toolbar.toolbar-side-right .own-compass{width:24px;height:24px;flex-basis:24px}
+}
+/* V81 — le panneau d’écho ne réserve jamais de hauteur vide. */
+#echoDegradation.echo-degradation{height:auto!important;min-height:0!important;max-height:none;overflow:visible;box-sizing:border-box;display:block}
+@media(max-width:620px){#echoDegradation.echo-degradation{height:auto!important;min-height:0!important;max-height:none;overflow:visible}}
+
+/* V81 — largeur réellement uniforme en mode vertical; la grille 2 colonnes est réservée aux actions groupées. */
+.toolbar.toolbar-side-left,.toolbar.toolbar-side-right{grid-template-columns:minmax(0,1fr)}
+.toolbar.toolbar-side-left > #range,.toolbar.toolbar-side-right > #range,
+.toolbar.toolbar-side-left > .toolbar-drag-handle,.toolbar.toolbar-side-right > .toolbar-drag-handle,
+.toolbar.toolbar-side-left > .own-heading-control,.toolbar.toolbar-side-right > .own-heading-control,
+.toolbar.toolbar-side-left > #coastTools,.toolbar.toolbar-side-right > #coastTools{grid-column:1}
+.toolbar.toolbar-side-left > #coastTools,.toolbar.toolbar-side-right > #coastTools{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.toolbar.toolbar-side-left > #coastTools > button,.toolbar.toolbar-side-right > #coastTools > button{width:100%}
+
+/* Reciprocal navigation: plain relative links for side-by-side deployment. */
+.app-nav-link{display:inline-flex;align-items:center;gap:5px;min-height:29px;padding:4px 9px;border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);font:inherit;font-weight:700;text-decoration:none;white-space:nowrap}
+.app-nav-link:hover{filter:brightness(1.2);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+@media(max-width:700px){.app-nav-link{font-size:11px;padding-inline:7px}}
+</style><script src="coast_data.js"></script><style id="language-toggle-fix">
+.radar-lang-toggle{position:relative!important;z-index:100!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;visibility:visible!important;opacity:1!important;min-width:64px!important;min-height:30px!important;height:30px!important;padding:4px 9px!important;margin:0 0 0 6px!important;border:1px solid currentColor!important;border-radius:5px!important;background:rgba(12,22,30,.92)!important;color:inherit!important;font:700 11px/1 system-ui,sans-serif!important;letter-spacing:.05em;white-space:nowrap!important;cursor:pointer!important}
+@media(max-width:620px){.radar-lang-toggle{min-width:72px!important;min-height:38px!important;height:38px!important;margin-left:4px!important}}
+.toolbar{padding-right:8px!important}.toolbar .radar-lang-toggle{order:999!important;flex:0 0 auto!important}
+</style></head><body><main id="app"><div class="radar"><canvas id="editor"></canvas></div><nav class="toolbar" aria-label="Outils radar"><span class="toolbar-drag-handle" title="Déplacer la barre" aria-label="Poignée pour déplacer la barre" role="button">⋮⋮</span><label>ÉCHELLE</label><select id="range"><option>1.5</option><option selected>3</option><option>6</option><option>12</option><option>24</option></select><span class="rangeText">NM</span><label class="own-heading-control" title="Cap initial de l’OWN — cliquer/glisser le cadran">CAP OWN <span id="ownCompass" class="own-compass" role="slider" aria-label="Cap initial de l’OWN" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0"><span id="ownCompassNeedle" class="own-compass-needle"><i></i></span><span class="own-compass-tick" style="transform:rotate(45deg)"></span><span class="own-compass-tick" style="transform:rotate(90deg)"></span><span class="own-compass-tick" style="transform:rotate(135deg)"></span><span class="own-compass-tick" style="transform:rotate(180deg)"></span><span class="own-compass-tick" style="transform:rotate(225deg)"></span><span class="own-compass-tick" style="transform:rotate(270deg)"></span><span class="own-compass-tick" style="transform:rotate(315deg)"></span></span><b id="ownHeadingVal">000°</b></label><button id="theme">☼ Classique</button><button id="undo">↶</button><button id="preview">▶ Aperçu</button><button id="resetExercise" title="Pendant un test : revenir aux positions de départ">↺ Réinitialiser l’exercice</button><button id="clearAll" class="danger" title="Vider entièrement l’exercice">⌫ Tout effacer</button><select id="speed"><option value="1">x1</option><option value="2">x2</option><option value="4" selected>x4</option><option value="8">x8</option></select><button id="save">⇩ Export</button><button id="import">⇧ Import</button><span id="coastTools" class="hidden"><button id="coastFinish" class="primary">✓ Terminer</button><button id="shapeDelete" class="danger">⌫ Supprimer forme</button><button id="coastCancel" class="danger">× Quitter</button></span><button id="scenarioGenerate" class="primary">⟳ Générer</button><button id="viewReset">◎ Recentrer</button><button id="realCoast" class="primary">⌖ Côte réelle</button><a class="app-nav-link" href="index.html" title="Ouvrir le simulateur radar">↗ Simulateur</a><input id="coastFile" type="file" accept=".geojson,.json,.gpx,.osm,.xml,application/geo+json,application/json,application/gpx+xml,text/xml,application/xml" class="hidden"><input id="file" type="file" accept="application/json" class="hidden"></nav><div class="corner"><div id="coastStatus" class="hidden">⌁ TRACÉ CÔTE ACTIF · clics: points · Entrée/double-clic: terminer · Échap: annuler</div></div><div id="menu" class="context hidden"></div><section id="shapePanel" class="shapePanel hidden"><h3>Éditeur de côte · formes</h3><div><button data-shape="circle" class="active">● Cercle / île</button><button data-shape="rect">▣ Rectangle</button><button data-shape="ellipse">◉ Ellipse</button><button data-shape="polygon">⌁ Polygone libre</button><button data-shape="strait">▥ Détroit</button><button data-shape="bay">⌒ Baie</button><button data-shape="cape">◢ Cap</button><button data-shape="island">▬ Île allongée</button><button data-shape="port">⋔ Port</button><button data-shape="archipelago">⁙ Archipel</button></div><div id="shapeHelp" class="shapeHelp">Glissez sur le radar pour dessiner</div><div id="dstEdit" class="shapeHelp hidden"><button id="dstReverse" class="primary">↔ Inverser les sens</button><label>Largeur totale (NM)<input id="dstWidth" type="number" step="0.1" min="0.2" value="1.0"></label></div><div class="shapeHelp">Sélectionnez ensuite une forme et glissez une poignée pour l’ajuster, ou le corps pour la déplacer. Suppr efface.</div><div id="rectEdit" class="shapeHelp hidden"><label>Inclinaison (°)<input id="shapeAngle" type="number" step="1" value="0"></label><button id="shapeAngleOk" class="primary">Appliquer</button></div></section><section id="generatorDialog" class="generator-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="generatorTitle"><h3 id="generatorTitle">⟳ Générer un exercice aléatoire</h3><div class="gen-grid"><label>Type de scénario<select id="genScenarioType"><option value="anticollision">Anti-collision (radial)</option><option value="crossing">Croisement</option><option value="overtake">Dépassement</option><option value="random">Mix aléatoire</option></select></label><label>Nombre de navires<input id="genCount" type="number" min="1" max="12" step="1" value="5"></label><label>Distance des contacts<select id="genDistance"><option value="near">Proche · 0,7–1,3 NM</option><option value="standard" selected>Standard · 1,1–2,2 NM</option><option value="far">Lointaine · 2–3,5 NM</option><option value="random">Aléatoire</option></select></label></div><fieldset><legend>Composition de la flotte / types ARPA</legend><div class="checkrow"><label><input type="checkbox" name="genType" value="normal" checked>NAPM — navire à propulsion mécanique</label><label><input type="checkbox" name="genType" value="fish" checked>Pêche</label><label><input type="checkbox" name="genType" value="nuc" checked>NUC</label><label><input type="checkbox" name="genType" value="anchor" checked>Mouillage</label><label><input type="checkbox" name="genType" value="sailboat" checked>Voilier</label></div><div class="hint">La génération respecte les limites de vitesse et les taux de giration ARPA de chaque catégorie.</div></fieldset><fieldset><legend>Éléments de la zone</legend><div class="checkrow"><label><input id="genCoast" type="checkbox">Ajouter une côte / île</label><label><input id="genWaypoints" type="checkbox">Créer des waypoints</label></div><div class="gen-grid" style="margin-top:8px"><label>Distance côte<select id="genCoastDistance"><option value="near">Proche</option><option value="standard" selected>Standard</option><option value="far">Lointaine</option></select></label><label>Type de côte<select id="genCoastType"><option value="random">Aléatoire</option><option value="island">Île</option><option value="strait">Détroit</option><option value="bay">Baie</option><option value="cape">Cap</option><option value="port">Port</option><option value="archipelago">Archipel</option></select></label><label>Nombre de waypoints<select id="genWaypointCount"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label></div></fieldset><fieldset><legend>Dégradation de l’écho (export + aperçu)</legend><div class="gen-grid"><label>Préréglage<select id="genDegradation"><option value="none">Aucune</option><option value="light">Légère</option><option value="medium">Moyenne</option><option value="strong">Forte</option><option value="random">Aléatoire</option><option value="custom">Conserver les réglages actuels</option></select></label><label>Mer / clapot (%)<input id="genSea" type="number" min="0" max="100" value="0"></label><label>Pluie (%)<input id="genRain" type="number" min="0" max="100" value="0"></label><label>Bruit de fond (%)<input id="genNoise" type="number" min="0" max="100" value="0"></label><label>Échos faibles (%)<input id="genWeak" type="number" min="0" max="100" value="0"></label><label>Scintillement (%)<input id="genFlicker" type="number" min="0" max="100" value="0"></label></div></fieldset><div class="actions"><button id="genCancel">Annuler</button><button id="genOk" class="primary">⟳ Générer</button></div></section><section id="routeEdit" class="popup hidden"><h3>Waypoint de route</h3><div class="grid"><label>Cap °<input id="rC" type="number" min="0" max="359"></label><label>Vitesse kn<input id="rS" type="number" min="0" step=".5"></label></div><div class="metrics" id="routePosition"></div><div class="actions"><button id="routeDelete" class="danger">Supprimer</button><span><button id="routeCancel">Annuler</button><button id="routeOk" class="primary">OK</button></span></div></section><section id="edit" class="popup hidden"><h3 id="editTitle">Contact</h3><div class="grid"><label>Nom<input id="eName" type="text"></label><label>Type<select id="eType"><option value="normal">NAPM — navire à propulsion mécanique</option><option value="fish">Pêche</option><option value="nuc">NUC</option><option value="anchor">Mouillage</option><option value="sailboat">Voilier</option></select></label><label>Cap °<input id="eC" type="number" min="0" max="359"></label><label>Vitesse kn<input id="eS" type="number" min="0" step=".5"><small id="speedHint" class="rangeText"></small></label></div><div id="metrics" class="metrics"></div><div class="actions"><button id="editDelete" class="danger">Supprimer</button><span><button id="editCancel">Annuler</button><button id="editOk" class="primary">OK</button></span></div></section><div id="startpointFlag" class="startpoint-flag hidden" aria-label="Drapeau du point de départ OWN" title="Double-cliquer pour régler le départ"></div><section id="startpointModal" class="startpoint-modal hidden" role="dialog" aria-modal="true" aria-labelledby="startpointTitle"><div class="startpoint-card"><h3 id="startpointTitle">⚑ Point de départ OWN</h3><div class="start-grid"><div class="startpoint-compass-wrap"><div id="startpointCompass" class="startpoint-compass" role="slider" aria-label="Cap initial OWN" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0"><span id="startpointNeedle" class="startpoint-needle"><i></i></span></div><b id="startpointHeadingVal" class="rangeText">000°</b></div><label>Cap initial °<input id="startpointHeading" type="number" min="0" max="359" step="1"></label><label>Vitesse initiale kn<input id="startpointSpeed" type="number" min="0" step="0.1"></label></div><div class="actions"><button id="startpointCancel">Annuler</button><button id="startpointOk" class="primary">Appliquer</button></div></div></section><section id="realModal" class="real-modal hidden" role="dialog" aria-modal="true" aria-labelledby="realTitle"><div class="real-card"><header class="real-head"><h3 id="realTitle">⌖ Côte réelle</h3><label>Préréglage <select id="realPreset"><option value="pas">Pas-de-Calais · détroit du Pas</option><option value="ouessant" selected>Ouessant</option><option value="brest">Rade de Brest</option><option value="marseille">Marseille</option><option value="gibraltar">Gibraltar</option><option value="solent">Solent</option></select></label><label>Fond <select id="realBasemap"><option value="esriStreet">Esri World Street Map</option><option value="esriImagery">Esri World Imagery</option><option value="esriOcean">Esri Ocean</option><option value="openTopo">OpenTopoMap</option></select></label><label>Rayon <select id="realRadius" class="real-radius-select" aria-label="Rayon de sélection"><option value="3">3 NM</option><option value="6">6 NM</option><option value="12" selected>12 NM</option><option value="24">24 NM</option><option value="48">48 NM</option></select><input id="realRadiusNumber" type="hidden" value="12"></label><span class="real-actions"><button id="importCoastFile" class="real-import" title="Importer une côte GeoJSON, GPX ou OSM">⇧ Importer un fichier de côte</button><button id="realLocate" class="real-locate">◎ Recentrer</button><button id="realClose" class="real-close" aria-label="Fermer">×</button></span></header><div id="realMap" class="real-map"></div><footer class="real-foot"><small id="realReadout">Cliquez sur la carte pour placer le centre du cercle · OWN au centre par défaut.</small><span id="realStatus" class="real-status"></span><button id="realValidate" class="primary">✓ Valider et importer</button></footer></div></section><section id="routeGeneratorDialog" class="popup route-generator hidden" role="dialog" aria-modal="true"><h3 id="routeGeneratorTitle">Générer une trajectoire type</h3><div class="grid"><label>Type<select id="routeGenKind"><option value="fishing">Traits de pêche</option><option value="erratic">Route erratique NUC</option><option value="loiter">Patrouille circulaire / loiter</option><option value="sailS">Route en S / zigzag voilier</option><option value="ferry">Navette de ferry</option><option value="coastParallel">Parallèle à la côte</option><option value="cpaTurn">Virage brusque au CPA</option></select></label><label><span id="routeGenP1Label">Paramètre 1</span><input id="routeGenP1" title="Pêche : longueur de chaque trait (NM) ; erratique : amplitude maximale des embardées (degrés)" aria-label="Paramètre 1 : longueur ou amplitude" type="number" step="0.1" value="2"></label><label><span id="routeGenP2Label">Paramètre 2</span><input id="routeGenP2" title="Pêche / erratique : nombre de traits ou de points de route" aria-label="Paramètre 2 : nombre de traits ou de points" type="number" step="1" value="4"></label><label>Orientation °<input id="routeGenHeading" type="number" min="0" max="359" step="1" value="90"></label></div><div id="routeGenHelp" class="shapeHelp">Longueur des traits (NM), nombre de traits et orientation.</div><div class="actions"><button id="routeGenCancel">Annuler</button><button id="routeGenOk" class="primary">Créer la route</button></div></section><section id="echoDegradation" class="panel echo-degradation" aria-label="Dégradation de l’écho"><h3>⚠ DÉGRADATION DE L’ÉCHO</h3><div class="echo-grid"><label>Mer / clapot <input id="degSea" type="range" min="0" max="100" value="0"><b id="degSeaVal">0</b></label><label>Pluie <input id="degRain" type="range" min="0" max="100" value="0"><b id="degRainVal">0</b></label><label>Bruit de fond <input id="degNoise" type="range" min="0" max="100" value="0"><b id="degNoiseVal">0</b></label><label>Échos faibles <input id="degWeak" type="range" min="0" max="100" value="0"><b id="degWeakVal">0</b></label><label>Scintillement <input id="degFlicker" type="range" min="0" max="100" value="0"><b id="degFlickerVal">0</b></label></div><div class="shapeHelp">Mer près du centre, pluie en nappes, bruit et détections intermittentes. Les réglages anti-clutter, gain et rémanence du simulateur permettent de compenser.</div></section><section id="table" class="panel hidden"><h3>CPA / TCPA — TABLEAU DE SITUATION</h3><table><thead><tr><th>Contact</th><th>Distance</th><th>Relèvement</th><th>CPA</th><th>TCPA</th></tr></thead><tbody id="tableBody"></tbody></table></section><div id="toast" class="toast hidden"></div></main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), D=Math.PI/180, rad=a=>a*D, norm=a=>(a%360+360)%360;
+const vel=(c,s)=>[Math.sin(rad(c))*s,Math.cos(rad(c))*s];
+/* Navigation des routes identique au simulateur : virage limité par catégorie ARPA,
+   accélération progressive, puis passage au waypoint suivant à l'arrivée. */
+const TURN_RATE={normal:3.0,fish:1.6,nuc:.7,anchor:.35,sailboat:2.2};
+function dstFlowForEntry(a,d){
+  // La voie est choisie d'après le cap à l'entrée : le sens le plus proche gagne.
+  // d.reverse inverse les deux sens, sans changer la règle tribord de ce sens.
+  const g=dstGeom(d), base=d.reverse?-1:1;
+  const hBase=norm(Math.atan2(base*g.ux,base*g.uy)/D);
+  const hOpp=norm(hBase+180), db=Math.abs(((a.c-hBase+540)%360)-180), dop=Math.abs(((a.c-hOpp+540)%360)-180);
+  return db<=dop?base:-base;
+}
+function dstLaneHeading(a,d,z){
+  const g=z.g, flow=a._dstFlow||dstFlowForEntry(a,d);
+  // Règle de circulation à droite : -n est à tribord en sens +g, +n en sens -g.
+  const laneSide=flow>0?-1:1, laneCenter=laneSide*d.width*.25;
+  const cross=Math.max(-1.5,Math.min(1.5,(laneCenter-z.side)*1.8));
+  return norm(Math.atan2(flow*g.ux+cross*g.nx,flow*g.uy+cross*g.ny)/D);
+}
+function dstRouteUpdate(a,dt){
+  // Le navire propre n'appelle jamais cette fonction; NUC, mouillage et vitesse nulle sont exclus.
+  if(!Array.isArray(E.dsts)||!E.dsts.length||a.type==='nuc'||a.type==='anchor'||!(a.s>0))return false;
+  let active=Number.isInteger(a._dstIndex)?E.dsts[a._dstIndex]:null;
+  if(active){
+    const z=dstInfo(a,active), flow=a._dstFlow||1;
+    const exited=flow>0?z.along>z.g.L+.04:z.along<-.04;
+    if(exited){delete a._dstIndex;delete a._dstLane;delete a._dstFlow;delete a._dstDesired;return false;}
+    const desired=dstLaneHeading(a,active,z),diff=((desired-a.c+540)%360)-180;
+    const maxTurn=(TURN_RATE[a.type]||3)*dt;
+    a.c=norm(a.c+Math.max(-maxTurn,Math.min(maxTurn,diff)));
+    a._dstDesired=desired; return true;
+  }
+  for(let i=0;i<E.dsts.length;i++){
+    const d=E.dsts[i],z=dstInfo(a,d); if(!z.inBounds)continue;
+    const flow=dstFlowForEntry(a,d);
+    a._dstIndex=i; a._dstFlow=flow; a._dstLane=flow>0?0:1; a._dstDesired=dstLaneHeading(a,d,z);
+    const diff=((a._dstDesired-a.c+540)%360)-180,maxTurn=(TURN_RATE[a.type]||3)*dt;
+    a.c=norm(a.c+Math.max(-maxTurn,Math.min(maxTurn,diff))); return true;
+  }
+  return false;
+}
+function advanceRouteWaypoint(a){
+  const route=Array.isArray(a.maneuvers)?a.maneuvers:[];
+  if(!route.length){a._wp=0;return 0;}
+  let wi=Number.isInteger(a._wp)?Math.max(0,Math.min(a._wp,route.length)):0;
+  while(route[wi]&&Math.hypot((+route[wi].x||0)-a.x,(+route[wi].y||0)-a.y)<=.06)wi++;
+  a._wp=wi;
+  a._routeTarget=wi;
+  return wi;
+}
+function routeUpdate(a,dt){
+  if(dstRouteUpdate(a,dt))return;
+  const route=Array.isArray(a.maneuvers)?a.maneuvers:[]; if(!route.length)return;
+  const wi=advanceRouteWaypoint(a), m=route[wi];
+  if(!m)return;
+  const desired=norm(Math.atan2((+m.x||0)-a.x,(+m.y||0)-a.y)/D);
+  const diff=((desired-a.c+540)%360)-180;
+  const maxTurn=(TURN_RATE[a.type]||3)*dt;
+  a.c=norm(a.c+Math.max(-maxTurn,Math.min(maxTurn,diff)));
+  const targetSpeed=m.vitesse==null?a.s:Math.max(0,+m.vitesse||0);
+  const accel=(a.type==='anchor'?0.05:a.type==='fish'?.25:a.type==='sailboat'?.18:.35)*dt;
+  a.s+=Math.max(-accel,Math.min(accel,targetSpeed-a.s));
+  a._routeTarget=wi;
+}
+const TYPE={normal:'Normal',fish:'Pêche',nuc:'NUC',anchor:'Mouillage',sailboat:'Voilier'};
+function canonicalType(value){const v=String(value??'').trim().toLowerCase();const aliases={normal:'normal',napm:'normal',cargo:'normal',fish:'fish',fishing:'fish','pêche':'fish','peche':'fish',nuc:'nuc','non-conforme':'nuc','non conforme':'nuc',anchor:'anchor','mouillage':'anchor',sailboat:'sailboat','sailing':'sailboat','voilier':'sailboat'};return aliases[v]||'normal';}
+const SPEED_LIMITS={normal:[0,30],fish:[0,6],nuc:[0,4],anchor:[0,0],sailboat:[0,8]};
+const clone=x=>JSON.parse(JSON.stringify(x));
+function speedRange(t,own=false){return own?[0,30]:(SPEED_LIMITS[t]||SPEED_LIMITS.normal)}
+function clampSpeed(v,t,own=false){const [lo,hi]=speedRange(t,own);return Math.min(hi,Math.max(lo,Number.isFinite(+v)?+v:lo))}
+let E={version:'V85',name:'Exercice sans titre',own:{x:0,y:0,c:0,s:10},ships:[],coast:[],coastShapes:[],dsts:[],echoDegradation:{sea:0,rain:0,noise:0,weak:0,flicker:0}};
+let range=3,selected=null,drag=null,history=[],running=false,last=0,simTime=0,runStart=null,exerciseStart=null,coastMode=false,dstMode=false,routeMode=false,routeEdit=null,shapeTool='circle',draft=null,view={x:0,y:0,zoom:1},pointers=new Map(),pinch=null,spaceHeld=false;
+// Presse-papiers interne des navires (Ctrl/Cmd+C / Ctrl/Cmd+V).
+let shipClipboard=null, pasteSerial=0, lastMouseWorld=null;
+const selectedShips=new Set();
+function shipId(){return 'ship-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)}
+function uniqueShipName(base, reserved=[]){const used=new Set(E.ships.map(a=>String(a.name||''))); reserved.forEach(n=>used.add(n)); let n=String(base||'Navire'); if(!used.has(n))return n; let i=2; while(used.has(n+'-'+i))i++; return n+'-'+i}
+function focusIsText(){const e=document.activeElement;return !!e && (e.matches('input,textarea,select,[contenteditable=true]')||e.closest('.popup'))}
+function copySelectedShips(){if(running||runStart)return false; const ids=[...selectedShips].filter(i=>E.ships[i]); const indexes=ids.length?ids:(typeof selected==='number'&&selected>=0?[selected]:[]); if(!indexes.length)return false; const ships=indexes.map(i=>clone(E.ships[i])); shipClipboard={ships,anchor:{x:ships[0].x,y:ships[0].y}}; pasteSerial=0; toast(ships.length>1?`${ships.length} navires copiés`:'Navire copié'); return true}
+function pasteShips(target){if(running||runStart||!shipClipboard?.ships?.length)return false; snapshot(); const src=shipClipboard.ships, a=src[0], serial=++pasteSerial; const hasMouse=!!target, fallback={x:a.x+.35*serial,y:a.y+.35*serial}; const at=target||fallback, dx=at.x-a.x+.35*(serial-1), dy=at.y-a.y+.35*(serial-1); const reserved=[]; const copies=src.map((orig,offset)=>{const c=clone(orig); c.id=shipId(); c.name=uniqueShipName(orig.name,reserved); reserved.push(c.name); c.x=+orig.x+dx; c.y=+orig.y+dy; c.maneuvers=(orig.maneuvers||[]).map(m=>({...m,x:+m.x+dx,y:+m.y+dy,lat:+m.y+dy,vitesse:m.vitesse==null?null:clampSpeed(m.vitesse,orig.type)})); c.s=clampSpeed(orig.s,orig.type); delete c._wp; delete c._dstIndex; delete c._dstLane; delete c._dstFlow; delete c._dstDesired; return c;}); const valid=copies.filter(c=>!pointInCoastMargin(c.x,c.y));if(!valid.length){toast('Impossible de coller un navire sur la côte');return false;}const first=E.ships.length; E.ships.push(...valid); selectedShips.clear(); valid.forEach((_,i)=>selectedShips.add(first+i)); selected=first; changed(); toast(valid.length>1?`${valid.length} navires collés`: 'Navire collé'); return true}
+function pasteAtMouse(){return pasteShips(lastMouseWorld?{...lastMouseWorld}:null)}
+
+function toast(t){$('toast').textContent=t;$('toast').classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.add('hidden'),1800)}
+function snapshot(){history.push(clone(E));if(history.length>60)history.shift()}
+function changed(){try{localStorage.setItem('radar-exercice-v19',JSON.stringify(E))}catch(_){};draw();updateTable()}
+function setDSTMode(on){dstMode=on;coastMode=false;draft=null;drag=null;document.body.classList.remove('coastActive');$('coastStatus').classList.add('hidden');$('coastTools').classList.add('hidden');$('shapePanel').classList.add('hidden');if($('hint'))$('hint').textContent=on?'DST actif · glissez pour placer · double-clic pour modifier':'Clic vide : ajouter · glisser : déplacer · clic droit : menu';draw()}
+function setCoastMode(on){dstMode=false;document.body.classList.remove('dstActive');coastMode=on;draft=null;drag=null;document.body.classList.toggle('coastActive',on);$('coastStatus').classList.toggle('hidden',!on);$('coastTools').classList.toggle('hidden',!on);$('shapePanel').classList.toggle('hidden',!on);if(on)selectShape(shapeTool);draw()}
+function selectShape(t){if(['strait','bay','cape','island','port','archipelago'].includes(t)){snapshot();E.coastShapes.push(...makeGeneratedCoast(t,1.2));selected={kind:'shape',index:E.coastShapes.length-1};changed();toast('Côte standard ajoutée · modifiable');return}shapeTool=t;document.querySelectorAll('[data-shape]').forEach(b=>b.classList.toggle('active',b.dataset.shape===t));$('shapeHelp').textContent=t==='polygon'?'Cliquez pour ajouter des sommets · Terminer ou double-clic pour fermer':t==='dst'?"Glissez de l'entrée à la sortie du DST · largeur réglable":'Glissez sur le radar pour dessiner';}
+function finishDraft(){
+  if(!draft)return false;
+  let committed=null;
+  if(draft.type==='dst'){
+    const dx=draft.x2-draft.x,dy=draft.y2-draft.y,len=Math.hypot(dx,dy);
+    if(len<.15){toast('Axe DST trop court');return false;}
+    committed={x:+draft.x,y:+draft.y,x2:+draft.x2,y2:+draft.y2,width:+(draft.width||1),reverse:false};
+    snapshot(); E.dsts.push(committed); selected={kind:'dst',index:E.dsts.length-1}; draft=null; drag=null; changed(); toast('DST ajouté'); return true;
+  }
+  if(draft.type==='polygon'){
+    // Copie défensive : le brouillon reste la source de vérité jusqu'à la validation.
+    // Les séquences clic/double-clic produisent parfois le même dernier point.
+    const raw=Array.isArray(draft.points)?draft.points:[];
+    const points=[]; raw.forEach(p=>{const q=[Number(p?.[0]),Number(p?.[1])];if(q.every(Number.isFinite)&&(!points.length||Math.hypot(q[0]-points[points.length-1][0],q[1]-points[points.length-1][1])>1e-6))points.push(q)});
+    if(points.length>1&&Math.hypot(points[0][0]-points.at(-1)[0],points[0][1]-points.at(-1)[1])<1e-6)points.pop();
+    const valid=points.length>=3&&points.every(p=>p.length===2&&Number.isFinite(p[0])&&Number.isFinite(p[1]));
+    if(!valid){toast('Au moins 3 sommets');return false}
+    committed={type:'polygon',points:points.map(p=>[p[0],p[1]])};
+  }else if(draft.type==='circle'&&Number.isFinite(draft.r)&&draft.r>.05){
+    committed={type:'circle',x:+draft.x,y:+draft.y,r:+draft.r};
+  }else if(draft.type==='ellipse'&&Number.isFinite(draft.rx)&&Number.isFinite(draft.ry)&&draft.rx>.05&&draft.ry>.05){
+    committed={type:'ellipse',x:+draft.x,y:+draft.y,rx:+draft.rx,ry:+draft.ry};
+  }else if(draft.type==='rect'&&Number.isFinite(draft.w)&&Number.isFinite(draft.h)&&Math.abs(draft.w)>.05&&Math.abs(draft.h)>.05){
+    committed={type:'rect',x:+draft.x,y:+draft.y+Math.min(0,+draft.h),w:Math.abs(+draft.w),h:Math.abs(+draft.h),angle:0};
+  }
+  if(!committed){toast(draft.type==='polygon'?'Au moins 3 sommets':'Tracez une forme');return false}
+  snapshot();
+  E.coastShapes.push(committed);
+  selected={kind:'shape',index:E.coastShapes.length-1};
+  draft=null;
+  drag=null;
+  changed();
+  toast(committed.type==='polygon'?'Polygone ajouté':'Forme ajoutée');
+  return true;
+}
+function cancelCoast(){draft=null;setCoastMode(false);draw()}
+function deleteSelectedShape(){if(selected&&selected.kind==='shape'){snapshot();E.coastShapes.splice(selected.index,1);selected=null;updateShapeEditor();changed();toast('Forme supprimée')}}
+let toolbarReserveHeight=null;
+let toolbarReserveWidth=null;
+let toolbarSide='top';
+function radarLayout(){
+  const r=$('editor').getBoundingClientRect();
+  const toolbar=$('.toolbar')||document.querySelector('.toolbar');
+  const toolbarHeight=toolbar?.offsetHeight||0;
+  const toolbarWidth=toolbar?.offsetWidth||0;
+  if(toolbar && toolbarReserveHeight===null) toolbarReserveHeight=toolbarHeight;
+  if(toolbar && toolbarReserveWidth===null) toolbarReserveWidth=toolbarWidth;
+  const gap=8;
+  let left=0, top=0, right=r.width, bottom=r.height;
+  if(toolbarSide==='top') top=Math.min(r.height,toolbarReserveHeight+gap);
+  else if(toolbarSide==='bottom') bottom=Math.max(0,r.height-toolbarReserveHeight-gap);
+  else if(toolbarSide==='left') left=Math.min(r.width,toolbarReserveWidth+gap);
+  else if(toolbarSide==='right') right=Math.max(0,r.width-toolbarReserveWidth-gap);
+  const width=Math.max(0,right-left), height=Math.max(0,bottom-top);
+  return {r,left,top,right,bottom,width,height,cx:left+width/2,cy:top+height/2,R:Math.min(width,height)*.43};
+}
+function scale(){const g=radarLayout();return g.R*view.zoom/range}
+function screen(p){const g=radarLayout(),s=scale();return{x:g.r.left+g.cx+(p.x-view.x)*s,y:g.r.top+g.cy-(p.y-view.y)*s}}
+function world(e){const g=radarLayout(),s=scale();return{x:view.x+(e.clientX-g.r.left-g.cx)/s,y:view.y-(e.clientY-g.r.top-g.cy)/s}}
+function localScreen(p){const q=screen(p),r=$('editor').getBoundingClientRect();return{x:q.x-r.left,y:q.y-r.top}}
+function hitShip(p){let best=-1,d=.34/view.zoom;E.ships.forEach((a,i)=>{const q=Math.hypot(a.x-p.x,a.y-p.y);if(q<d){d=q;best=i}});return best}
+function shapeCenter(s){if(s.type==='polygon'){return s.points.reduce((a,p)=>({x:a.x+p[0],y:a.y+p[1]}),{x:0,y:0})}let x=s.x,y=s.y;return{x,y}}
+function shapeHandleHit(p){if(!selected||selected.kind!=='shape')return -1;const s=E.coastShapes[selected.index],hs=handles(s);for(let i=0;i<hs.length;i++)if(Math.hypot(p.x-hs[i].x,p.y-hs[i].y)<.16/view.zoom)return i;return -1}
+function pointInPolygon(p,points){
+  if(!Array.isArray(points)||points.length<3)return false;
+  let inside=false;
+  for(let j=0,k=points.length-1;j<points.length;k=j++){
+    const a=points[j],b=points[k];
+    if(((a[1]>p.y)!==(b[1]>p.y))&&p.x<(b[0]-a[0])*(p.y-a[1])/(b[1]-a[1])+a[0])inside=!inside;
+  }
+  return inside;
+}
+function rectCenter(s){return {x:s.x+s.w/2,y:s.y+s.h/2}}
+function rectAngle(s){return Number.isFinite(+s.angle)?+s.angle:0}
+function rotatePoint(p,c,a){const q=rad(a),co=Math.cos(q),si=Math.sin(q),dx=p.x-c.x,dy=p.y-c.y;return {x:c.x+dx*co-dy*si,y:c.y+dx*si+dy*co}}
+function rectLocalPoint(p,s){return rotatePoint(p,rectCenter(s),rectAngle(s))}
+function pointInRotatedRect(p,s){const q=rectLocalPoint(p,s),c=rectCenter(s);return q.x>=c.x-s.w/2&&q.x<=c.x+s.w/2&&q.y>=c.y-s.h/2&&q.y<=c.y+s.h/2}
+function rectCorners(s){const c=rectCenter(s),a=rectAngle(s);return [{x:s.x,y:s.y},{x:s.x+s.w,y:s.y},{x:s.x+s.w,y:s.y+s.h},{x:s.x,y:s.y+s.h}].map(p=>rotatePoint(p,c,-a))}
+function shapeHit(p){for(let i=E.coastShapes.length-1;i>=0;i--){const s=E.coastShapes[i];if(s.type==='circle'&&Math.hypot(p.x-s.x,p.y-s.y)<=s.r)return i;if(s.type==='ellipse'&&((p.x-s.x)**2/s.rx**2+(p.y-s.y)**2/s.ry**2)<=1)return i;if(s.type==='rect'&&pointInRotatedRect(p,s))return i;if(s.type==='polygon'&&pointInPolygon(p,s.points))return i}return -1}
+function drawShape(x,s,selectedShape=false){const pts=s.type==='polygon'?s.points.map(p=>localScreen({x:p[0],y:p[1]})):[];x.beginPath();if(s.type==='circle'){const q=localScreen(s);x.arc(q.x,q.y,s.r*scale(),0,Math.PI*2)}else if(s.type==='ellipse'){const q=localScreen(s);x.ellipse(q.x,q.y,s.rx*scale(),s.ry*scale(),0,0,Math.PI*2)}else if(s.type==='rect'){const rp=rectCorners(s).map(localScreen);x.moveTo(rp[0].x,rp[0].y);rp.slice(1).forEach(p=>x.lineTo(p.x,p.y));x.closePath()}else if(pts.length){x.moveTo(pts[0].x,pts[0].y);pts.slice(1).forEach(p=>x.lineTo(p.x,p.y));x.closePath()}x.fill();x.stroke();if(selectedShape){x.setLineDash([3,3]);x.strokeStyle='#fff';x.stroke();x.setLineDash([]);const hs=handles(s);hs.forEach((h,hi)=>{x.fillStyle=selectedShape&&s.type==='rect'&&hi===4?'#f3c64f':'#fff';x.beginPath();x.arc(localScreen(h).x,localScreen(h).y,selectedShape&&s.type==='rect'&&hi===4?4:5,0,7);x.fill();x.strokeStyle='#111';x.stroke()})}}
+function handles(s){if(s.type==='circle')return [{x:s.x,y:s.y},{x:s.x+s.r,y:s.y}];if(s.type==='ellipse')return [{x:s.x,y:s.y},{x:s.x+s.rx,y:s.y},{x:s.x,y:s.y+s.ry}];if(s.type==='rect'){const c=rectCenter(s),a=rectAngle(s),top=rotatePoint({x:c.x,y:c.y+s.h/2},c,a);return rectCorners(s).concat([{x:top.x,y:top.y+.35}]);}return s.points.map(p=>({x:p[0],y:p[1]}))}
+function draw(){const cv=$('editor'),g=radarLayout(),r=g.r,d=devicePixelRatio||1,w=r.width,h=r.height,ctx=cv.getContext('2d');cv.width=w*d;cv.height=h*d;ctx.setTransform(d,0,0,d,0,0);const {cx,cy,R}=g,cs=getComputedStyle(document.body);ctx.fillStyle=cs.getPropertyValue('--bg');ctx.fillRect(0,0,w,h);ctx.fillStyle=cs.getPropertyValue('--radar');ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();const ed=E.echoDegradation||{};if((ed.sea||ed.rain||ed.noise)>0){ctx.save();ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.clip();let seed=17;const noise=Number(ed.noise)||0,sea=Number(ed.sea)||0,rain=Number(ed.rain)||0,weak=Number(ed.weak)||0,flicker=Number(ed.flicker)||0;const count=Math.floor(28+noise*2.8+sea*1.1+rain*.8+weak*.6+flicker*.5);for(let i=0;i<count;i++){seed=(seed*9301+49297)%233280;const u=seed/233280,ang=u*6.283;seed=(seed*9301+49297)%233280;let rr=R*(.06+seed/233280*.94);if(sea>0&&rr<R*.40)rr*=.58;const local=(noise/100)*.68+(sea/100)*.20+(rain/100)*.16+(weak/100)*.12;ctx.globalAlpha=Math.min(.72,.06+local*.76);ctx.fillStyle=i%4===0?'#f2e5a0':i%3===0?'#d2e7d1':'#8cb6a3';const sz=1.2+noise/35;ctx.fillRect(cx+Math.cos(ang)*rr-sz/2,cy+Math.sin(ang)*rr-sz/2,sz,sz)}if(noise>0){ctx.globalAlpha=Math.min(.28,noise/360);ctx.fillStyle='#c7d4c8';for(let i=0;i<Math.floor(noise*.55);i++){seed=(seed*9301+49297)%233280;const x=cx+(seed/233280*2-1)*R;seed=(seed*9301+49297)%233280;const y=cy+(seed/233280*2-1)*R;if(Math.hypot(x-cx,y-cy)<=R)ctx.fillRect(x,y,1.8+noise/45,1.8+noise/45)}}ctx.restore()}ctx.strokeStyle=cs.getPropertyValue('--grid');ctx.lineWidth=1;[.25,.5,.75,1].forEach(f=>{ctx.setLineDash([3,7]);ctx.beginPath();ctx.arc(cx,cy,R*f,0,7);ctx.stroke()});ctx.setLineDash([]);for(let i=0;i<36;i++){const a=i*10*D,len=i%3===0?10:5;ctx.beginPath();ctx.moveTo(cx+Math.sin(a)*(R-len),cy-Math.cos(a)*(R-len));ctx.lineTo(cx+Math.sin(a)*R,cy-Math.cos(a)*R);ctx.stroke()}ctx.fillStyle=cs.getPropertyValue('--muted');ctx.font='11px monospace';ctx.textAlign='center';[['N',0],['E',90],['S',180],['W',270]].forEach(([t,a])=>ctx.fillText(t,cx+Math.sin(a*D)*(R+14),cy-Math.cos(a*D)*(R+14)+4));[1,.5,.25].forEach(f=>ctx.fillText((range*f/view.zoom).toFixed(1)+' NM',cx+5,cy-R*f-4));
+ctx.fillStyle=cs.getPropertyValue('--coast')+'55';ctx.strokeStyle=cs.getPropertyValue('--coast');ctx.lineWidth=3;E.coastShapes.forEach((s,i)=>drawShape(ctx,s,selected&&selected.kind==='shape'&&selected.index===i));if(E.coast.length){ctx.beginPath();E.coast.forEach((p,i)=>{const q=localScreen({x:p[0],y:p[1]});i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)});ctx.stroke()}if(draft){ctx.strokeStyle=cs.getPropertyValue('--accent');ctx.fillStyle=cs.getPropertyValue('--accent')+'22';drawShape(ctx,draft,false)}drawDSTs(ctx);
+E.ships.forEach((a,i)=>{if(Array.isArray(a.maneuvers)&&a.maneuvers.length){ctx.save();ctx.strokeStyle=i===selected?'#fff':cs.getPropertyValue('--accent');ctx.lineWidth=1.5;ctx.setLineDash([5,5]);ctx.beginPath();const inTest=running||!!runStart;const first=inTest?Math.max(0,Math.min(Number.isInteger(a._wp)?a._wp:0,a.maneuvers.length)):0;let q0=localScreen(a);ctx.moveTo(q0.x,q0.y);a.maneuvers.slice(first).forEach(m=>{let q=localScreen({x:+m.x||0,y:+m.y||0});ctx.lineTo(q.x,q.y)});ctx.stroke();ctx.setLineDash([]);a.maneuvers.forEach((m,mi)=>{let q=localScreen({x:+m.x||0,y:+m.y||0});ctx.globalAlpha=inTest&&mi<first?.35:1;ctx.beginPath();ctx.arc(q.x,q.y,4,0,7);ctx.stroke();ctx.fillText(String(mi+1),q.x+6,q.y-5)});ctx.globalAlpha=1;ctx.restore()}const q=localScreen(a),col=i===selected?'#fff':a.type==='sailboat'?cs.getPropertyValue('--sail'):cs.getPropertyValue('--safe');ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2;ctx.beginPath();if(a.type==='anchor')ctx.arc(q.x,q.y,7,0,7);else if(a.type==='sailboat'){ctx.moveTo(q.x,q.y-10);ctx.lineTo(q.x-9,q.y+7);ctx.lineTo(q.x+9,q.y+7);ctx.closePath()}else{ctx.arc(q.x,q.y,5,0,7);const v=vel(a.c,1);ctx.moveTo(q.x,q.y);ctx.lineTo(q.x+v[0]*15,q.y-v[1]*15)}ctx.stroke();ctx.font='bold 10px monospace';ctx.textAlign='left';ctx.fillText(a.name,q.x+10,q.y-9)});ctx.save();ctx.translate(cx,cy);ctx.rotate((E.own.c||0)*D);ctx.fillStyle='#64c7ee';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(-8,10);ctx.lineTo(0,6);ctx.lineTo(8,10);ctx.closePath();ctx.fill();ctx.restore();ctx.fillStyle=cs.getPropertyValue('--muted');ctx.fillText('OWN '+String(Math.round(E.own.c||0)).padStart(3,'0')+'°',cx,cy+24);drawStartPointFlag(ctx)}
+function drawStartPointFlag(ctx){const st=exerciseStart?.own;if(!st)return;const q=localScreen(st);if(!q||!Number.isFinite(q.x)||!Number.isFinite(q.y))return;ctx.save();ctx.strokeStyle='#f3c64f';ctx.fillStyle='#f3c64f';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(q.x,q.y+11);ctx.lineTo(q.x,q.y-12);ctx.stroke();ctx.beginPath();ctx.moveTo(q.x,q.y-12);ctx.lineTo(q.x+13,q.y-7);ctx.lineTo(q.x,q.y-2);ctx.closePath();ctx.fill();ctx.restore();}
+function startPointHit(p){const st=exerciseStart?.own;return !!st&&Math.hypot(p.x-st.x,p.y-st.y)<Math.max(.22,.18/view.zoom)}
+function syncStartPointFlag(){const el=$('startpointFlag'),st=exerciseStart?.own;if(!el||!st){el?.classList.add('hidden');return;}const q=screen(st),r=el.getBoundingClientRect();el.style.left=(q.x-r.width/2)+'px';el.style.top=(q.y-r.height+4)+'px';el.classList.remove('hidden');}
+function openStartPointDialog(){const st=exerciseStart?.own;if(!st)return;const h=norm(st.c||0);$('startpointHeading').value=Math.round(h);$('startpointSpeed').value=Number(st.s||0).toFixed(1);updateStartPointCompass(h);$('startpointModal').classList.remove('hidden');}
+function closeStartPointDialog(){$('startpointModal').classList.add('hidden')}
+function updateStartPointCompass(v){const h=norm(v);$('startpointHeadingVal').textContent=String(Math.round(h)).padStart(3,'0')+'°';$('startpointHeading').value=Math.round(h);$('startpointCompass').setAttribute('aria-valuenow',Math.round(h));$('startpointNeedle').style.transform=`rotate(${h}deg)`}
+function applyStartPoint(){if(!exerciseStart?.own)return;const h=norm(+$('startpointHeading').value||0),speed=Math.max(0,Math.min(40,+$('startpointSpeed').value||0));exerciseStart.own.c=h;exerciseStart.own.s=speed;closeStartPointDialog();draw();syncStartPointFlag();toast('Réglages du point de départ OWN appliqués')}
+function motion(a,o){const p=[a.x-o.x,a.y-o.y],tv=vel(a.c,a.s),ov=vel(o.c,o.s),rx=tv[0]-ov[0],ry=tv[1]-ov[1],v2=rx*rx+ry*ry,tc=v2?-(p[0]*rx+p[1]*ry)/v2:Infinity,ok=tc>0;return{range:Math.hypot(...p),brg:norm(Math.atan2(p[0],p[1])/D),tcpa:ok?tc:0,cpa:ok?Math.hypot(p[0]+rx*tc,p[1]+ry*tc):Math.hypot(...p)}}
+function updateSpeedControl(){const own=selected<0,type=own?'normal':$('eType').value;const [lo,hi]=speedRange(type,own);$('eS').min=lo;$('eS').max=hi;$('eS').disabled=type==='anchor';const v=clampSpeed(+$('eS').value,type,own);if(Number.isFinite(+$('eS').value))$('eS').value=v}
+function openEdit(i,at){selected=i;$('editTitle').textContent=i<0?'Navire propre':E.ships[i].name;const a=i<0?E.own:E.ships[i];$('eName').value=i<0?'OWN':a.name;$('eName').disabled=i<0;$('eC').value=Number(a.c).toFixed(1);$('eS').value=a.s;$('eType').value=i<0?'normal':a.type;$('eType').disabled=i<0;updateSpeedControl();$('edit').style.left=Math.min(innerWidth-300,Math.max(8,(at||screen(a)).x+12))+'px';$('edit').style.top=Math.min(innerHeight-270,Math.max(50,(at||screen(a)).y+12))+'px';$('edit').classList.remove('hidden');$('menu').classList.add('hidden')}
+function closeEdit(){$('edit').classList.add('hidden');selected=null;draw()}
+function updateTable(){if($('table').classList.contains('hidden'))return;$('tableBody').innerHTML=E.ships.map(a=>{const m=motion(a,E.own);return `<tr><td>${a.name}</td><td>${m.range.toFixed(1)} NM</td><td>${m.brg.toFixed(1)}°</td><td>${m.cpa.toFixed(1)} NM</td><td>${isFinite(m.tcpa)?m.tcpa.toFixed(1)+' h':'—'}</td></tr>`}).join('')}
+/* Export canonique des côtes :
+   - x/y sont en NM dans le repère monde (x Est/droite, y Nord/haut) ;
+   - un rectangle est défini par son coin monde (x,y), w/h positifs et son centre
+     (x+w/2,y+h/2) ;
+   - angle est en degrés, 0° vers la droite/Est, positif horaire à l'écran.
+     Le dessin applique une rotation monde de -angle (le canevas inverse l'axe Y).
+   Ne pas remplacer `coast` par coastShapes : les anciens simulateurs attendent
+   encore `coast` comme une liste de points [x,y]. */
+function exportData(){return JSON.stringify({...E,coast:Array.isArray(E.coast)?E.coast:[],coastShapes:E.coastShapes.map(s=>clone(s)),simulationStart:exerciseStart?clone(exerciseStart):null,coastFormat:'shapes-v1',coastConvention:{coordinates:'NM; x=Est/droite, y=Nord/haut',rectangle:'x,y=coin monde; w,h positifs; centre=(x+w/2,y+h/2)',angle:'degres; 0=droite/Est; positif=horaire a l’écran (repere monde y vers le haut); rotation monde = -angle'}},null,2)}
+function normalize(x){if(!x||!x.own||!Array.isArray(x.ships))throw Error('Format incompatible');let shapes=Array.isArray(x.coastShapes)?x.coastShapes:[];if(!shapes.length&&Array.isArray(x.coast)&&x.coast.length)shapes=[{type:'polygon',points:x.coast}];shapes=shapes.filter(s=>s&&s.type!=='dst').map(s=>s&&s.type==='rect'?{...s,angle:Number.isFinite(+s.angle)?+s.angle:0}:s);return {version:'V85',name:String(x.name||'Exercice'),own:{x:+x.own.x||0,y:+x.own.y||0,c:norm(+x.own.c||0),s:clampSpeed(x.own.s,'normal',true)},ships:x.ships.map((a,i)=>({id:String(a.id||shipId()),x:+a.x||0,y:+a.y||0,c:norm(+a.c||0),s:clampSpeed(a.s,(canonicalType(a.type))),name:String(a.name||'C-'+String(i+1).padStart(2,'0')),type:(canonicalType(a.type)),maneuvers:Array.isArray(a.maneuvers)?a.maneuvers.map(m=>({cap:m?.cap==null?null:norm(+m.cap),vitesse:m?.vitesse==null?null:Math.max(0,+m.vitesse),x:+(m?.x??m?.longitude??0)||0,y:+(m?.y??m?.lat??0)||0,lat:+(m?.lat??m?.y??0)||0})).filter(m=>Number.isFinite(m.x)&&Number.isFinite(m.y)):[]})),coast:Array.isArray(x.coast)&&x.coast.every(p=>Array.isArray(p)&&p.length>=2)?x.coast.map(p=>[+p[0]||0,+p[1]||0]):[],coastShapes:shapes,dsts:Array.isArray(x.dsts)?x.dsts.map(normalizeDST).filter(Boolean):[],echoDegradation:(()=>{const d=x.echoDegradation||{};const n=k=>Math.max(0,Math.min(100,Number.isFinite(+d[k])?+d[k]:0));return {sea:n('sea'),rain:n('rain'),noise:n('noise'),weak:n('weak'),flicker:n('flicker')}})()}}
+function normalizeDST(d){if(!d)return null;let x=+d.x,y=+d.y,x2=+d.x2,y2=+d.y2,w=+d.width||1;if(![x,y,x2,y2,w].every(Number.isFinite))return null;return {x,y,x2,y2,width:Math.max(.2,Math.round(w*10)/10),reverse:!!d.reverse,name:String(d.name||'DST')}}
+function dstGeom(d){const dx=d.x2-d.x,dy=d.y2-d.y,L=Math.hypot(dx,dy)||1;return {ux:dx/L,uy:dy/L,nx:-dy/L,ny:dx/L,L}}
+function dstInfo(p,d){const g=dstGeom(d),rx=p.x-d.x,ry=p.y-d.y,along=rx*g.ux+ry*g.uy,side=rx*g.nx+ry*g.ny;return {along,side,g,inBounds:along>=0&&along<=g.L&&Math.abs(side)<=d.width/2,sep:along>=0&&along<=g.L&&Math.abs(side)<=Math.min(.12,d.width*.12),lane:side<0?0:1,desired:side<0?(d.reverse?g.uy*0+Math.atan2(g.ux,g.uy)/D+180:Math.atan2(g.ux,g.uy)/D):(d.reverse?Math.atan2(g.ux,g.uy)/D:Math.atan2(g.ux,g.uy)/D+180)}}
+function dstHit(p){let best=-1,bd=Infinity;(E.dsts||[]).forEach((d,i)=>{const z=dstInfo(p,d),tol=Math.max(.18,d.width/2+.12);if(z.along>=-.12&&z.along<=z.g.L+.12&&Math.abs(z.side)<=tol&&Math.abs(z.side)<bd){bd=Math.abs(z.side);best=i}});return best}
+function dstHandles(d){const g=dstGeom(d);return [{x:d.x,y:d.y},{x:d.x2,y:d.y2},{x:d.x+g.ux*g.L/2+g.nx*d.width/2,y:d.y+g.uy*g.L/2+g.ny*d.width/2}]}
+function dstHandleHit(p){if(!selected||selected.kind!=='dst')return -1;const d=E.dsts[selected.index];if(!d)return -1;const hs=dstHandles(d);for(let i=0;i<hs.length;i++)if(Math.hypot(p.x-hs[i].x,p.y-hs[i].y)<Math.max(.16,.12/view.zoom))return i;return -1}
+function updateDSTEditor(){const d=selected?.kind==='dst'?E.dsts[selected.index]:null;$('dstEdit').classList.toggle('hidden',!d);if(d)$('dstWidth').value=Number(d.width).toFixed(1)}
+function drawDSTs(ctx){(E.dsts||[]).forEach((d,i)=>{const g=dstGeom(d),a={x:d.x,y:d.y},b={x:d.x2,y:d.y2},p1=localScreen({x:d.x+g.nx*d.width/2,y:d.y+g.ny*d.width/2}),p2=localScreen({x:d.x2+g.nx*d.width/2,y:d.y2+g.ny*d.width/2}),p3=localScreen({x:d.x2-g.nx*d.width/2,y:d.y2-g.ny*d.width/2}),p4=localScreen({x:d.x-g.nx*d.width/2,y:d.y-g.ny*d.width/2}),sel=selected?.kind==='dst'&&selected.index===i;ctx.save();ctx.fillStyle=sel?'#49b9c544':'#49b9c522';ctx.strokeStyle=sel?'#f3c64f':'#58c4d088';ctx.lineWidth=sel?2:1.5;ctx.beginPath();[p1,p2,p3,p4].forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();ctx.stroke();ctx.setLineDash([5,5]);ctx.strokeStyle='#f3c64f99';ctx.beginPath();ctx.moveTo(localScreen(a).x,localScreen(a).y);ctx.lineTo(localScreen(b).x,localScreen(b).y);ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle='#f3c64f55';ctx.lineWidth=Math.max(3,Math.min(10,d.width*scale()*.10));ctx.beginPath();ctx.moveTo(localScreen(a).x,localScreen(a).y);ctx.lineTo(localScreen(b).x,localScreen(b).y);ctx.stroke();ctx.fillStyle='#8be3e8';ctx.font='bold 11px monospace';[.25,.55,.82].forEach(t=>{const q=localScreen({x:d.x+g.ux*g.L*t+g.nx*d.width*.25,y:d.y+g.uy*g.L*t+g.ny*d.width*.25});ctx.fillText('◀',q.x,q.y)});[.25,.55,.82].forEach(t=>{const q=localScreen({x:d.x+g.ux*g.L*t-g.nx*d.width*.25,y:d.y+g.uy*g.L*t-g.ny*d.width*.25});ctx.fillText('▶',q.x,q.y)});if(sel){dstHandles(d).forEach((h,j)=>{const q=localScreen(h);ctx.fillStyle=j===2?'#f3c64f':'#fff';ctx.strokeStyle='#111';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(q.x,q.y,5,0,7);ctx.fill();ctx.stroke()})}ctx.restore()})}
+$('dstReverse').onclick=()=>{const d=selected?.kind==='dst'?E.dsts[selected.index]:null;if(d){snapshot();d.reverse=!d.reverse;changed()}};$('dstWidth').onchange=()=>{const d=selected?.kind==='dst'?E.dsts[selected.index]:null;if(d){snapshot();d.width=Math.max(.2,Math.round((+$('dstWidth').value||1)*10)/10);$('dstWidth').value=d.width.toFixed(1);changed()}};
+function saveFile(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([exportData()],{type:'application/json'}));a.download='exercice-anticollision.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function addShip(p,target=false){if(pointInCoastMargin(p.x,p.y)){toast('Impossible de placer un navire sur la côte');return false;}snapshot();const i=E.ships.length,type='normal';E.ships.push({id:shipId(),x:p.x,y:p.y,c:target?norm(Math.atan2(-p.x,-p.y)/D):0,s:10,name:'C-'+String(i+1).padStart(2,'0'),type,maneuvers:[]});changed()}
+function resetView(){view={x:E.own.x,y:E.own.y,zoom:1};draw();toast('Vue recentrée')}
+function setPanelsClosed(){
+  document.querySelectorAll('.popup,.shapePanel,.context').forEach(el=>el.classList.add('hidden'));$('echoDegradation').classList.remove('hidden');
+  $('coastStatus').classList.add('hidden');$('coastTools').classList.add('hidden');
+  document.body.classList.remove('coastActive','dstActive');
+}
+function resetRun(){
+  // Le reset d'un test restaure l'état complet figé à son lancement, pas
+  // uniquement la position des cibles. Sans snapshot, il ne doit rien effacer.
+  if(!runStart||!runStart.state)return false;
+  running=false;
+  E=clone(runStart.state);
+  simTime=Number.isFinite(runStart.simTime)?runStart.simTime:0;
+  runStart=null;
+  $('preview').textContent='▶ Aperçu';
+  selected=null;selectedShips.clear();drag=null;routeEdit=null;draft=null;
+  coastMode=false;dstMode=false;routeMode=false;setPanelsClosed();
+  changed();toast('Exercice revenu à l’état de départ');return true;
+}
+function setSimulationStart(shipIndex=null,point=null){
+  if(running||runStart){toast('Arrêtez la simulation avant de modifier le point de départ');return false;}
+  const ship=Number.isInteger(shipIndex)&&shipIndex>=0?E.ships[shipIndex]:null;
+  const hasPoint=point&&Number.isFinite(+point.x)&&Number.isFinite(+point.y);
+  if(!hasPoint&&!ship){toast('Cliquez sur la carte pour définir le point de départ OWN');return false;}
+  // Le point de départ est un snapshot indépendant. Le menu utilise le point
+  // exact du clic droit, même lorsqu'un navire se trouve à cet endroit.
+  const previous=exerciseStart?.own||E.own;
+  exerciseStart=clone(E);
+  exerciseStart.own.x=hasPoint?+point.x:+ship.x||0;
+  exerciseStart.own.y=hasPoint?+point.y:+ship.y||0;
+  // Conserver le cap et la vitesse déjà réglés : ils restent modifiables dans
+  // le même dialogue boussole / vitesse après déplacement du drapeau.
+  exerciseStart.own.c=norm(+previous.c||0);
+  exerciseStart.own.s=clampSpeed(previous.s,'normal',true);
+  simTime=0;
+  draw();syncStartPointFlag();
+  toast('Point de départ OWN défini à la position cliquée');
+  return true;
+}
+function resetExercise(){
+  if(runStart)return resetRun();
+  running=false;simTime=0;$('preview').textContent='▶ Aperçu';
+  if(exerciseStart){
+    E=clone(exerciseStart);selected=null;selectedShips.clear();drag=null;routeEdit=null;draft=null;coastMode=false;dstMode=false;routeMode=false;setPanelsClosed();changed();toast('Exercice revenu à l’état de départ');return true;
+  }
+  changed();toast('Simulation arrêtée');return true;
+}
+function clearExercise(){
+  running=false;runStart=null;exerciseStart=null;simTime=0;$('preview').textContent='▶ Aperçu';
+  E={version:'V85',name:'Exercice sans titre',own:{x:0,y:0,c:0,s:10},ships:[],coast:[],coastShapes:[],dsts:[],echoDegradation:{sea:0,rain:0,noise:0,weak:0,flicker:0}};
+  selected=null;selectedShips.clear();drag=null;routeEdit=null;draft=null;coastMode=false;dstMode=false;routeMode=false;history=[];
+  view={x:0,y:0,zoom:1};setPanelsClosed();syncEchoDegradation();changed();toast('Exercice réinitialisé');
+}
+function confirmClearExercise(){
+  if(confirm('Réinitialiser l’exercice ?\nTous les navires, côtes, DST, routes, waypoints et EBL seront supprimés.'))clearExercise();
+}
+function pan(dx,dy){view.x-=dx/scale();view.y+=dy/scale();draw()}
+function openGenerator(){
+  $('genScenarioType').value=$('genScenarioType').value||'anticollision';
+  $('genCount').value=$('genCount').value||5;
+  $('generatorDialog').classList.remove('hidden'); $('genDegradation').dispatchEvent(new Event('change'));
+}
+function closeGenerator(){$('generatorDialog').classList.add('hidden')}
+function degradationPreset(kind){const p={none:[0,0,0,0,0],light:[20,15,12,18,10],medium:[45,35,32,40,30],strong:[75,65,60,70,55]};if(kind==='random')return [0,0,0,0,0].map(()=>Math.floor(Math.random()*81)+10);return p[kind]||null}
+function scenarioDistanceRange(mode){
+  const v=$('genDistance')?.value||'standard';
+  if(v==='near')return[.7,1.3]; if(v==='far')return[1.8,2.6]; if(v==='random')return[.75,2.6]; return[1.1,2.2];
+}
+function angleGap(a,b){return Math.abs(((a-b+540)%360)-180)}
+const COAST_MARGIN=.10, MAX_GEN_ATTEMPTS=320;
+const GEN_COAST_MARGINS=[.10,.06,.03,.01,0];
+function coastBounds(s){
+  if(!s)return null;
+  if(s.type==='circle')return {x:s.x,y:s.y,rx:s.r,ry:s.r};
+  if(s.type==='ellipse')return {x:s.x,y:s.y,rx:s.rx,ry:s.ry};
+  if(s.type==='rect')return {x:s.x+s.w/2,y:s.y-s.h/2,rx:Math.abs(s.w/2),ry:Math.abs(s.h/2)};
+  if(s.type==='polygon'){let xs=s.points.map(p=>p[0]),ys=s.points.map(p=>p[1]);return{x:(Math.min(...xs)+Math.max(...xs))/2,y:(Math.min(...ys)+Math.max(...ys))/2,rx:(Math.max(...xs)-Math.min(...xs))/2,ry:(Math.max(...ys)-Math.min(...ys))/2};}
+  return null;
+}
+function pointToSegmentDistance(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay, l2=dx*dx+dy*dy;
+  if(!l2)return Math.hypot(px-ax,py-ay);
+  const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/l2));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+function polygonEdgeDistance(x,y,points){
+  if(!Array.isArray(points)||points.length<2)return Infinity;
+  let d=Infinity;
+  for(let i=0;i<points.length;i++){
+    const a=points[i],b=points[(i+1)%points.length];
+    if(Array.isArray(a)&&Array.isArray(b)&&a.length>=2&&b.length>=2)
+      d=Math.min(d,pointToSegmentDistance(x,y,+a[0],+a[1],+b[0],+b[1]));
+  }
+  return d;
+}
+function pointInCoastMargin(x,y,margin=COAST_MARGIN){
+  // Do not use a polygon bounding box as land: imported coastlines may span
+  // most of the radar while their water side remains perfectly usable.
+  return (E.coastShapes||[]).some(s=>{
+    if(!s)return false;
+    if(s.type==='circle'){const r=Math.max(0,+s.r||0)+margin;return Math.hypot(x-(+s.x||0),y-(+s.y||0))<=r;}
+    if(s.type==='ellipse'){const rx=Math.max(.0001,+s.rx||0)+margin,ry=Math.max(.0001,+s.ry||0)+margin;return ((x-(+s.x||0))**2/rx**2+(y-(+s.y||0))**2/ry**2)<=1;}
+    if(s.type==='rect'){const c=rectCenter(s),q=rectLocalPoint({x,y},s);return Math.abs(q.x-c.x)<=Math.abs(+s.w||0)/2+margin&&Math.abs(q.y-c.y)<=Math.abs(+s.h||0)/2+margin;}
+    if(s.type==='polygon')return pointInPolygon({x,y},s.points)||polygonEdgeDistance(x,y,s.points)<=margin;
+    return false;
+  });
+}
+function segmentHitsCoast(a,b,margin=COAST_MARGIN){const len=Math.hypot(b.x-a.x,b.y-a.y),steps=Math.max(2,Math.ceil(len/.08));for(let i=0;i<=steps;i++){const t=i/steps;if(pointInCoastMargin(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,margin))return true}return false}
+function pointClearOfIsland(x,y,margin=COAST_MARGIN){return !pointInCoastMargin(x,y,margin)}
+function makeGeneratedCoast(kind,d){
+  const k=kind==='random'?['island','strait','bay','cape','port','archipelago'][Math.floor(Math.random()*6)]:kind, cx=-d, cy=.35*d;
+  if(k==='island')return [{type:'ellipse',x:cx,y:cy,rx:.48,ry:.28}];
+  if(k==='strait')return [{type:'polygon',points:[[cx-1.0,cy+1.1],[cx-.35,cy+1.1],[cx-.35,cy-1.1],[cx-1.0,cy-1.1]]},{type:'polygon',points:[[cx+.35,cy+1.1],[cx+1.0,cy+1.1],[cx+1.0,cy-1.1],[cx+.35,cy-1.1]]}];
+  if(k==='bay')return [{type:'polygon',points:[[cx-1.0,cy+1],[cx+1,cy+1],[cx+.55,cy+.35],[cx+.45,cy-.35],[cx-.15,cy-.7],[cx-.75,cy-.25]]}];
+  if(k==='cape')return [{type:'polygon',points:[[cx-1.0,cy+1],[cx+.4,cy+1],[cx+1.0,cy-.5],[cx+.25,cy-.1],[cx-.4,cy+.2]]}];
+  if(k==='port')return [{type:'polygon',points:[[cx-1.0,cy+1],[cx-.55,cy+1],[cx-.55,cy-.45],[cx-1.0,cy-.45]]},{type:'polygon',points:[[cx+.55,cy+1],[cx+1.0,cy+1],[cx+1.0,cy-.45],[cx+.55,cy-.45]]}];
+  return [{type:'ellipse',x:cx-.6,y:cy+.3,rx:.3,ry:.16},{type:'ellipse',x:cx,y:cy-.2,rx:.24,ry:.14},{type:'ellipse',x:cx+.55,y:cy+.35,rx:.28,ry:.15},{type:'ellipse',x:cx+.9,y:cy-.35,rx:.2,ry:.12}];
+}
+function buildScenarioShips(n,mode,types,distRange,withWaypoints, wc,coastCfg){
+  const names={normal:'NAPM',fish:'Pêche',nuc:'NUC',anchor:'Mouillage',sailboat:'Voilier'}, ships=[], angles=[];
+  const R=Math.max(.5,+range||3), minOwn=Math.max(.12,Math.min(.35,R*.10)), minSpacing=Math.max(.12,R*.12);
+  const minR=Math.max(minOwn,distRange[0]), maxR=R;
+  const dst=E.dsts?.[0], dg=dst&&dstGeom(dst), needDst=!!dst;
+  const takeAngle=p=>{for(let k=0;k<80;k++){const a=norm(p+(Math.random()*26-13));if(angles.every(q=>angleGap(a,q)>=Math.max(18,360/Math.max(n,6)-10)))return angles.push(a),a}const a=norm(p+angles.length*29);angles.push(a);return a};
+  for(let i=0;i<n;i++){
+    let type=types[i%types.length]; if(mode==='random'&&types.length>1)type=types[Math.floor(Math.random()*types.length)]; if(mode==='overtake'&&i<2)type=i%2?'normal':'fish';
+    let x,y,ang, usedMargin=COAST_MARGIN, onLane=needDst&&i<Math.min(2,n)&&type!=='anchor';
+    // Retry with progressively smaller safety margins. The final pass still
+    // rejects actual land, but does not let a large imported polygon's bbox
+    // eliminate all valid water points.
+    for(const margin of GEN_COAST_MARGINS){
+      for(let attempt=0;attempt<MAX_GEN_ATTEMPTS;attempt++){
+        if(onLane){const t=.25+.5*(i%2),off=(i%2?-.22:.22);x=dst.x+dg.ux*dg.L*t+dg.nx*off;y=dst.y+dg.uy*dg.L*t+dg.ny*off;ang=norm(Math.atan2(dg.ux,dg.uy)/D);}
+        else {ang=takeAngle(mode==='crossing'?(i%2?55:305):(360*i/n)+Math.random()*24-12);const r=Math.sqrt(Math.random()*(maxR*maxR-minR*minR)+minR*minR);x=Math.sin(rad(ang))*r;y=Math.cos(rad(ang))*r;}
+        if(pointClearOfIsland(x,y,margin)&&Math.hypot(x,y)>=minOwn&&ships.every(q=>Math.hypot(x-q.x,y-q.y)>=minSpacing))break;
+        if(!onLane)angles.pop(); x=y=NaN;
+      }
+      if(Number.isFinite(x)){usedMargin=margin;break;}
+    }
+    // Last-resort water-only sampling across the radar, useful for a coast
+    // occupying half the screen or a narrow usable sector.
+    if(!Number.isFinite(x))for(let k=0;k<MAX_GEN_ATTEMPTS*3;k++){const aa=Math.random()*360,rr=Math.sqrt(Math.random()*(R*R-minOwn*minOwn)+minOwn*minOwn);const tx=Math.sin(rad(aa))*rr,ty=Math.cos(rad(aa))*rr;if(pointClearOfIsland(tx,ty,0)&&Math.hypot(tx,ty)>=minOwn&&ships.every(q=>Math.hypot(tx-q.x,ty-q.y)>=minSpacing)){x=tx;y=ty;ang=aa;usedMargin=0;break}}
+    if(!Number.isFinite(x))continue;
+    const speed=type==='anchor'?0:type==='fish'?4:type==='nuc'?3.5:type==='sailboat'?5:12;let c=norm(ang+180);if(onLane)c=norm(Math.atan2(dg.ux,dg.uy)/D);
+    const a={id:shipId(),x,y,c,s:clampSpeed(speed,type),name:`${names[type]}-${String(i+1).padStart(2,'0')}`,type,maneuvers:[]};
+    if(withWaypoints&&type!=='anchor')for(let wi=1;wi<=wc;wi++){let ok=false;for(let at=0;at<MAX_GEN_ATTEMPTS&&!ok;at++){const cap=norm(c+(wi%2?1:-1)*(25+Math.random()*30)),step=.35+Math.random()*.18,wx=x+Math.sin(rad(cap))*step*wi,wy=y+Math.cos(rad(cap))*step*wi;if(wx>-2.7&&wx<2.7&&wy>-2.7&&wy<2.7&&pointClearOfIsland(wx,wy,usedMargin)&&!segmentHitsCoast({x:a.x,y:a.y},{x:wx,y:wy},usedMargin)){a.maneuvers.push({cap,vitesse:a.s,x:wx,y:wy,lat:wy});ok=true}}}
+    ships.push(a);
+  } return ships;
+}
+function generateScenario(){
+  const n=Math.max(1,Math.min(12,parseInt($('genCount')?.value||5,10))),mode=$('genScenarioType')?.value||'anticollision',types=[...document.querySelectorAll('input[name="genType"]:checked')].map(x=>x.value),fleet=types.length?types:['normal'];
+  const keepExisting=$('genKeepExisting')?.checked!==false;
+  snapshot(); const coastOn=!!$('genCoast')?.checked,cd=$('genCoastDistance')?.value||'standard',d=cd==='near'?1:cd==='far'?2.25:1.65;
+  // La génération ne détruit jamais les données cartographiques importées.
+  // Avec l'option par défaut, les formes et tous les DST restent inchangés.
+  if(!keepExisting){
+    E.coastShapes=coastOn?makeGeneratedCoast($('genCoastType')?.value||'random',d):[]; E.coast=[];
+    E.dsts=(E.dsts||[]).filter(x=>x&&x.imported);
+  } else if(coastOn){
+    // Une côte demandée en plus est ajoutée sans toucher aux côtes existantes.
+    E.coastShapes=[...(E.coastShapes||[]),...makeGeneratedCoast($('genCoastType')?.value||'random',d)];
+  }
+  const pre=(E.dsts||[])[0]; if(pre){const g=dstGeom(pre);pre.x=Math.max(-2.1,Math.min(2.1,pre.x));pre.x2=pre.x+g.ux*g.L;pre.y=Math.max(-2.1,Math.min(2.1,pre.y));pre.y2=pre.y+g.uy*g.L;}
+  E.ships=buildScenarioShips(n,mode,fleet,scenarioDistanceRange(mode),!!$('genWaypoints')?.checked,+$('genWaypointCount')?.value||2);
+  const g=$('genDegradation')?.value||'custom';let vals=degradationPreset(g);if(g==='custom')vals=['sea','rain','noise','weak','flicker'].map(k=>Math.max(0,Math.min(100,+E.echoDegradation?.[k]||0)));if(vals)E.echoDegradation={sea:vals[0],rain:vals[1],noise:vals[2],weak:vals[3],flicker:vals[4]};exerciseStart=clone(E);syncEchoDegradation();selected=null;closeGenerator();changed();toast(`Exercice généré : ${E.ships.length}/${n} navires placés${E.ships.length<n?' · zone côtière trop contrainte':''} · ${E.coastShapes.length} côte(s)`);
+}
+function routePointHit(p){
+  let best=null,d=.22/view.zoom;
+  E.ships.forEach((a,si)=>(a.maneuvers||[]).forEach((m,mi)=>{
+    const q=Math.hypot((+m.x||0)-p.x,(+m.y||0)-p.y);
+    if(q<d){d=q;best={ship:si,index:mi}};
+  }));
+  return best;
+}
+function closestOnSegment(p,a,b){
+  const dx=b.x-a.x,dy=b.y-a.y,den=dx*dx+dy*dy;
+  const t=den?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/den)):0;
+  return {t,x:a.x+t*dx,y:a.y+t*dy};
+}
+function routeSegmentHit(p){
+  let best=null,d=.18/view.zoom;
+  E.ships.forEach((ship,si)=>{
+    let prev={x:ship.x,y:ship.y};
+    (ship.maneuvers||[]).forEach((m,mi)=>{
+      const next={x:+m.x||0,y:+m.y||0},q=closestOnSegment(p,prev,next),dist=Math.hypot(q.x-p.x,q.y-p.y);
+      if(dist<d){d=dist;best={ship:si,index:mi,point:{x:q.x,y:q.y}};}
+      prev=next;
+    });
+  });
+  return best;
+}
+function recalcRouteWaypoint(ship,index){
+  const a=E.ships[ship],m=a?.maneuvers?.[index];if(!a||!m)return;
+  const prev=index>0?a.maneuvers[index-1]:a;
+  const dx=(+m.x||0)-(+prev.x||0),dy=(+m.y||0)-(+prev.y||0);
+  if(Math.hypot(dx,dy)>1e-9)m.cap=norm(Math.atan2(dx,dy)/D);
+  m.vitesse=clampSpeed(a.s,a.type);m.lat=m.y;
+}
+function beginRouteEdit(i){
+  const a=E.ships[i];if(!a)return;
+  routeMode=true;selected=i;
+  if($('hint'))$('hint').textContent='Route active : clic vide = ajouter en fin · glisser waypoint = déplacer · double-clic waypoint = éditer · Échap pour terminer';
+  draw();toast('Route modifiable : clic vide pour ajouter un waypoint');
+}
+function appendRouteWaypoint(shipIndex,p){
+  const a=E.ships[shipIndex];if(!a)return false;
+  const list=Array.isArray(a.maneuvers)?a.maneuvers:[];
+  const prev=list.length?list[list.length-1]:a;
+  const cap=norm(Math.atan2(p.x-(+prev.x||0),p.y-(+prev.y||0))/D);
+  const lastSpeed=list.length&&Number.isFinite(+list[list.length-1].vitesse)?+list[list.length-1].vitesse:+a.s||0;
+  snapshot();
+  a.maneuvers=list;
+  a.maneuvers.push({cap,vitesse:clampSpeed(lastSpeed,a.type),x:p.x,y:p.y,lat:p.y});
+  changed();toast(`Waypoint ${a.maneuvers.length} ajouté`);return true;
+}
+// V81 : un clic route est différé pour laisser le double-clic l'annuler ; ainsi
+// un double-clic sur une zone vide ne produit qu'un seul waypoint (et non trois).
+let routeClickTimer=null;
+function queueRouteWaypointClick(p){
+  if(routeClickTimer)clearTimeout(routeClickTimer);
+  routeClickTimer=setTimeout(()=>{routeClickTimer=null;if(routeMode&&typeof selected==='number')appendRouteWaypoint(selected,p)},260);
+}
+function cancelQueuedRouteClick(){if(routeClickTimer){clearTimeout(routeClickTimer);routeClickTimer=null}}
+function openRouteWaypointEdit(ship,index,at){
+  const a=E.ships[ship],m=a?.maneuvers?.[index];if(!m)return;
+  routeEdit={ship,index};
+  $('rC').value=m.cap==null?'':Number(m.cap).toFixed(1);$('rS').value=m.vitesse==null?'':Number(m.vitesse).toFixed(1);
+  $('routePosition').innerHTML=`Position : <b>${(+m.x||0).toFixed(1)} / ${(+m.y||0).toFixed(1)} NM</b>`;
+  const q=at||screen({x:+m.x||0,y:+m.y||0});$('routeEdit').style.left=Math.min(innerWidth-255,Math.max(8,q.x+12))+'px';$('routeEdit').style.top=Math.min(innerHeight-220,Math.max(50,q.y+12))+'px';
+  $('routeEdit').classList.remove('hidden');$('menu').classList.add('hidden');
+}
+function closeRouteEdit(){routeEdit=null;$('routeEdit').classList.add('hidden');draw()}
+function insertRouteWaypoint(hit){
+  const a=E.ships[hit.ship];if(!a)return;
+  snapshot();a.maneuvers=a.maneuvers||[];a.maneuvers.splice(hit.index,0,{cap:null,vitesse:null,x:hit.point.x,y:hit.point.y,lat:hit.point.y});recalcRouteWaypoint(hit.ship,hit.index);changed();
+  openRouteWaypointEdit(hit.ship,hit.index,screen(hit.point));
+}
+function handleTargetRouteDblClick(i,e){
+  const a=E.ships[i];if(!a)return;
+  if((a.maneuvers||[]).length){
+    if(confirm('Réinitialiser la route de '+a.name+' ?\nOK = réinitialiser, Annuler = modifier')){snapshot();a.maneuvers=[];changed();toast('Route réinitialisée');return;}
+  }
+  beginRouteEdit(i);
+}
+/* Import cartographique réel : les helpers restent purs pour être testables hors navigateur. */
+const REAL_PRESETS={pas:[51.02,1.35,10],ouessant:[48.46,-5.10,11],brest:[48.33,-4.55,12],marseille:[43.25,5.28,11],gibraltar:[36.10,-5.35,11],solent:[50.75,-1.30,11]};
+function realBbox(lat,lon,nm){const dLat=nm/60,dLon=nm/(60*Math.max(.2,Math.cos(rad(lat))));return [lat-dLat,lon-dLon,lat+dLat,lon+dLon]}
+function realProject(lat,lon,center){return [(lon-center.lon)*60*Math.cos(rad(center.lat)),(lat-center.lat)*60]}
+function realSimplify(points,tol=.015){if(points.length<3)return points.slice();const sq=tol*tol,keep=new Uint8Array(points.length);keep[0]=keep[points.length-1]=1;function rec(a,b){let md=0,mi=0,ax=points[a][0],ay=points[a][1],bx=points[b][0],by=points[b][1],dx=bx-ax,dy=by-ay;for(let i=a+1;i<b;i++){let t=dx*dx+dy*dy?((points[i][0]-ax)*dx+(points[i][1]-ay)*dy)/(dx*dx+dy*dy):0;t=Math.max(0,Math.min(1,t));let qx=ax+t*dx,qy=ay+t*dy,d=(points[i][0]-qx)**2+(points[i][1]-qy)**2;if(d>md){md=d;mi=i}}if(md>sq){keep[mi]=1;rec(a,mi);rec(mi,b)}}rec(0,points.length-1);return points.filter((_,i)=>keep[i])}
+function realEndpointKey(p){return `${(+p.lat).toFixed(6)},${(+p.lon).toFixed(6)}`}
+function realJoinWays(ways){const pending=ways.map(w=>w.geometry.map(p=>({lat:+p.lat,lon:+p.lon}))).filter(a=>a.length>1),rings=[];while(pending.length){let r=pending.shift(),changed=true;while(changed){changed=false;for(let i=0;i<pending.length;i++){let q=pending[i],a=realEndpointKey(r[0]),b=realEndpointKey(r[r.length-1]),c=realEndpointKey(q[0]),d=realEndpointKey(q[q.length-1]);if(b===c){r=r.concat(q.slice(1));pending.splice(i,1);changed=true;break}if(b===d){r=r.concat(q.slice(0,-1).reverse());pending.splice(i,1);changed=true;break}if(a===d){r=q.slice(0,-1).concat(r);pending.splice(i,1);changed=true;break}if(a===c){r=q.slice(1).reverse().concat(r);pending.splice(i,1);changed=true;break}}}rings.push(r)}return rings}
+function realInside(p,b){return p.lat>=b[0]&&p.lat<=b[2]&&p.lon>=b[1]&&p.lon<=b[3]}
+function realClipWay(points,b){const out=[];for(let i=1;i<points.length;i++){const a=points[i-1],z=points[i],da=realInside(a,b),dz=realInside(z,b),hits=[];for(const [key,v] of [['south',b[0]],['west',b[1]],['north',b[2]],['east',b[3]]]){const latEdge=key==='south'||key==='north',denom=latEdge?z.lat-a.lat:z.lon-a.lon,base=latEdge?a.lat:a.lon;if(Math.abs(denom)<1e-12)continue;const t=(v-base)/denom;if(t>0&&t<1)hits.push({lat:a.lat+(z.lat-a.lat)*t,lon:a.lon+(z.lon-a.lon)*t})}const seq=da?[a]:[];seq.push(...hits);if(dz)seq.push(z);if(seq.length)out.push(...(out.length&&realEndpointKey(out[out.length-1])===realEndpointKey(seq[0])?seq.slice(1):seq));}return out}
+function realCloseRing(r,b){if(realEndpointKey(r[0])===realEndpointKey(r[r.length-1]))return r;return r.concat([r[0]])}
+function realRingsToShapes(ways,bbox,center){const clipped=ways.map(w=>({...w,geometry:realClipWay(w.geometry,bbox)})).filter(w=>w.geometry.length>1);return realJoinWays(clipped).map(r=>{const pts=realSimplify(realCloseRing(r,bbox).map(p=>realProject(p.lat,p.lon,center)));return pts.length>=4?{type:'polygon',points:pts,imported:true,source:'coast-file'}:null}).filter(Boolean)}
+const REAL_BASEMAPS={
+  esriStreet:{name:'Esri World Street Map',url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',options:{attribution:'Tiles © Esri'}},
+  esriImagery:{name:'Esri World Imagery',url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',options:{attribution:'Tiles © Esri'}},
+  esriOcean:{name:'Esri Ocean',url:'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',options:{attribution:'Tiles © Esri'}},
+  openTopo:{name:'OpenTopoMap',url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',options:{subdomains:'abc',attribution:'© OpenStreetMap contributors, SRTM | OpenTopoMap'}}
+};
+/* Un objet modèle reste rectiligne : une polyligne coudée est donc découpée en
+   tronçons consécutifs. Chaque groupe local rapproche les deux voies opposées. */
+let realMap=null,realMarker=null,realCircle=null,realOwnMarker=null,realCenter={lat:48.46,lon:-5.10},realMapLayer=null,realDstLayer=null,realBaseKey='esriStreet',realBaseFallbackBusy=false,realOwn={lat:48.46,lon:-5.10},realRadiusNm=12;
+const REAL_RADIUS_OPTIONS=[3,6,12,24,48];
+function nearestRealRadius(v){const n=Number(v);return REAL_RADIUS_OPTIONS.reduce((best,r)=>Math.abs(r-n)<Math.abs(best-n)?r:best,REAL_RADIUS_OPTIONS[0])}
+function nearestMainRange(v){const opts=[...$('range').options].map(o=>+o.value);return opts.reduce((best,r)=>Math.abs(r-v)<Math.abs(best-v)?r:best,opts[0])}
+function realSetStatus(t,error=false){$('realStatus').textContent=t;$('realStatus').style.color=error?'var(--danger)':'var(--accent)'}
+function realRadius(){return Math.max(3,Math.min(48,+$('realRadiusNumber')?.value||realRadiusNm||12))}
+function realBboxCircle(center,radius){const dLat=radius/60,dLon=radius/(60*Math.max(.2,Math.cos(rad(center.lat))));return [center.lat-dLat,center.lon-dLon,center.lat+dLat,center.lon+dLon]}
+function realSetRadius(v){
+  const r=nearestRealRadius(v);realRadiusNm=r;
+  ['realRadius','realRadiusNumber'].forEach(id=>{const el=$(id);if(el)el.value=String(r)});
+  // Le rayon de la fenêtre est toujours répercuté sur l'échelle radar.
+  const main=$('range');if(main){const mainValue=nearestMainRange(r);main.value=String(mainValue);range=mainValue}
+  realRefreshOverlay()
+}
+function realProjectBack(x,y,c){return {lat:c.lat+y/60,lon:c.lon+x/(60*Math.cos(rad(c.lat)))}}
+function realRefreshOverlay(){
+  if(!realMap)return;
+  const radius=realRadius(),center=L.latLng(realCenter.lat,realCenter.lon);
+  if(realCircle)realMap.removeLayer(realCircle);
+  realCircle=L.circle(center,{radius:radius*1852,color:'#f3c64f',weight:2,fillColor:'#f3c64f',fillOpacity:.08,interactive:true,bubblingMouseEvents:false}).addTo(realMap);
+  if(realOwnMarker)realMap.removeLayer(realOwnMarker);
+  realOwnMarker=L.marker([realOwn.lat,realOwn.lon],{draggable:true,icon:L.divIcon({className:'own-map-marker',html:'◆',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(realMap);
+  realOwnMarker.on('dragend',()=>{const q=realOwnMarker.getLatLng();if(realMap.distance(q,center)>radius*1852){realOwnMarker.setLatLng(realOwn);return}realOwn={lat:q.lat,lon:q.lng};realUpdateReadout()});
+  realUpdateReadout();
+}
+function realMapDragToggle(on){if(realMap?.dragging){if(on)realMap.dragging.enable();else realMap.dragging.disable()}}
+function realPointerLatLng(ev){
+  const r=realMap?.getContainer()?.getBoundingClientRect();
+  if(!r||!realMap)return null;
+  return realMap.containerPointToLatLng(L.point(ev.clientX-r.left,ev.clientY-r.top));
+}
+function realUpdateReadout(){const r=realRadius();const format=window.radarFormatRealReadout;const text=format?format(r,realOwn.lat,realOwn.lon):`Cercle rayon ${r.toFixed(1)} NM · OWN ${realOwn.lat.toFixed(4)}°, ${realOwn.lon.toFixed(4)}°`;$('realReadout').textContent=text}
+function realBaseKeys(){return Object.keys(REAL_BASEMAPS)}
+function realInstallBasemap(key,announce=false){
+  if(!realMap)return;
+  const cfg=REAL_BASEMAPS[key]||REAL_BASEMAPS.esriStreet;
+  if(realMapLayer)realMap.removeLayer(realMapLayer);
+  realBaseKey=key;
+  realMapLayer=L.tileLayer(cfg.url,{...cfg.options,maxZoom:19});
+  realMapLayer.on('tileerror',()=>realBasemapTileError(key));
+  realMapLayer.addTo(realMap);
+  const select=$('realBasemap');if(select)select.value=key;
+  if(announce)realSetStatus(`Fond : ${cfg.name}`);
+}
+function realBasemapTileError(failedKey){
+  if(realBaseFallbackBusy||failedKey!==realBaseKey)return;
+  const keys=realBaseKeys(),next=keys[(keys.indexOf(failedKey)+1)%keys.length];
+  if(next===failedKey)return;
+  realBaseFallbackBusy=true;
+  realSetStatus(`Fond indisponible, bascule vers ${REAL_BASEMAPS[next].name}.`,true);
+  realInstallBasemap(next);
+  setTimeout(()=>{realBaseFallbackBusy=false},350);
+}
+function realOpen(){
+  if(!$('realPreset').value) $('realPreset').value='ouessant';
+  $('realModal').classList.remove('hidden');
+  // À l'ouverture, reprendre l'échelle principale; 1.5 NM est rapproché de 3 NM.
+  realSetRadius(nearestRealRadius(range));
+  const p=REAL_PRESETS[$('realPreset').value];realCenter={lat:p[0],lon:p[1]};realOwn={...realCenter};
+  if(!realMap){realMap=L.map('realMap',{zoomControl:true}).setView([p[0],p[1]],p[2]);realInstallBasemap('esriStreet');L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{attribution:'© OpenSeaMap contributors',opacity:.85}).addTo(realMap);$('realBasemap').onchange=e=>realInstallBasemap(e.target.value,true);realMap.on('click',e=>{realCenter={lat:e.latlng.lat,lon:e.latlng.lng};realOwn={...realCenter};realRefreshOverlay()});}else realMap.setView([p[0],p[1]],p[2]);setTimeout(()=>{realMap.invalidateSize();realRefreshOverlay()},50)
+}
+/* V81 — Côte réelle : import local sans requête DST. */
+const REAL_PRESET_FILES={
+  pas:'cotes/pas-de-calais.json', ouessant:'cotes/ouessant.json', brest:'cotes/brest.json',
+  marseille:'cotes/marseille.json', gibraltar:'cotes/gibraltar.json', solent:'cotes/solent.json'
+};
+function coastFileGeoJsonToWays(data){
+  const ways=[];
+  const addGeometry=(g,id='import')=>{if(!g||!g.type)return;const coords=g.coordinates;
+    const line=(arr,n)=>{if(Array.isArray(arr)&&arr.length>1){const geometry=arr.map(p=>({lon:+p[0],lat:+p[1]})).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon));if(geometry.length>1)ways.push({type:'way',id:id+'-'+n,geometry});}};
+    if(g.type==='LineString')line(coords,ways.length); else if(g.type==='MultiLineString')coords.forEach((a,i)=>line(a,i));
+    else if(g.type==='Polygon')coords.forEach((a,i)=>line(a,i)); else if(g.type==='MultiPolygon')coords.forEach((poly,pi)=>poly.forEach((a,i)=>line(a,pi+'-'+i)));
+    else if(g.type==='GeometryCollection')(g.geometries||[]).forEach((x,i)=>addGeometry(x,id+'-'+i));
+  };
+  const visit=f=>{if(!f)return;if(f.type==='Feature')addGeometry(f.geometry,f.id||'feature');else if(f.type==='FeatureCollection')(f.features||[]).forEach(visit);else if(f.type==='FeatureSet')(f.features||[]).forEach(visit);else if(Array.isArray(f.elements)){f.elements.forEach((e,i)=>{if(Array.isArray(e.geometry))ways.push({type:'way',id:e.id||i,geometry:e.geometry.map(p=>({lat:+p.lat,lon:+p.lon}))});});}else addGeometry(f);};
+  visit(data);return ways.filter(w=>w.geometry.length>1);
+}
+function coastFileGpxToWays(xml){
+  const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.querySelector('parsererror'))throw Error('XML GPX invalide');
+  const ways=[];doc.querySelectorAll('trkseg,rte').forEach((seg,i)=>{const geometry=[...seg.querySelectorAll('trkpt,rtept')].map(p=>({lat:+p.getAttribute('lat'),lon:+p.getAttribute('lon')})).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon));if(geometry.length>1)ways.push({type:'way',id:'gpx-'+i,geometry});});
+  if(!ways.length)throw Error('GPX valide mais sans trace ou route exploitable');return ways;
+}
+function coastFileOsmToWays(xml){return realOsmXmlToCoast(xml).elements||[]}
+function coastFileWaysToShapes(ways){
+  const pts=ways.flatMap(w=>w.geometry||[]).filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+p.lon));if(!pts.length)throw Error('Aucune géométrie de côte exploitable');
+  const center={lat:pts.reduce((a,p)=>a+ +p.lat,0)/pts.length,lon:pts.reduce((a,p)=>a+ +p.lon,0)/pts.length},margin=.02;
+  const bbox=[Math.min(...pts.map(p=>+p.lat))-margin,Math.min(...pts.map(p=>+p.lon))-margin,Math.max(...pts.map(p=>+p.lat))+margin,Math.max(...pts.map(p=>+p.lon))+margin];
+  return realRingsToShapes(ways,bbox,center);
+}
+function importCoastFileText(text,name,quiet=false){
+  let ways;const trimmed=text.trim();
+  try { if(/\.gpx$/i.test(name)||/^<\?xml[^>]*>\s*<gpx/i.test(trimmed)||/<gpx[ >]/i.test(trimmed))ways=coastFileGpxToWays(trimmed);
+    else if(/\.(osm|xml)$/i.test(name)||/<osm[ >]/i.test(trimmed))ways=coastFileOsmToWays(trimmed); else ways=coastFileGeoJsonToWays(JSON.parse(trimmed));
+  } catch(e){throw Error(`format de côte invalide (${e.message||e})`)}
+  const shapes=coastFileWaysToShapes(ways);if(!shapes.length)throw Error('Aucune forme de côte exploitable');snapshot();E.coastShapes=[...(E.coastShapes||[]),...shapes];selected={kind:'shape',index:E.coastShapes.length-1};changed();setCoastMode(false);if(!quiet)toast(`${shapes.length} forme(s) de côte importée(s)`);draw();return shapes.length;
+}
+function realOsmXmlToCoast(xml){const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.querySelector('parsererror'))throw Error('XML OSM invalide');const nodes=new Map();doc.querySelectorAll('node').forEach(n=>nodes.set(n.getAttribute('id'),{lat:+n.getAttribute('lat'),lon:+n.getAttribute('lon')}));const elements=[];doc.querySelectorAll('way').forEach(w=>{const isCoast=[...w.querySelectorAll(':scope > tag')].some(t=>t.getAttribute('k')==='natural'&&t.getAttribute('v')==='coastline');if(!isCoast)return;const geometry=[...w.querySelectorAll(':scope > nd')].map(n=>nodes.get(n.getAttribute('ref'))).filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lon));if(geometry.length>1)elements.push({type:'way',id:w.getAttribute('id'),geometry});});return {elements}}
+function realOfflineShapes(center,radius){
+  const rings=window.NE_COAST_RINGS||[], out=[], r=+radius, c=Math.cos(rad(center.lat));
+  const circle=[]; for(let i=0;i<64;i++){const a=2*Math.PI*i/64;circle.push([r*Math.cos(a),r*Math.sin(a)]);} 
+  const cross=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
+  const area=circle.reduce((s,p,i)=>{const q=circle[(i+1)%circle.length];return s+p[0]*q[1]-q[0]*p[1]},0)/2;
+  function clip(poly,a,b){if(!poly.length)return [];const out=[],sg=area>=0?1:-1;for(let i=0;i<poly.length;i++){const p=poly[i],q=poly[(i+1)%poly.length],ip=sg*cross(a,b,p)>=-1e-9,iq=sg*cross(a,b,q)>=-1e-9;if(ip!==iq){const den=(q[0]-p[0])*(b[1]-a[1])-(q[1]-p[1])*(b[0]-a[0]);if(Math.abs(den)>1e-12){const t=((a[0]-p[0])*(b[1]-a[1])-(a[1]-p[1])*(b[0]-a[0]))/den;out.push([p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1])]);}}if(iq)out.push(q);}return out}
+  for(const ring of rings){let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;for(const p of ring){minx=Math.min(minx,(p[0]-center.lon)*60*c);maxx=Math.max(maxx,(p[0]-center.lon)*60*c);miny=Math.min(miny,(p[1]-center.lat)*60);maxy=Math.max(maxy,(p[1]-center.lat)*60)}if(maxx<-r||minx>r||maxy<-r||miny>r)continue;let poly=ring.map(p=>[(p[0]-center.lon)*60*c,(p[1]-center.lat)*60]);for(let i=0;i<circle.length&&poly.length;i++)poly=clip(poly,circle[i],circle[(i+1)%circle.length]);if(poly.length<3)continue;const tol=Math.max(.025,r/480);poly=realSimplify(poly.concat([poly[0]]),tol);if(poly.length>=4){poly[poly.length-1]=poly[0];out.push({type:'polygon',points:poly.map(p=>[+p[0].toFixed(4),+p[1].toFixed(4)])});}}return out;
+}
+async function realLoadPreset(key){
+  const center={lat:realCenter.lat,lon:realCenter.lon},radius=realRadius();
+  realSetStatus('Calcul local côte…');
+  const shapes=realOfflineShapes(center,radius);
+  if(!shapes.length)throw Error('Aucune terre dans ce cercle');
+  snapshot();E.coastShapes=[...(E.coastShapes||[]),...shapes];E.coast=[];
+  selected={kind:'shape',index:E.coastShapes.length-1};changed();draw();
+  realSetStatus(`${shapes.length} côte(s) importée(s) · rayon ${radius} NM`);return {shapes};
+}
+function realValidate(){const key=$('realPreset').value;realSetStatus('Import local en cours…');$('realValidate').disabled=true;realLoadPreset(key).then(()=>{closeReal();toast('Extrait local chargé dans l’exercice')}).catch(e=>{console.warn('[Côte réelle locale]',e.message||e)}).finally(()=>{$('realValidate').disabled=false})}
+function closeReal(){$('realModal').classList.add('hidden');realSetStatus('')}
+function allowedRouteKinds(type){const t=canonicalType(type);if(t==='fish')return ['fishing'];if(t==='nuc')return ['erratic'];if(t==='sailboat')return ['sailS'];return [];}
+function refreshRouteKindOptions(type){const sel=$('routeGenKind');if(!sel)return;const allowed=allowedRouteKinds(type);[...sel.options].forEach(o=>{o.hidden=!allowed.includes(o.value);o.disabled=!allowed.includes(o.value)});if(allowed.length)sel.value=allowed[0];}
+function routeGenDefaults(kind){
+  const spec={
+    fishing:{p1:'Longueur d’un trait (NM)',p2:'Nombre de traits',help:'P1 = longueur de chaque bord ; P2 = nombre de traits aller-retour.'},
+    erratic:{p1:'Amplitude des embardées (°)',p2:'Nombre de points',help:'P1 = amplitude maximale autour du cap ; P2 = nombre de points successifs.'},
+    sailS:{p1:'Largeur du zigzag (NM)',p2:'Nombre de bords',help:'P1 = largeur latérale ; P2 = nombre de bords en S du voilier.'},
+    loiter:{p1:'Rayon (NM)',p2:'Nombre de points',help:'P1 = rayon ; P2 = nombre de points.'},
+    ferry:{p1:'Demi-distance (NM)',p2:'Nombre d’allers-retours',help:'P1 = longueur d’une branche ; P2 = nombre d’allers-retours.'},
+    coastParallel:{p1:'Longueur (NM)',p2:'Nombre de points',help:'P1 = longueur totale ; P2 = nombre de points.'},
+    cpaTurn:{p1:'Distance avant virage (NM)',p2:'Angle du virage (°)',help:'P1 = distance avant virage ; P2 = angle du virage.'}
+  };
+  const q=spec[kind]||spec.fishing; $('routeGenP1Label').textContent=q.p1; $('routeGenP2Label').textContent=q.p2; $('routeGenHelp').textContent=q.help;
+}
+function routePoint(a,c,d,v){return {cap:norm(c),vitesse:clampSpeed(v,a.type),x:a.x+Math.sin(rad(c))*d,y:a.y+Math.cos(rad(c))*d,lat:a.y+Math.cos(rad(c))*d};}
+function buildTypedRoute(a,kind,p1,p2,heading){
+  const pts=[], n=Math.max(2,Math.min(30,Math.round(p2)||4)), len=Math.max(.2,p1||2), h=norm(heading||a.c||0), speed=clampSpeed(a.s,a.type);
+  if(!allowedRouteKinds(a.type).includes(kind)){toast('Cette catégorie n’autorise pas ce type de route');return []}
+  if(kind==='fishing'){const spacing=Math.max(.12,len*.12);for(let i=0;i<n;i++){const side=i%2?1:-1, cross=spacing*(i+1)/2, start=routePoint(a,h+90*side,cross,speed), end=routePoint(a,h+90*side,cross,speed);end.x+=Math.sin(rad(h))*len;end.y+=Math.cos(rad(h))*len;end.lat=end.y;pts.push(start,end);}}
+  else if(kind==='erratic'){const amp=Math.min(45,Math.max(2,p1||12));for(let i=1;i<=n;i++)pts.push(routePoint(a,h+(Math.random()*2-1)*amp,i*.35,Math.min(speed,4)))}
+  else if(kind==='loiter'){const r=Math.max(.2,len);for(let i=1;i<=n;i++)pts.push({cap:norm(h+90+i*360/n),vitesse:speed,x:a.x+Math.sin(rad(i*360/n))*r,y:a.y+Math.cos(rad(i*360/n))*r,lat:a.y+Math.cos(rad(i*360/n))*r})}
+  else if(kind==='sailS'){const width=Math.max(.2,len);for(let i=1;i<=n;i++){const side=i%2?1:-1;pts.push({cap:norm(h+side*35),vitesse:clampSpeed(speed,'sailboat'),x:a.x+Math.sin(rad(h))*i*.55+Math.sin(rad(h+90))*side*width,y:a.y+Math.cos(rad(h))*i*.55+Math.cos(rad(h+90))*side*width,lat:a.y+Math.cos(rad(h))*i*.55+Math.cos(rad(h+90))*side*width})}}
+  else if(kind==='ferry'){const leg=Math.max(.3,len);for(let i=0;i<n;i++){const side=i%2?1:-1;pts.push(routePoint(a,h+180*side,leg,speed));pts.push(routePoint(a,h+180*side,0,speed))}}
+  else if(kind==='coastParallel'){for(let i=1;i<=n;i++)pts.push(routePoint(a,h,i*len/n,speed))}
+  else if(kind==='cpaTurn'){pts.push(routePoint(a,h,Math.max(.3,len),speed));pts.push(routePoint(a,h+(p2||90),Math.max(.6,len*1.5),speed));pts.push(routePoint(a,h+(p2||90),Math.max(1,len*2.2),speed))}
+  return pts.filter(m=>Number.isFinite(m.x)&&Number.isFinite(m.y));
+}
+function openRouteGenerator(shipOrIndex){const index=typeof shipOrIndex==='number'?shipOrIndex:-1;const ship=index>=0?E.ships[index]:shipOrIndex;if(!ship)return;selected=index>=0?index:ship;const allowed=allowedRouteKinds(ship.type);if(!allowed.length){toast('Cette catégorie n’autorise que la route normale');return;}refreshRouteKindOptions(ship.type);$('routeGenKind').value=allowed[0];$('routeGenHeading').value=Number.isFinite(+E.own.c)?Math.round(E.own.c):0;routeGenDefaults($('routeGenKind').value);$('routeGeneratorDialog').classList.remove('hidden');$('menu').classList.add('hidden')}
+function generateTypedRoute(){const a=E.ships[selected];if(!a)return;const kind=$('routeGenKind').value;if(!allowedRouteKinds(a.type).includes(kind)){toast('Type de route incompatible avec la catégorie');return;}const p1=Number.isFinite(+$('routeGenP1').value)?+$('routeGenP1').value:2,p2=Number.isFinite(+$('routeGenP2').value)?+$('routeGenP2').value:4,h=Number.isFinite(+$('routeGenHeading').value)?+$('routeGenHeading').value:a.c;const route=buildTypedRoute(a,kind,p1,p2,h);if(!route.length)return;snapshot();a.maneuvers=route;a._routeKind=kind;delete a._wp;closeRouteGenerator();changed();toast('Trajectoire type créée : '+route.length+' waypoints')}
+function closeRouteGenerator(){$('routeGeneratorDialog').classList.add('hidden')}
+$('routeGenCancel').onclick=closeRouteGenerator;$('routeGenOk').onclick=generateTypedRoute;
+function menuAt(e,idx,wp=null){const m=$('menu'),di=dstHit(world(e));if(wp){selected=wp.ship;selectedShips.clear();selectedShips.add(wp.ship)}else if(idx>=0){selected=idx;selectedShips.clear();selectedShips.add(idx)}selected=di>=0?{kind:'dst',index:di}:selected;m.innerHTML=`<button id="mAdd">＋ Ajouter un navire ici</button><button id="mCopy">⧉ Copier</button><button id="mPaste">⧉ Coller</button><button id="mSetStart">⚑ Définir comme point de départ</button><button id="mReset">↺ Réinitialiser l’exercice</button><button id="mAddDST">⇄ Ajouter un DST</button>${wp?'<button id=\"mDelWaypoint\">⌫ Supprimer le waypoint</button>':''}${idx>=0?'<button id=\"mEdit\">✎ Éditer le navire</button><button id=\"mRoute\">⌁ Créer une route</button><button id=\"mFishing\">✦ Générer traits de pêche</button><button id=\"mErratic\">✦ Générer route erratique</button><button id=\"mSailS\">✦ Générer route en S voilier</button><button id=\"mDel\">⌫ Supprimer le navire</button>':''}${di>=0?'<button id="mDelDST">⌫ Supprimer le DST</button>':''}<hr><button id="mCoast">⌁ Éditer les formes de côte</button><button id="mClearCoast">× Effacer les formes de côte</button><button id="mCenter">◎ Recentrer la vue</button><button id="mTable">▤ Tableau CPA</button><button id="mUndo">↶ Annuler</button><hr><button id="mExport">⇩ Exporter</button><button id="mImport">⇧ Importer</button>`;m.style.left=Math.min(innerWidth-240,e.clientX)+'px';m.style.top=Math.min(innerHeight-300,e.clientY)+'px';m.classList.remove('hidden');if(idx>=0){const t=E.ships[idx].type;if(t!=='fish')$('mFishing')?.remove();if(t!=='nuc')$('mErratic')?.remove();if(t!=='sailboat')$('mSailS')?.remove();}$('mAdd').onclick=()=>{addShip(world(e));m.classList.add('hidden')};$('mCopy').onclick=()=>{copySelectedShips();m.classList.add('hidden')};$('mPaste').onclick=()=>{pasteShips(world(e));m.classList.add('hidden')};$('mSetStart').onclick=()=>{setSimulationStart(idx,world(e));m.classList.add('hidden')};$('mReset').onclick=()=>{m.classList.add('hidden');if(running||runStart)resetRun();else confirmClearExercise()};$('mAddDST').onclick=()=>{setDSTMode(true);m.classList.add('hidden')};if(wp){$('mDelWaypoint').onclick=()=>{const a=E.ships[wp.ship];if(!a?.maneuvers?.[wp.index])return;snapshot();a.maneuvers.splice(wp.index,1);for(let i=wp.index;i<a.maneuvers.length;i++)recalcRouteWaypoint(wp.ship,i);changed();m.classList.add('hidden');toast('Waypoint supprimé')}}if(idx>=0){$('mEdit').onclick=()=>openEdit(idx,screen(E.ships[idx]));$('mRoute').onclick=()=>{beginRouteEdit(idx);m.classList.add('hidden')};if($('mFishing'))$('mFishing').onclick=()=>{openRouteGenerator(idx);$('routeGenKind').value='fishing';routeGenDefaults('fishing')};if($('mErratic'))$('mErratic').onclick=()=>{openRouteGenerator(idx);$('routeGenKind').value='erratic';routeGenDefaults('erratic')};if($('mSailS'))$('mSailS').onclick=()=>{openRouteGenerator(idx);$('routeGenKind').value='sailS';routeGenDefaults('sailS')};$('mDel').onclick=()=>{snapshot();E.ships.splice(idx,1);changed();m.classList.add('hidden')}}if(di>=0)$('mDelDST').onclick=()=>{snapshot();E.dsts.splice(di,1);selected=null;updateDSTEditor();changed();m.classList.add('hidden');toast('DST supprimé')};$('mCoast').onclick=()=>{setCoastMode(true);m.classList.add('hidden')};$('mClearCoast').onclick=()=>{snapshot();E.coastShapes=[];E.coast=[];changed();m.classList.add('hidden')};$('mCenter').onclick=()=>{resetView();m.classList.add('hidden')};$('mTable').onclick=()=>{$('table').classList.toggle('hidden');updateTable();m.classList.add('hidden')};$('mUndo').onclick=()=>{if(history.length){E=history.pop();changed()}m.classList.add('hidden')};$('mExport').onclick=saveFile;$('mImport').onclick=()=>$('file').click()}
+
+function updateShapeEditor(){const box=$('rectEdit');if(!selected||selected.kind!=='shape'){box.classList.add('hidden');return}const s=E.coastShapes[selected.index];if(s?.type==='rect'){box.classList.remove('hidden');$('shapeAngle').value=rectAngle(s)}else box.classList.add('hidden')}
+function applyShapeAngle(){if(!selected||selected.kind!=='shape')return;const s=E.coastShapes[selected.index];if(s?.type==='rect'){snapshot();s.angle=Number.isFinite(+$('shapeAngle').value)?+$('shapeAngle').value:0;changed()}}
+$('shapeAngleOk').onclick=applyShapeAngle;
+$('shapeAngle').addEventListener('change',applyShapeAngle);
+const radarScreen=document.querySelector('.radar');
+function pointerPos(e){return world(e)}
+radarScreen.addEventListener('pointerdown',e=>{lastMouseWorld=world(e);pointers.set(e.pointerId,e);radarScreen.setPointerCapture?.(e.pointerId);if(pointers.size===2){const a=[...pointers.values()];pinch={dist:Math.hypot(a[0].clientX-a[1].clientX,a[0].clientY-a[1].clientY),zoom:view.zoom,center:{...view}};drag=null;return}const p0=pointerPos(e),wp0=routePointHit(p0);if(wp0&&e.button!==2){selected=wp0.ship;drag={kind:'routeWaypoint',ship:wp0.ship,index:wp0.index,start:p0,moved:false};e.preventDefault();return}if(e.button===2)return;const dp=pointerPos(e),dhi=dstHandleHit(dp),dsi=dstHit(dp);if(e.button!==2&&(dhi>=0||(dsi>=0&&!coastMode))){if(dhi>=0){drag={kind:'dstHandle',index:selected.index,handle:dhi,start:dp};}else{selected={kind:'dst',index:dsi};drag={kind:'dstBody',index:dsi,last:dp};}updateDSTEditor();draw();return}if(e.button!==2&&dsi>=0&&coastMode&&!draft){selected={kind:'dst',index:dsi};drag={kind:'dstBody',index:dsi,last:dp};updateDSTEditor();draw();return}if(routeMode){
+  const p=pointerPos(e),wp=routePointHit(p),di=dstHit(p),si=hitShip(p),sh=shapeHit(p),seg=routeSegmentHit(p);
+  if(wp){openRouteWaypointEdit(wp.ship,wp.index,{x:e.clientX,y:e.clientY});return;}
+  // Les navires, DST et formes restent prioritaires : une route ne transforme
+  // pas un clic posé dessus en ajout de waypoint.
+  if(di>=0||si>=0||sh>=0||seg)return;
+  if(typeof selected !== 'number')return;
+  e.preventDefault();queueRouteWaypointClick(p);return;
+}if(dstMode){const p=pointerPos(e);draft={type:'dst',x:p.x,y:p.y,x2:p.x,y2:p.y,width:1};drag={kind:'dstDraw'};return}if(coastMode){const p=pointerPos(e);if(shapeTool==='dst'){const p=pointerPos(e);draft={type:'dst',x:p.x,y:p.y,x2:p.x,y2:p.y,width:+$('dstWidth').value||1};drag={kind:'dstDraw'};return}if(shapeTool==='polygon'){if(!draft)draft={type:'polygon',points:[]};if(draft.points.length>=3&&Math.hypot(p.x-draft.points[0][0],p.y-draft.points[0][1])<.2/view.zoom)return finishDraft();draft.points.push([p.x,p.y]);draw()}else{draft={type:shapeTool==='circle'?'circle':shapeTool==='ellipse'?'ellipse':'rect',x:p.x,y:p.y,r:0,rx:0,ry:0,w:0,h:0,startX:p.x,startY:p.y};drag={kind:'draw',start:p}}return}if(e.button===1||spaceHeld||e.shiftKey){drag={kind:'pan',lastX:e.clientX,lastY:e.clientY};return}const p=pointerPos(e),routeHit=routeMode&&(routePointHit(p)||routeSegmentHit(p));if(routeHit)return;const si=hitShip(p),sh=shapeHit(p),hh=shapeHandleHit(p);if(hh>=0){drag={kind:'handle',index:selected.index,handle:hh};}else if(si>=0){if(e.shiftKey){if(selectedShips.has(si))selectedShips.delete(si);else selectedShips.add(si);selected=si;}else{selectedShips.clear();selectedShips.add(si);selected=si;}if((E.ships[si].maneuvers||[]).length){beginRouteEdit(si);drag=null;}else{drag={kind:'ship',i:si,dx:E.ships[si].x-p.x,dy:E.ships[si].y-p.y};} }else if(sh>=0){selected={kind:'shape',index:sh};updateShapeEditor();drag={kind:'shape',index:sh,last:p,handle:null};}else{selected=null;updateShapeEditor();drag={kind:'pan',lastX:e.clientX,lastY:e.clientY};if(e.button===0&&e.detail===1)addShip(p)}draw()});
+radarScreen.addEventListener('pointermove',e=>{
+  lastMouseWorld=world(e);
+  pointers.set(e.pointerId,e);
+  if(pinch&&pointers.size>=2){const a=[...pointers.values()];const dist=Math.hypot(a[0].clientX-a[1].clientX,a[0].clientY-a[1].clientY);view.zoom=Math.max(.45,Math.min(4,pinch.zoom*dist/pinch.dist));draw();return}
+  if(!drag)return;
+  const p=pointerPos(e);
+  if(drag.kind==='dstBody'){const d=E.dsts[drag.index],dx=p.x-drag.last.x,dy=p.y-drag.last.y;d.x+=dx;d.y+=dy;d.x2+=dx;d.y2+=dy;drag.last=p;changed();return}if(drag.kind==='dstHandle'){const d=E.dsts[drag.index],h=drag.handle;if(h===0){const L=Math.hypot(p.x-d.x2,p.y-d.y2);if(L>=.2){d.x=+p.x.toFixed(1);d.y=+p.y.toFixed(1)}}else if(h===1){const L=Math.hypot(p.x-d.x,p.y-d.y);if(L>=.2){d.x2=+p.x.toFixed(1);d.y2=+p.y.toFixed(1)}}else{const g=dstGeom(d),side=(p.x-d.x-g.ux*g.L/2)*g.nx+(p.y-d.y-g.uy*g.L/2)*g.ny;d.width=Math.max(.2,Math.round(Math.abs(side)*2*10)/10);$('dstWidth').value=d.width.toFixed(1)}changed();return}if((coastMode||dstMode)&&drag.kind==='dstDraw'){draft.x2=p.x;draft.y2=p.y;draw();return}if(coastMode&&drag.kind==='draw'){if(draft.type==='circle')draft.r=Math.hypot(p.x-draft.x,p.y-draft.y);else if(draft.type==='ellipse'){draft.rx=Math.abs(p.x-draft.x);draft.ry=Math.abs(p.y-draft.y)}else{draft.w=p.x-draft.startX;draft.h=p.y-draft.startY;draft.x=Math.min(draft.startX,p.x);draft.y=Math.max(draft.startY,p.y)}draw();return}
+  if(drag.kind==='routeWaypoint'){const m=E.ships[drag.ship]?.maneuvers?.[drag.index];if(m){if(Math.hypot(p.x-drag.start.x,p.y-drag.start.y)>0.03/view.zoom)drag.moved=true;if(drag.moved){m.x=p.x;m.y=p.y;m.lat=p.y;recalcRouteWaypoint(drag.ship,drag.index);changed();}}return}if(drag.kind==='pan'){pan(e.clientX-drag.lastX,e.clientY-drag.lastY);drag.lastX=e.clientX;drag.lastY=e.clientY}
+  else if(drag.kind==='ship'){E.ships[drag.i].x=p.x+drag.dx;E.ships[drag.i].y=p.y+drag.dy;changed()}
+  else if(drag.kind==='shape'){const s=E.coastShapes[drag.index],dx=p.x-drag.last.x,dy=p.y-drag.last.y;if(s.type==='polygon')s.points=s.points.map(a=>[a[0]+dx,a[1]+dy]);else{s.x+=dx;s.y+=dy}drag.last=p;changed()}
+  else if(drag.kind==='handle'){
+    const s=E.coastShapes[drag.index];
+    if(s.type==='circle')s.r=Math.max(.05,Math.hypot(p.x-s.x,p.y-s.y));
+    else if(s.type==='ellipse'){if(drag.handle===1)s.rx=Math.max(.05,Math.abs(p.x-s.x));else if(drag.handle===2)s.ry=Math.max(.05,Math.abs(p.y-s.y))}
+    else if(s.type==='rect'){
+      if(drag.handle===4){const c=rectCenter(s);s.angle=norm(90-Math.atan2(p.y-c.y,p.x-c.x)/D);$('shapeAngle').value=s.angle.toFixed(1)}
+      else {const c=rectCenter(s),q=rectLocalPoint(p,s),opps=[{x:c.x+s.w/2,y:c.y+s.h/2},{x:c.x-s.w/2,y:c.y+s.h/2},{x:c.x-s.w/2,y:c.y-s.h/2},{x:c.x+s.w/2,y:c.y-s.h/2}],opp=opps[drag.handle];const w=Math.max(.05,Math.abs(q.x-opp.x)),h=Math.max(.05,Math.abs(q.y-opp.y)),nc={x:(q.x+opp.x)/2,y:(q.y+opp.y)/2};s.w=w;s.h=h;s.x=nc.x-w/2;s.y=nc.y-h/2}
+    } else if(s.type==='polygon')s.points[drag.handle]=[p.x,p.y];
+    updateShapeEditor();changed();
+  }
+});
+radarScreen.addEventListener('pointerup',e=>{pointers.delete(e.pointerId);if(pinch&&pointers.size<2)pinch=null;if(drag?.kind==='routeWaypoint'&&!drag.moved){openRouteWaypointEdit(drag.ship,drag.index,{x:e.clientX,y:e.clientY});}if((coastMode||dstMode)&&drag?.kind==='dstDraw')finishDraft();if(coastMode&&drag?.kind==='draw'&&shapeTool!=='polygon')finishDraft();drag=null});
+radarScreen.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null});
+radarScreen.addEventListener('dblclick',e=>{
+  if(coastMode&&shapeTool==='polygon'){e.preventDefault();e.stopPropagation();finishDraft();return;}
+  const p=world(e);
+  if(startPointHit(p)){e.preventDefault();e.stopPropagation();openStartPointDialog();return;}
+  const di=dstHit(p),wp=routePointHit(p);
+  if(di>=0){cancelQueuedRouteClick();selected={kind:'dst',index:di};openDSTDialog(di,{x:e.clientX,y:e.clientY});return;}
+  if(wp){cancelQueuedRouteClick();e.preventDefault();e.stopPropagation();openRouteWaypointEdit(wp.ship,wp.index,{x:e.clientX,y:e.clientY});return;}
+  const seg=routeSegmentHit(p);
+  if(seg){cancelQueuedRouteClick();e.preventDefault();e.stopPropagation();insertRouteWaypoint(seg);return;}
+  const si=hitShip(p),sh=shapeHit(p);
+  if(si>=0){cancelQueuedRouteClick();e.preventDefault();e.stopPropagation();handleTargetRouteDblClick(si,e);return;}
+  if(sh>=0||!routeMode||typeof selected !== 'number')return;
+  // Zone vide en mode route : le double-clic ajoute exactement un waypoint.
+  cancelQueuedRouteClick();e.preventDefault();e.stopPropagation();appendRouteWaypoint(selected,p);
+});
+radarScreen.addEventListener('wheel',e=>{e.preventDefault();const before=world(e),factor=e.deltaY<0?1.12:.89;view.zoom=Math.max(.45,Math.min(4,view.zoom*factor));const after=world(e);view.x+=before.x-after.x;view.y+=before.y-after.y;draw()},{passive:false});
+$('editor').addEventListener('contextmenu',e=>{e.preventDefault();const p=world(e),wp=routePointHit(p);menuAt(e,wp?wp.ship:hitShip(p),wp)});
+function applyEdit(){
+  // Capturer l'index avant de fermer le panneau : closeEdit() remet selected à null.
+  const editIndex=selected, a=editIndex<0?E.own:E.ships[editIndex];
+  if(!a)return;
+  const rawType=editIndex<0?'normal':$('eType').value;
+  const nextType=canonicalType(rawType);
+  snapshot();
+  // Le type doit être appliqué avant la limitation de vitesse (sinon l'ancienne
+  // catégorie est encore celle de l'objet au moment de la validation).
+  if(editIndex>=0){
+    a.type=nextType;
+    a.name=$('eName').value.trim()||a.name;
+    if(!allowedRouteKinds(a.type).length && (a.maneuvers||[]).length){ a.maneuvers=[]; toast('Route spéciale supprimée : catégorie limitée à la route normale'); }
+    else if(!allowedRouteKinds(a.type).includes(a._routeKind)){ a.maneuvers=[]; }
+  }
+  a.c=norm(+$('eC').value||0);
+  a.s=clampSpeed(+$('eS').value,nextType,editIndex<0);
+
+  // Une catégorie ou une vitesse modifiée invalide la navigation ARPA en cours;
+  // elle sera recalculée au prochain tick avec TURN_RATE et les nouvelles valeurs.
+  if(editIndex>=0){
+    delete a._dstIndex; delete a._dstLane; delete a._dstFlow;
+    delete a._dstDesired; delete a._routeTarget;
+    // null signifie « vitesse par défaut » : il suit désormais a.s au lancement.
+    (a.maneuvers||[]).forEach(m=>{if(m.vitesse==null)m.vitesse=null;});
+    if(a.followDST&&E.dsts[0]){const z=dstInfo(a,E.dsts[0]);if(z.inBounds&&!z.sep)a.c=norm(z.desired)}
+  }
+  // Dessiner tout de suite, avant de fermer le panneau, puis persister/exporter
+  // le même objet cible déjà actualisé.
+  changed();
+  closeEdit();
+}
+/* V81 : déplacement libre puis aimantation au bord le plus proche. */
+(function enableToolbarDrag(){
+  const toolbar=document.querySelector('.toolbar'), handle=toolbar?.querySelector('.toolbar-drag-handle');
+  if(!toolbar||!handle)return;
+  const key='radar-toolbar-position-v76';
+  const sides=['top','right','bottom','left'];
+  const applySide=side=>{toolbarSide=side;sides.forEach(x=>toolbar.classList.toggle('toolbar-side-'+x,x===side));toolbar.style.left='';toolbar.style.right='';toolbar.style.top='';toolbar.style.bottom='';toolbar.style.transform='';};
+  const clampFree=()=>{const r=toolbar.getBoundingClientRect();return {left:Math.min(Math.max(0,r.left),Math.max(0,innerWidth-r.width)),top:Math.min(Math.max(0,r.top),Math.max(0,innerHeight-r.height))};};
+  const snap=()=>{const r=toolbar.getBoundingClientRect(), distances={top:r.top,right:innerWidth-r.right,bottom:innerHeight-r.bottom,left:r.left};const side=Object.keys(distances).reduce((a,b)=>distances[b]<distances[a]?b:a);applySide(side);return side;};
+  try{const saved=JSON.parse(sessionStorage.getItem(key)||'null');if(saved&&sides.includes(saved.side))applySide(saved.side);else applySide('top');}catch(_){applySide('top')}
+  let state=null;
+  handle.addEventListener('pointerdown',e=>{if(e.button!==undefined&&e.button!==0)return;const r=toolbar.getBoundingClientRect();state={x:e.clientX,y:e.clientY,left:r.left,top:r.top};toolbar.style.left=r.left+'px';toolbar.style.top=r.top+'px';toolbar.style.right='auto';toolbar.style.bottom='auto';toolbar.style.transform='none';toolbar.classList.add('toolbar-toolbar-dragging','dragging');handle.setPointerCapture?.(e.pointerId);e.preventDefault();e.stopPropagation();});
+  handle.addEventListener('pointermove',e=>{if(!state)return;const left=Math.min(Math.max(0,state.left+e.clientX-state.x),Math.max(0,innerWidth-toolbar.offsetWidth));const top=Math.min(Math.max(0,state.top+e.clientY-state.y),Math.max(0,innerHeight-toolbar.offsetHeight));toolbar.style.left=left+'px';toolbar.style.top=top+'px';e.preventDefault();});
+  const end=e=>{if(!state)return;const side=snap();state=null;toolbar.classList.remove('toolbar-toolbar-dragging','dragging');try{sessionStorage.setItem(key,JSON.stringify({side}))}catch(_){}try{handle.releasePointerCapture?.(e.pointerId)}catch(_){}toolbarReserveHeight=null;toolbarReserveWidth=null;draw();};
+  handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',end);
+  window.addEventListener('resize',()=>{if(!state){applySide(toolbarSide);try{sessionStorage.setItem(key,JSON.stringify({side:toolbarSide}))}catch(_){}toolbarReserveHeight=null;toolbarReserveWidth=null;draw();}});
+})();
+/* V81 : déplacement commun des fenêtres flottantes, souris et tactile. */
+(function enableFloatingDrag(){
+  const specs=[
+    ['#menu',el=>({handle:el,hit:e=>e.clientY-el.getBoundingClientRect().top<=25})],
+    ['#shapePanel',el=>({handle:el.querySelector('h3'),hit:e=>true})],
+    ['#generatorDialog',el=>({handle:el.querySelector('h3'),hit:e=>true})],
+    ['#routeEdit',el=>({handle:el.querySelector('h3'),hit:e=>true})],
+    ['#edit',el=>({handle:el.querySelector('h3'),hit:e=>true})],
+    ['#echoDegradation',el=>({handle:el.querySelector('h3'),hit:e=>true})],
+    ['#table',el=>({handle:el.querySelector('h3'),hit:e=>true})],
+    ['#realModal .real-card',el=>({handle:el.querySelector('.real-head'),hit:e=>true})],
+    ['#routeGeneratorDialog',el=>({handle:el.querySelector('h3'),hit:e=>true})]
+  ];
+  specs.forEach(([selector,getSpec])=>{
+    const el=document.querySelector(selector); if(!el)return;
+    const spec=getSpec(el); const handle=spec.handle; if(!handle)return;
+    let state=null;
+    handle.addEventListener('pointerdown',e=>{
+      if(e.button!==undefined&&e.button!==0)return;
+      if(!spec.hit(e)||e.target.closest('button,input,select,textarea,a,label'))return;
+      const r=el.getBoundingClientRect();
+      // Convert centered generator positioning to explicit coordinates on first drag.
+      if(getComputedStyle(el).transform!=='none'){
+        el.style.transform='none'; el.style.left=r.left+'px'; el.style.top=r.top+'px';
+      } else if(selector==='#realModal .real-card'){
+        // Le panneau cartographique est enfant d’un conteneur flex centré :
+        // le passer en fixed évite un double décalage lors du premier glissement.
+        el.style.position='fixed'; el.style.left=r.left+'px'; el.style.top=r.top+'px';
+      } else if(getComputedStyle(el).position==='fixed'||getComputedStyle(el).position==='absolute'){
+        // The echo panel is bottom-anchored. Once dragging gives it a top value,
+        // leaving bottom in place over-constrains an absolutely positioned box;
+        // CSS then stretches its auto height to fill the gap.
+        if(selector==='#echoDegradation'){
+          el.style.right='auto';
+          el.style.bottom='auto';
+        }
+        el.style.left=r.left+'px'; el.style.top=r.top+'px';
+      }
+      state={x:e.clientX,y:e.clientY,left:r.left,top:r.top};
+      el.classList.add('floating-dragging'); if(selector==='#menu')el.classList.add('dragging');
+      handle.setPointerCapture?.(e.pointerId); e.preventDefault(); e.stopPropagation();
+    });
+    handle.addEventListener('pointermove',e=>{
+      if(!state)return;
+      const maxLeft=Math.max(0,innerWidth-el.offsetWidth),maxTop=Math.max(0,innerHeight-el.offsetHeight);
+      el.style.left=Math.min(maxLeft,Math.max(0,state.left+e.clientX-state.x))+'px';
+      el.style.top=Math.min(maxTop,Math.max(0,state.top+e.clientY-state.y))+'px';
+      e.preventDefault();
+    });
+    const end=e=>{if(!state)return;state=null;el.classList.remove('floating-dragging','dragging');try{handle.releasePointerCapture?.(e.pointerId)}catch(_){} };
+    handle.addEventListener('pointerup',end); handle.addEventListener('pointercancel',end);
+  });
+})();
+$('editOk').onclick=applyEdit;$('editCancel').onclick=closeEdit;$('editDelete').onclick=()=>{if(selected>=0){snapshot();E.ships.splice(selected,1);closeEdit();changed()}else closeEdit()};$('eType').addEventListener('change',updateSpeedControl);
+$('routeOk').onclick=()=>{if(!routeEdit)return;const {ship,index}=routeEdit,m=E.ships[ship]?.maneuvers?.[index];if(!m)return; snapshot();const c=$('rC').value.trim(),v=$('rS').value.trim();m.cap=c===''?null:norm(+c);m.vitesse=v===''?null:Math.max(0,+v);closeRouteEdit();changed();toast('Waypoint modifié')};
+$('routeCancel').onclick=closeRouteEdit;
+$('routeDelete').onclick=()=>{if(!routeEdit)return;const {ship,index}=routeEdit,a=E.ships[ship];if(!a?.maneuvers?.[index])return;snapshot();a.maneuvers.splice(index,1);for(let i=index;i<a.maneuvers.length;i++)recalcRouteWaypoint(ship,i);closeRouteEdit();changed();toast('Waypoint supprimé')};
+$('coastFinish').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation()});$('coastFinish').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();finishDraft()});$('coastCancel').onclick=cancelCoast;$('shapeDelete').onclick=deleteSelectedShape;document.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>selectShape(b.dataset.shape));$('viewReset').onclick=resetView;
+function syncEchoDegradation(){const d=E.echoDegradation||{};['sea','rain','noise','weak','flicker'].forEach(k=>{const el=$('deg'+k[0].toUpperCase()+k.slice(1)),v=$('deg'+k[0].toUpperCase()+k.slice(1)+'Val');if(el){el.value=d[k]||0;v.textContent=el.value}})}
+['sea','rain','noise','weak','flicker'].forEach(k=>{const id='deg'+k[0].toUpperCase()+k.slice(1);$(id).oninput=e=>{E.echoDegradation=E.echoDegradation||{};E.echoDegradation[k]=+e.target.value;$(id+'Val').textContent=e.target.value;draw()}});syncEchoDegradation();
+$('realCoast').onclick=realOpen;$('realClose').onclick=closeReal;$('realLocate').onclick=()=>{const p=REAL_PRESETS[$('realPreset').value];realCenter={lat:p[0],lon:p[1]};realOwn={...realCenter};realMap?.setView([p[0],p[1]],p[2]);realRefreshOverlay()};$('realPreset').onchange=()=>{const p=REAL_PRESETS[$('realPreset').value];realCenter={lat:p[0],lon:p[1]};realOwn={...realCenter};realMap?.setView([p[0],p[1]],p[2]);realRefreshOverlay()};$('realRadius').onchange=e=>realSetRadius(e.target.value);$('realRadiusNumber').onchange=e=>realSetRadius(e.target.value);$('realValidate').onclick=realValidate;$('routeGenKind').addEventListener('change',e=>routeGenDefaults(e.target.value));$('scenarioGenerate').onclick=openGenerator;$('genCancel').onclick=closeGenerator;$('genOk').onclick=generateScenario;$('genDegradation').onchange=()=>{const v=degradationPreset($('genDegradation').value);if(v){['Sea','Rain','Noise','Weak','Flicker'].forEach((k,i)=>$('gen'+k).value=v[i])}};['genSea','genRain','genNoise','genWeak','genFlicker'].forEach(id=>$(id).oninput=()=>{$('genDegradation').value='custom'});$('resetExercise').onclick=resetExercise;$('clearAll').onclick=confirmClearExercise;$('range').onchange=e=>{range=+e.target.value;realSetRadius(nearestRealRadius(range));draw()};$('theme').onclick=()=>{document.body.classList.toggle('classic');$('theme').textContent=document.body.classList.contains('classic')?'☾ Moderne':'☼ Classique';draw()};$('undo').onclick=()=>{if(history.length){E=history.pop();changed()}};$('save').onclick=saveFile;$('import').onclick=()=>$('file').click();$('importCoastFile').onclick=()=>$('coastFile').click();$('coastFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{importCoastFileText(String(rd.result),f.name)}catch(err){console.error('[Import côte]',err);toast('Fichier de côte invalide : '+(err.message||err))}e.target.value=''};rd.readAsText(f)};$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{snapshot();const raw=JSON.parse(rd.result);E=normalize(raw);exerciseStart=raw.simulationStart?normalize(raw.simulationStart):clone(E);resetView();syncStartPointFlag();toast('Données importées')}catch(_){toast('Fichier d’export invalide')}};rd.readAsText(f)};window.addEventListener('click',e=>{if(!e.target.closest('#menu')&&!e.target.closest('#editor'))$('menu').classList.add('hidden')});window.addEventListener('resize',()=>{toolbarReserveHeight=null;radarLayout();draw()});window.addEventListener('orientationchange',()=>setTimeout(draw,120));window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&!focusIsText()&&!running&&!runStart&&e.key.toLowerCase()==='c'){e.preventDefault();copySelectedShips();return}if((e.ctrlKey||e.metaKey)&&!focusIsText()&&!running&&!runStart&&e.key.toLowerCase()==='v'){e.preventDefault();pasteAtMouse();return}if(e.code==='Space')spaceHeld=true;if(e.key==='Escape'&&coastMode)cancelCoast();if(e.key==='Escape'&&routeEdit)closeRouteEdit();if(e.key==='Escape'&&routeMode){routeMode=false;if($('hint'))$('hint').textContent='Clic vide : ajouter · glisser : déplacer · clic droit : menu';draw();}if(e.key==='Enter'&&coastMode)finishDraft();if((e.key==='Delete'||e.key==='Backspace')&&selected?.kind==='shape')deleteSelectedShape();});
+function tick(t){if(!running)return;const dt=(t-last)/3600000*(+$('speed').value);last=t;simTime+=dt;E.ships.forEach(a=>{routeUpdate(a,dt*3600);if(a.type==='nuc'||a.type==='anchor')return;const v=vel(a.c,a.s);a.x+=v[0]*dt;a.y+=v[1]*dt;advanceRouteWaypoint(a)});draw();updateTable();requestAnimationFrame(tick)}
+window.addEventListener('keyup',e=>{if(e.code==='Space')spaceHeld=false});
+function setOwnHeading(v){const n=((Number(v)||0)%360+360)%360;E.own.c=n;$('ownHeadingVal').textContent=String(Math.round(n)).padStart(3,'0')+'°';const c=$('ownCompass');if(c){c.setAttribute('aria-valuenow',Math.round(n));$('ownCompassNeedle').style.transform=`rotate(${n}deg)`}draw()}
+
+(function(){const c=$('ownCompass');if(!c)return;let active=false;function read(e){const r=c.getBoundingClientRect(),a=(Math.atan2(e.clientX-(r.left+r.width/2),-(e.clientY-(r.top+r.height/2)))/D+360)%360;setOwnHeading(Math.round(a));}c.addEventListener('pointerdown',e=>{active=true;c.setPointerCapture?.(e.pointerId);read(e);e.preventDefault()});c.addEventListener('pointermove',e=>{if(active)read(e)});c.addEventListener('pointerup',()=>{active=false});c.addEventListener('pointercancel',()=>{active=false});})();
+$('startpointOk').onclick=applyStartPoint;$('startpointCancel').onclick=closeStartPointDialog;$('startpointModal').addEventListener('click',e=>{if(e.target.id==='startpointModal')closeStartPointDialog()});(function(){const c=$('startpointCompass');let active=false;function read(e){const r=c.getBoundingClientRect(),a=(Math.atan2(e.clientX-(r.left+r.width/2),-(e.clientY-(r.top+r.height/2)))/D+360)%360;updateStartPointCompass(Math.round(a));}c.addEventListener('pointerdown',e=>{active=true;c.setPointerCapture?.(e.pointerId);read(e);e.preventDefault()});c.addEventListener('pointermove',e=>{if(active)read(e)});c.addEventListener('pointerup',()=>active=false);c.addEventListener('pointercancel',()=>active=false)})();$('startpointHeading').oninput=e=>updateStartPointCompass(e.target.value);setOwnHeading(E.own.c||0);
+$('preview').onclick=()=>{running=!running;$('preview').textContent=running?'Ⅱ Pause':'▶ Aperçu';if(running){runStart={state:clone(E),simTime:simTime};last=performance.now();requestAnimationFrame(tick)}else{runStart=null}};window.__RADAR_DEBUG={get ships(){return clone(E.ships)},applyEdit,exportData,recalcRouteWaypoint,routePointHit,get mode(){return dstMode?'dst':coastMode?'coast':'idle'},get shapes(){return E.coastShapes.length},get view(){return clone(view)},get state(){return {mode:this.mode,shapes:this.shapes,view:this.view,ships:E.ships.length,coastShapes:clone(E.coastShapes),dsts:clone(E.dsts)}}, dstInfo, normalizeDST,dstHit,dstHandles,finishDraft,pointInPolygon,pointInRotatedRect,exportData,realSimplify,realJoinWays,realRingsToShapes,realProject,realBbox};
+try{const s=localStorage.getItem('radar-exercice-v19')||localStorage.getItem('radar-exercice-v14')||localStorage.getItem('radar-exercice-v12')||localStorage.getItem('radar-exercice-v11');if(s)E=normalize(JSON.parse(s))}catch(_){}exerciseStart=clone(E);view={x:E.own.x,y:E.own.y,zoom:1};draw();syncStartPointFlag();
+</script>
+<script id="radar-i18n">
+(function(){'use strict';
+  var lang='fr';
+  try{lang=localStorage.getItem('radarLang')==='en'?'en':'fr'}catch(e){}
+  var T={
+    'Générateur d\'exercices':'Exercise generator','Générer un exercice aléatoire':'Generate a random exercise','Générer une trajectoire type':'Generate a typical track','Côte réelle':'Real coast','Côte réelle locale':'Local real coast','Préréglage':'Preset','Pas-de-Calais · détroit du Pas':'Pas-de-Calais · Strait of Dover','Rade de Brest':'Brest Roads','Rayon':'Radius','Rayon de sélection':'Selection radius','Fond':'Basemap','Recentrer':'Recenter','Importer une côte GeoJSON, GPX ou OSM':'Import a GeoJSON, GPX or OSM coastline','Importer un fichier de côte':'Import coastline file','Fermer':'Close','Valider et importer':'Validate and import','Cliquez sur la carte pour placer le centre du cercle · OWN au centre par défaut.':'Click the map to place the circle centre · OWN is centred by default.','Type de scénario':'Scenario type','Anti-collision (radial)':'Collision avoidance (radial)','Croisement':'Crossing','Dépassement':'Overtaking','Mix aléatoire':'Random mix','Nombre de navires':'Number of vessels','Distance des contacts':'Contact distance','Proche':'Near','Standard':'Standard','Lointaine':'Far','Aléatoire':'Random','Composition de la flotte / types ARPA':'Fleet composition / ARPA types','Normal':'Normal','Pêche':'Fishing vessel','Voilier':'Sailing vessel','Mouillage':'Vessel at anchor','Ajouter une côte / île':'Add coastline / island','Créer des waypoints':'Create waypoints','Distance côte':'Coast distance','Type de côte':'Coast type','Île':'Island','Détroit':'Strait','Baie':'Bay','Cap':'Cape','Port':'Port','Archipel':'Archipelago','Nombre de waypoints':'Number of waypoints','Dégradation de l\'écho (export + aperçu)':'Echo degradation (export + preview)','Dégradation de l’écho':'Echo degradation','DÉGRADATION DE L’ÉCHO':'ECHO DEGRADATION','Mer près du centre, pluie en nappes, bruit et détections intermittentes. Les réglages anti-clutter, gain et rémanence du simulateur permettent de compenser.':'Sea clutter near the centre, rain in bands, noise and intermittent detections. The simulator’s anti-clutter, gain and persistence settings can compensate.','La génération respecte les limites de vitesse et les taux de giration ARPA de chaque catégorie.':'Generation respects the speed limits and ARPA turn rates for each category.','Cercle rayon':'Circle radius','Aucune':'None','Légère':'Light','Moyenne':'Medium','Forte':'Strong','Conserver les réglages actuels':'Keep current settings','Mer / clapot':'Sea / swell','Pluie':'Rain','Bruit de fond':'Background noise','Échos faibles':'Weak echoes','Scintillement':'Flicker','Annuler':'Cancel','Supprimer':'Delete','Appliquer':'Apply','Terminer':'Finish','Quitter':'Exit','Supprimer forme':'Delete shape','Éditeur de côte · formes':'Coastline editor · shapes','Cercle / île':'Circle / island','Rectangle':'Rectangle','Ellipse':'Ellipse','Polygone libre':'Free polygon','Île allongée':'Elongated island','Inverser les sens':'Reverse directions','Largeur totale (NM)':'Total width (NM)','Inclinaison (°)':'Angle (°)','Glissez sur le radar pour dessiner':'Drag on the radar to draw','Waypoint de route':'Route waypoint','Nom':'Name','Type':'Type','Cap':'Heading','Vitesse':'Speed','Contact':'Target','Export':'Export','Import':'Import','Générer':'Generate','Aperçu':'Preview','▶ Aperçu':'▶ Preview','Ⅱ Pause':'Ⅱ Pause','Réinitialiser l’exercice':'Reset exercise','Définir comme point de départ':'Set as simulation start point','⚑ Point de départ OWN':'⚑ OWN start point','Cap initial °':'Initial heading °','Vitesse initiale kn':'Initial speed kn','Appliquer':'Apply','Réglages du point de départ OWN appliqués':'OWN start point settings applied','Arrêtez la simulation avant de modifier le point de départ':'Stop the simulation before changing the start point','Point de départ de la simulation défini':'Simulation start point set','Tout effacer':'Clear all','Classique':'Classic','Moderne':'Modern','Échelle':'Range','CAP OWN':'OWN HEADING','Déplacer la barre':'Move toolbar','Poignée pour déplacer la barre':'Toolbar drag handle','Clic vide : ajouter · glisser : déplacer · clic droit : menu':'Empty click: add · drag: move · right-click: menu','CPA / TCPA — TABLEAU DE SITUATION':'CPA / TCPA — SITUATION TABLE','Distance':'Range','Relèvement':'Bearing','Réglages':'Settings','Créer la route':'Create route','Traits de pêche':'Fishing tracks','Route erratique NUC':'Erratic NUC track','Patrouille circulaire / loiter':'Circular patrol / loiter','Route en S / zigzag voilier':'S-track / sailing vessel zigzag','Navette de ferry':'Ferry shuttle','Parallèle à la côte':'Parallel to coastline','Virage brusque au CPA':'Hard turn at CPA','Orientation':'Orientation','Paramètre':'Parameter','Mode':'Mode','OUESSANT':'OUESSANT','BRIDGE / TRAINING INSTRUMENT':'BRIDGE / TRAINING INSTRUMENT','ANTICOLLISION':'ANTICOLLISION','OFFLINE':'OFFLINE','VEILLE':'STANDBY','RÉGLAGES AFFICHAGE & ÉCHO':'DISPLAY & ECHO SETTINGS','TRACES / VECTEURS':'TRAILS / VECTORS','Désactivées':'Disabled','Trace relative':'Relative trail','Trace vraie':'True trail','Effacer les traces':'Clear trails','Durée des vecteurs':'Vector duration','Historique de positions':'Position history','Aucun':'None','TRAITEMENT ÉCHO':'ECHO PROCESSING','Anti-clutter mer':'Sea clutter suppression','Anti-clutter pluie':'Rain clutter suppression','Rémanence':'Persistence','Luminosité':'Brightness','SCÉNARIOS':'SCENARIOS','Charger exercice':'Load exercise','Format partagé avec generateur.html · chargement à l’arrêt':'Format shared with generator.html · load while stopped','Mesures & ARPA':'Measurements & ARPA','Sélectionnez une cible sur la carte pour afficher sa fiche ARPA détaillée.':'Select a target on the radar to display its detailed ARPA data.','Appui sur la carte : relèvement — · distance —':'Tap the radar: bearing — · range —','Seuil CPA':'CPA threshold','Seuil TCPA':'TCPA threshold','Rayon de garde':'Guard radius','N-UP':'N-UP','C-UP':'C-UP','H-UP':'H-UP','CPA / TCPA — SUIVI DES CIBLES':'CPA / TCPA — TARGET MONITOR','contact radar':'radar contact','pêche':'fishing vessel','mouillage':'vessel at anchor','CPA sous seuil / TCPA dans seuil':'CPA below threshold / TCPA within threshold','CIBLE':'TARGET','TYPE':'TYPE','RELÈV.':'BRG.','DIST.':'RANGE','CAP':'HDG.','VIT.':'SPD.','ÉTAT':'STATUS','DANGER':'DANGER','PASSÉ':'PAST','SURVEILLER':'MONITOR','OK':'OK','SIMULATEUR HORS LIGNE · données locales uniquement':'OFFLINE SIMULATOR · local data only','Collision détectée':'Collision detected','Recommencer':'Restart','Exercice chargé · simulation à l’arrêt':'Exercise loaded · simulation stopped','Exercice lancé':'Exercise started','Exercice généré':'Exercise generated','Côte bretonne chargée':'Brittany coastline loaded','Traces effacées':'Trails cleared','PAUSE':'PAUSED','EN LECTURE':'PLAYING','ALARME ZONE DE GARDE':'GUARD ZONE ALARM','ALARME CPA/TCPA':'CPA/TCPA ALARM','INFO DST : séparation / contre-sens':'TSS INFO: separation / wrong-way traffic','ÉCHOUEMENT':'GROUNDING','Sélectionnez une cible sur la carte pour sa fiche ARPA.':'Select a target on the radar for its ARPA data.','NAPM':'NAPM — mechanically propelled vessel','Moderne (gris)':'Modern (grey)','Classique (vert)':'Classic (green)','Fermer CPA / TCPA':'Close CPA / TCPA','Choisir un fichier JSON':'Choose a JSON file','Sélection de fichier JSON':'JSON file selection','Charger un exercice':'Load an exercise','Choisissez un exercice intégré ou sauvegardé localement.':'Choose a built-in or locally saved exercise.','Bruit de fond':'Background noise','ÉCHELLE':'Range','NAPM / Normal':'NAPM — mechanically propelled vessel','Données importées':'Data imported','Fichier d’export invalide':'Invalid export file','Fichier de côte invalide':'Invalid coastline file','DÉPLACER':'MOVE','ÉCHELLE':'RANGE','CAP OWN':'OWN HEADING','OWN':'OWN','VITESSE':'SPEED','CAP':'HEADING','FR | EN':'FR | EN','CPA / TCPA':'CPA / TCPA','Moderne':'Modern','Classique':'Classic','Vect. relatifs':'Relative vectors','Vect. vrais':'True vectors','GAIN':'GAIN','NOTRE NAVIRE':'OWN SHIP','OUTILS DE MESURE':'MEASUREMENT TOOLS','FICHE ARPA':'ARPA SHEET','ALARMES & LIMITES ARPA':'ALARMS & ARPA LIMITS'};
+  var R={};Object.keys(T).forEach(function(k){R[T[k]]=k});
+  var textSource=new WeakMap(), attrSource=new WeakMap(), applying=false, queued=false;
+  function tr(s){if(!s)return s;var d=lang==='en'?T:R;Object.keys(d).sort(function(a,b){return b.length-a.length}).forEach(function(k){s=s.split(k).join(d[k])});return s}
+  function applyText(n){if(!n||!n.nodeValue)return;var source=textSource.get(n);if(source===undefined){source=n.nodeValue;textSource.set(n,source)}var next=tr(source);if(n.nodeValue!==next)n.nodeValue=next}
+  function applyAttr(e,a){if(!e.hasAttribute(a))return;var m=attrSource.get(e);if(!m){m={};attrSource.set(e,m)}if(m[a]===undefined)m[a]=e.getAttribute(a);var next=tr(m[a]);if(e.getAttribute(a)!==next)e.setAttribute(a,next)}
+  function walk(root){root=root||document;applying=true;try{var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),n;while(n=w.nextNode()){if(n.parentElement&&n.parentElement.closest('script,style'))continue;applyText(n)}var els=root.querySelectorAll?root.querySelectorAll('[title],[aria-label],[placeholder],option'):[];for(var i=0;i<els.length;i++){['title','aria-label','placeholder'].forEach(function(a){applyAttr(els[i],a)});if(els[i].tagName==='OPTION')applyText(els[i].firstChild)}if(root.nodeType===1&&root.matches&&root.matches('[title],[aria-label],[placeholder],option')){['title','aria-label','placeholder'].forEach(function(a){applyAttr(root,a)});if(root.tagName==='OPTION')applyText(root.firstChild)}document.documentElement.lang=lang}finally{applying=false}}
+  function queueWalk(nodes){if(queued)return;queued=true;Promise.resolve().then(function(){queued=false;if(applying)return;for(var i=0;i<nodes.length;i++)if(nodes[i]&&nodes[i].nodeType===1)walk(nodes[i])})}
+  function updateCanvasText(){window.radarCanvasText=function(k,v){if(lang==='en')return k==='guard'?'GUARD '+v+' NM':(k==='radar'?'RADAR // '+(v?'RINGS ON':'RINGS OFF'):'');return k==='guard'?'GARDE '+v+' NM':(k==='radar'?'RADAR // '+(v?'ANNEAUX ON':'ANNEAUX OFF'):'')}}
+  window.radarFormatRealReadout=function(r,lat,lon){return lang==='en'?`Circle radius ${r.toFixed(1)} NM · OWN ${lat.toFixed(4)}°, ${lon.toFixed(4)}°`:`Cercle rayon ${r.toFixed(1)} NM · OWN ${lat.toFixed(4)}°, ${lon.toFixed(4)}°`};
+  function setLanguage(x){var next=x==='en'?'en':'fr';if(next===lang){walk(document);updateCanvasText();return}lang=next;try{localStorage.setItem('radarLang',lang)}catch(e){};updateCanvasText();walk(document);if(typeof render==='function')render();if(typeof draw==='function')draw();var b=document.getElementById('radarLangToggle');if(b){b.title=lang==='en'?'Switch to French':'Passer en anglais';b.setAttribute('aria-label',b.title)}}
+  var bar=document.querySelector('.toolbar')||document.querySelector('header.top');if(bar){var b=document.getElementById('radarLangToggle')||document.createElement('button');b.id='radarLangToggle';b.type='button';b.className='radar-lang-toggle';b.textContent='FR | EN';b.onclick=function(){setLanguage(lang==='fr'?'en':'fr')};b.title=lang==='en'?'Switch to French':'Passer en anglais';b.setAttribute('aria-label',b.title);if(!b.parentNode)bar.appendChild(b)}
+  updateCanvasText();window.setRadarLanguage=setLanguage;window.radarTranslate=tr;walk(document);
+  if(window.MutationObserver) new MutationObserver(function(ms){if(applying)return;var added=[];ms.forEach(function(m){for(var i=0;i<m.addedNodes.length;i++)if(m.addedNodes[i].nodeType===1)added.push(m.addedNodes[i])});if(added.length)queueWalk(added)}).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+</body></html>

@@ -1,0 +1,1698 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1422"><title>RADAR // Anti-collision V68</title>
+<style>
+:root{--bg:#171a1d;--bg2:#22272b;--panel:rgba(37,42,46,.94);--line:#596168;--ink:#f1f3f4;--muted:#b4bbc0;--accent:#d3d8dc;--red:#ff7180;--green:#69e0a4;--amber:#f6c76b;--shadow:0 16px 40px #00000066}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(ellipse at 50% -15%,#3a4146 0,#171a1d 55%);color:var(--ink);font:14px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:manipulation}body{padding:12px}.app{max-width:1480px;margin:auto}.top{display:flex;align-items:end;justify-content:space-between;padding:6px 4px 14px;margin-bottom:12px}.kicker{color:var(--accent);letter-spacing:.16em;font-size:10px;font-weight:700}.title{font-weight:750;font-size:clamp(22px,5vw,32px);letter-spacing:-.04em}.status{font-size:10px;color:var(--muted);text-align:right}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.tab,button,select,input{font:inherit}.tab,button{color:var(--ink);background:#30363b;border:1px solid #69727a;border-radius:14px;min-height:46px;padding:10px 13px;cursor:pointer;box-shadow:0 4px 12px #02081222}.tab{font-weight:700;letter-spacing:.04em}.tab.active,.play.primary{background:#d3d8dc;color:#1a1d20;border-color:#d3d8dc}button:active{transform:translateY(1px);filter:brightness(1.12)}button.active{outline:2px solid #c7cdd166;background:#4a5258}button.danger{color:#ffabb1;border-color:#874c59}
+
+/* Disposition 3 colonnes en mode SIMU : Mesures & ARPA à gauche, Radar au centre, Commandes à droite */
+.layout{display:grid;grid-template-columns:310px minmax(320px,1fr) 340px;gap:12px;align-items:start}
+.layout-ex{display:grid;grid-template-columns:minmax(300px,1fr) 350px;gap:12px}
+
+.radarbox{position:relative;background:#111416;border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}
+.radarbox canvas{display:block;width:100%;aspect-ratio:1;touch-action:none}
+.badge{position:absolute;top:12px;left:12px;color:var(--accent);font-size:11px;font-weight:700;background:#252a2ecc;padding:7px 10px;border-radius:10px;backdrop-filter:blur(8px)}
+.panel{background:linear-gradient(145deg,#30373bdd,#202529dd);border:1px solid #596168;border-radius:18px;padding:14px;margin-bottom:10px;box-shadow:0 8px 22px #02081222}
+.panel h3{margin:0 0 10px;font-size:13px;color:var(--accent);letter-spacing:.08em}
+.row{display:flex;gap:7px;flex-wrap:wrap}.row>*{flex:1}
+.small{font-size:11px;color:var(--muted)}
+.clock{font-size:27px;font-weight:700;letter-spacing:-.04em;margin:2px 0 7px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+label{display:block;color:var(--muted);font-size:11px;margin:8px 0 5px}
+input[type=number],select{width:100%;background:#1e2327;color:var(--ink);border:1px solid #596168;border-radius:11px;padding:9px;min-height:42px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.readout{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:11px}.readout b{color:var(--ink);font-size:13px}
+.tablewrap{overflow:auto;margin-top:12px;border:1px solid var(--line);border-radius:16px;background:#202529}
+table{width:100%;border-collapse:collapse;font-size:11px;min-width:760px}
+th{text-align:left;color:var(--muted);font-weight:600;background:#343a3f}
+th,td{padding:10px;border-bottom:1px solid #464d53}
+tr.danger{background:#4d1d24}
+td.warn{color:var(--red);font-weight:700}
+td.ok{color:var(--green)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-top:10px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.red{background:var(--red)}.green{background:var(--green)}.amber{background:var(--amber)}
+.hidden{display:none}
+.help{color:var(--muted);line-height:1.5;font-size:11px}
+.coast-list{max-height:110px;overflow:auto;font-size:11px;color:var(--muted)}
+.ship-row{display:grid;grid-template-columns:1fr 65px 65px 88px;gap:5px;margin:5px 0}
+.ship-row input,.ship-row select{min-height:35px;padding:5px;font-size:11px}
+.footer{text-align:center;color:#667d97;font-size:10px;padding:16px}
+.toast{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a1d20;padding:11px 15px;border-radius:12px;font-weight:700;display:none;box-shadow:var(--shadow)}
+.play{font-size:16px;font-weight:800;min-height:54px}
+.settings details{border:1px solid #596168;border-radius:13px;margin:7px 0;background:#202529}
+.settings summary{cursor:pointer;padding:13px 11px;color:var(--accent);font-weight:700;min-height:46px;list-style:none}
+.settings summary:before{content:'＋ ';color:var(--amber)}
+.settings details[open] summary:before{content:'− '}
+.settings .body{padding:0 11px 11px}
+.settings label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0 5px}
+.settings .mini{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.settings .measure-stack{display:grid;grid-template-columns:1fr;gap:8px}
+.settings .measure-stack .measure-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px}
+.settings .measure-stack .measure-control label{display:block;margin:0}
+.settings .measure-stack .measure-control button{width:auto;margin:0;min-width:96px}
+.settings .measure-control{min-width:0}
+.settings .measure-control label{display:block}
+.settings .measure-control input{min-width:0}
+.settings .measure-control button{width:100%;margin-top:2px}
+@media(max-width:420px){.settings .mini{grid-template-columns:1fr 1fr;gap:5px}.measure-toggle{min-width:0;padding-left:5px!important;padding-right:5px!important;font-size:10px!important}}
+.readoutbox{font-size:12px;color:var(--amber);padding:8px;background:#0a1625;border-radius:10px;min-height:28px;line-height:1.4}
+.guard{color:var(--red)!important}
+.settings button{min-height:44px}
+.danger-glow{filter:drop-shadow(0 0 7px #ff5364)}
+
+/* Commandes bâbord / tribord */
+button[data-turn^="-"]{color:#ff9ca6;border-color:#9b5360;background:#321f2a}
+button[data-turn]:not([data-turn^="-"]){color:#9af0c5;border-color:#4d9d78;background:#17362e}
+.measure-toggle{min-width:82px;font-weight:800;letter-spacing:.04em}
+.measure-toggle.is-on{color:#8ff1c3;border-color:#4d9d78;background:#173b31}
+.measure-toggle.is-off{color:#ffabb1;border-color:#9b5360;background:#321f2a}
+.measure-control{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:end}
+
+.collision-overlay{position:fixed;inset:0;z-index:1900;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(70,4,18,.74);backdrop-filter:blur(5px)}.collision-overlay.is-open{display:flex}.collision-card{width:min(520px,100%);padding:26px 22px;text-align:center;background:linear-gradient(145deg,#5d1728,#260c19);border:2px solid #ff7180;border-radius:22px;box-shadow:0 0 0 5px #ff718022,0 24px 80px #000c}.collision-card h2{margin:0 0 10px;color:#fff;font-size:clamp(30px,8vw,54px);letter-spacing:.08em}.collision-card p{margin:0 0 20px;color:#ffd8dd;font-size:16px}.collision-card button{background:#fff;color:#3b0c18;border-color:#fff;font-weight:800;min-width:190px}
+
+.exercise-overlay{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,7,18,.78);backdrop-filter:blur(5px)}.exercise-overlay.is-open{display:flex}.exercise-modal{width:min(560px,100%);max-height:min(720px,90vh);overflow:auto;background:linear-gradient(145deg,#30373b,#202529);border:1px solid #596168;border-radius:22px;padding:20px;box-shadow:0 24px 80px #000b}.exercise-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.exercise-modal h2{margin:0;color:var(--accent);font-size:18px}.exercise-modal .small{margin:4px 0 14px}.exercise-modal-close{min-width:46px;font-size:20px;line-height:1}.exercise-modal-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 16px}.exercise-modal-list button{text-align:left;min-height:54px}.exercise-file-row{border-top:1px solid var(--line);padding-top:14px}.exercise-file-row button{width:100%}.exercise-modal:focus{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:520px){.exercise-modal-list{grid-template-columns:1fr}}
+
+/* Barre de contrôles radar : utilitaires lisibles à droite de l'échelle */
+@media(min-width:980px){
+  .controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-content:start}
+  .controls>.panel:first-child{grid-column:1/-1}
+  .controls>.panel:nth-child(2),.controls>.panel:nth-child(3){grid-column:1}
+  .radar-utility-stack{grid-column:2;grid-row:2 / span 2;min-width:0}
+  .radar-utility-stack>.panel{margin-bottom:8px}
+}
+@media(max-width:979px){.radar-utility-stack{display:contents}}
+
+/* compact viewport layout */
+html,body{height:100%;min-height:100%;overflow:hidden}body{padding:8px}.app{height:100%;max-width:1500px;display:flex;flex-direction:column}.top{padding:2px 4px 7px;margin-bottom:6px;flex:0 0 auto}.tabs{margin-bottom:6px;flex:0 0 auto}
+.layout{min-height:0;flex:1;grid-template-columns:290px minmax(280px,1fr) minmax(300px,360px)}
+.radarbox{min-height:0;display:flex;align-items:center;justify-content:center}
+.radarbox canvas{width:min(100%,calc(100vh - 150px));height:auto;max-height:100%;aspect-ratio:1}
+.sidebar-left,.controls{min-height:0;overflow:auto;padding-right:2px}
+.panel{padding:10px;margin-bottom:7px;border-radius:14px}.panel h3{margin-bottom:7px}.panel button{min-height:36px;padding:7px 9px}.panel input[type=number],.panel select{min-height:34px;padding:6px}.play{min-height:40px}.settings details{margin:5px 0}.settings summary{padding:9px;min-height:34px}.settings .body{padding:0 9px 8px}.tablewrap{max-height:155px;flex:0 0 auto;margin-top:6px}.footer{padding:5px;flex:0 0 auto}.toast{bottom:8px}
+
+@media(min-width:980px){
+  html,body{height:auto;min-height:100%;overflow:auto}
+  body{touch-action:manipulation}
+  .app{height:auto;min-height:100vh}
+  .layout{align-items:start}
+  .radarbox{position:sticky;top:0;align-self:start}
+  .sidebar-left,.controls{max-height:100vh;max-height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-right:4px}
+}
+
+@media(max-width:979px) and (min-width:721px){
+  .layout{grid-template-columns:minmax(280px,1fr) 330px}
+  .sidebar-left{grid-column:1/-1;order:2}
+  .radarbox{grid-column:1;order:0}
+  .controls{grid-column:2;order:1}
+}
+
+@media(max-width:720px){
+  html,body{overflow:hidden}.top{padding-bottom:4px}.title{font-size:20px}.tabs{gap:5px}.tab,button{min-height:34px;padding:6px 8px;font-size:11px}
+  .layout{display:flex;flex-direction:column;gap:6px;min-height:0;overflow:auto}
+  .radarbox{flex:0 0 auto;height:min(50vh,calc(100vw - 20px));order:0}
+  .radarbox canvas{width:min(100%,50vh);max-height:100%}
+  .sidebar-left{order:1;display:block;flex:none}
+  .controls{order:2;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow:visible}
+  .controls>.panel{margin:0}
+  .controls>.settings{grid-column:1/-1}
+  .tablewrap{display:none}.footer{display:none}.clock{font-size:22px}.grid2{gap:4px}.row{gap:4px}
+}
+
+/* Thèmes d'affichage — couche esthétique uniquement */
+:root{--theme-bg:#171a1d;--theme-bg2:#22272b;--theme-panel:#30373b;--theme-panel2:#202529;--theme-ui-line:#596168;--theme-ui-ink:#f1f3f4;--theme-ui-muted:#b4bbc0;--theme-ui-accent:#d3d8dc;--theme-ui-button:#30363b;--theme-ui-button-line:#69727a}
+body.theme-classic{background:#000;color:#b8d8bc}
+body.theme-classic .app{color:#b8d8bc}
+body.theme-classic .kicker,body.theme-classic .panel h3,body.theme-classic .badge,body.theme-classic .exercise-modal h2{color:#72c878}
+body.theme-classic .title,body.theme-classic .status,body.theme-classic .small,body.theme-classic label,body.theme-classic .readout,body.theme-classic .legend,body.theme-classic .help,body.theme-classic .footer{color:#86a98b}
+body.theme-classic .radarbox{background:#000;border-color:#4c7855;box-shadow:0 0 0 1px #172b1b,0 12px 30px #000}
+body.theme-classic .panel,body.theme-classic .exercise-modal{background:linear-gradient(145deg,#18211a,#0b100c);border-color:#405c44;box-shadow:0 8px 22px #000}
+body.theme-classic button,body.theme-classic .tab{color:#b8d8bc;background:#142117;border-color:#4c7855;box-shadow:0 3px 10px #000}
+body.theme-classic button.active,body.theme-classic .tab.active{background:#21472a;color:#d8f1d9;border-color:#72c878;outline-color:#72c87866}
+body.theme-classic .play.primary{background:#72c878;color:#071008;border-color:#72c878}
+body.theme-classic input[type=number],body.theme-classic select{background:#080d09;color:#c8e4ca;border-color:#45654b}
+body.theme-classic input[type=range]{accent-color:#72c878}
+body.theme-classic .tablewrap{background:#0b100c;border-color:#405c44}body.theme-classic th{background:#1b291d;color:#9dc5a1}body.theme-classic th,body.theme-classic td{border-color:#29432d}
+body.theme-classic .settings details{background:#0c140e;border-color:#405c44}body.theme-classic .settings summary{color:#72c878}
+body.theme-classic .readoutbox{background:#071008;color:#c7e7c9}body.theme-classic .toast{background:#72c878;color:#071008}
+body.theme-classic .theme-switch{background:#18351f;border-color:#72c878;color:#c8ebcb}
+.theme-switch{min-height:38px!important;padding:7px 11px!important;border-radius:10px!important;font-size:11px!important;font-weight:800;letter-spacing:.03em;white-space:nowrap}
+.theme-switch:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+
+/* Corrections de lisibilité et neutralisation complète de l'interface moderne */
+body:not(.theme-classic) .panel, body:not(.theme-classic) .tab, body:not(.theme-classic) button,
+body:not(.theme-classic) input, body:not(.theme-classic) select, body:not(.theme-classic) .settings details,
+body:not(.theme-classic) .exercise-modal { color: #f1f3f4; }
+body:not(.theme-classic) .tab.active, body:not(.theme-classic) button.active,
+body:not(.theme-classic) .play.primary { color: #15181a; }
+body:not(.theme-classic) tr[style*="background"] { background: #3f474d !important; }
+body.theme-classic tr[style*="background"] { background: #214d2a !important; }
+body.theme-classic tr.danger { background: #46151b; }
+body.theme-classic td.warn { color: #ff3030; text-shadow: 0 0 5px #ff303088; }
+body.theme-classic td.ok { color: #66ff66; }
+body.theme-classic button.active, body.theme-classic .tab.active { color:#effff0; background:#286334; border-color:#8cff8c; }
+body.theme-classic button:not(.active):not(.primary), body.theme-classic .tab:not(.active) { color:#c4e8c7; }
+body.theme-classic .toast { background:#ff3030; color:#fff; }
+body.theme-classic .play.primary { background:#8cff8c; color:#061006; }
+body.theme-classic .collision-card { border-color:#ff3030; }
+
+body:not(.theme-classic) .exercise-modal { background:linear-gradient(145deg,#30373b,#202529); border-color:#596168; }
+body:not(.theme-classic) .theme-switch { background:#30363b; border-color:#69727a; color:#f1f3f4; }
+body:not(.theme-classic) .settings summary, body:not(.theme-classic) .panel h3 { color:#d3d8dc; }
+
+
+/* v5 — mise en page lisible : commandes en colonne unique, sans débordement horizontal */
+html, body { overflow-x: hidden; }
+
+@media (min-width: 721px) {
+  /* Donner de l'espace aux libellés et aux contrôles de la colonne tribord. */
+  .layout {
+    grid-template-columns: minmax(250px, 270px) minmax(0, 1fr) minmax(420px, 460px);
+    gap: 12px;
+  }
+
+  /* Une seule colonne : chaque panneau occupe toute la largeur disponible. */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .controls > .panel,
+  .controls > .radar-utility-stack > .panel {
+    width: 100%;
+    min-width: 0;
+  }
+  .radar-utility-stack {
+    display: contents;
+  }
+  .controls .panel { flex: 0 0 auto; }
+
+  /* Les cinq échelles restent sur une seule ligne, sans texte tronqué. */
+  #ranges {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 7px;
+  }
+  #ranges button {
+    min-width: 0;
+    padding-left: 4px;
+    padding-right: 4px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 720px) {
+  /* Sur petit écran aussi, les panneaux restent empilés et lisibles. */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-x: hidden;
+  }
+  .controls > .panel,
+  .controls > .radar-utility-stack > .panel {
+    width: 100%;
+    min-width: 0;
+  }
+  .radar-utility-stack { display: contents; }
+  #ranges { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  #ranges button { min-width: 0; padding-left: 3px; padding-right: 3px; white-space: nowrap; }
+}
+
+/* Ne jamais laisser les zijpanelen créer une barre horizontale parasite. */
+.controls *, .panel, .settings, .radar-utility-stack { max-width: 100%; }
+
+/* v6 — viewport-fit layout: presentation-only overrides */
+html,body{width:100%;height:100%;min-height:0;overflow:hidden}
+body{padding:8px}
+.app{height:100%;height:100dvh;min-height:0;display:flex;flex-direction:column;max-width:1500px}
+.top{flex:0 0 auto;padding:2px 4px 7px;margin-bottom:6px}
+#sim.mode{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;overflow:hidden}
+.layout{display:grid;grid-template-columns:minmax(240px,270px) minmax(300px,1fr) minmax(390px,440px);gap:10px;align-items:stretch;flex:1 1 auto;min-height:0;overflow:hidden}
+.sidebar-left,.controls{min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;padding-right:4px;scrollbar-gutter:stable}
+.radarbox{min-height:0;height:auto;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.radarbox canvas{width:min(100%,calc(100dvh - 300px));height:auto;max-height:100%;aspect-ratio:1}
+.panel{padding:8px;margin-bottom:6px;border-radius:12px}
+.panel h3{margin-bottom:5px;font-size:12px}
+.panel button{min-height:31px;padding:5px 7px;font-size:12px}
+.panel input[type=number],.panel select{min-height:30px;padding:5px;font-size:12px}
+label{margin:5px 0 3px;font-size:10px}
+.clock{font-size:22px;margin:0 0 4px}
+.play{min-height:35px;font-size:14px}
+.grid,.grid2{gap:5px}
+.row{gap:5px}
+.readoutbox{padding:6px;font-size:11px;min-height:25px}
+.settings details{margin:4px 0}
+.settings summary{padding:7px 8px;min-height:29px;font-size:11px}
+.settings .body{padding:0 8px 6px}
+.settings label{margin:5px 0 3px}
+.settings button{min-height:30px}
+.controls{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto minmax(0,1fr);align-content:stretch;gap:6px}
+.controls>.panel{width:auto;min-width:0;margin:0;overflow:hidden}
+.controls>.panel:nth-child(1){grid-column:1/-1}
+.controls>.panel:nth-child(2){grid-column:1;grid-row:2}
+.controls>.panel:nth-child(3){grid-column:2;grid-row:2}
+.radar-utility-stack{display:contents}
+.controls>.radar-utility-stack>.panel{width:auto;min-width:0;margin:0;overflow:auto}
+.controls>.radar-utility-stack>.panel:first-child{grid-column:1/-1;grid-row:3}
+.controls>.radar-utility-stack>.panel:nth-child(2){grid-column:1;grid-row:4}
+.controls>.radar-utility-stack>.panel:nth-child(3){grid-column:2;grid-row:4}
+/* Make the two lower utility panels share the available final row. */
+.controls{grid-template-rows:auto auto minmax(0,1fr) minmax(0,auto)}
+#ranges{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+#ranges button{min-width:0;padding-left:3px;padding-right:3px;white-space:nowrap}
+.tablewrap{flex:0 0 165px;height:165px;max-height:165px;min-height:165px;overflow:auto;margin-top:6px}
+table{font-size:11px}
+th,td{padding:6px 8px}
+.legend{flex:0 0 auto;margin-top:5px;font-size:10px;gap:8px}
+.footer{flex:0 0 auto;padding:3px;font-size:9px}
+html,body{overflow-x:hidden}
+@media(max-width:1100px) and (min-width:721px){
+ .layout{grid-template-columns:minmax(215px,240px) minmax(260px,1fr) minmax(350px,390px);gap:7px}
+ .panel{padding:7px}.controls{gap:5px}
+}
+@media(max-width:720px){
+ body{padding:5px}.top{padding-bottom:3px}.layout{display:flex;flex-direction:column;gap:6px;overflow-y:auto;overflow-x:hidden}
+ .radarbox{flex:0 0 min(42vh,calc(100vw - 10px));height:min(42vh,calc(100vw - 10px))}
+ .radarbox canvas{width:min(100%,42vh);max-height:100%}
+ .sidebar-left,.controls{flex:none;overflow:visible;max-height:none;padding-right:0}
+ .controls{display:flex;flex-direction:column;gap:6px}
+ .controls>.panel,.controls>.radar-utility-stack>.panel{width:100%;margin:0;overflow:visible}
+ .tablewrap{flex:0 0 150px;height:150px;min-height:150px;max-height:150px}
+}
+
+
+/* v7 — poste de conduite compact : commandes fixes + panneaux à onglets */
+:root{--ui-yellow:#ffd84a;--ui-yellow-dim:#9b8129;--ui-deep:#171a1d}
+.controls{display:flex!important;flex-direction:column!important;gap:7px!important;min-width:0;overflow-y:auto!important;overflow-x:hidden!important;padding:0 3px 0 0}
+.controls>.panel:first-child{flex:0 0 auto!important;position:sticky;top:0;z-index:4;background:linear-gradient(145deg,#343b40f5,#202529f5);backdrop-filter:blur(9px);border-color:#727b82}
+.controls>.panel:first-child .small{font-size:9px;letter-spacing:.12em;color:var(--muted)}
+.controls>.panel:first-child .clock{font-size:24px;line-height:1;margin:1px 0 4px}
+.controls>.panel:first-child .readout{font-size:10px}
+.controls>.panel:first-child .row{margin-top:5px!important}
+.controls>.panel:first-child .grid{margin-top:5px!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}
+.controls>.panel:first-child button{min-height:29px;padding:4px 3px;font-size:11px;white-space:nowrap;border-radius:8px}
+.controls>.panel:first-child .play{min-height:34px;font-size:13px}
+.ui-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;flex:0 0 auto;padding:3px;background:#15191c;border:1px solid #4c555b;border-radius:10px;position:sticky;top:114px;z-index:3}
+.ui-tabs button{min-width:0;min-height:31px;padding:5px 4px;font-size:10px;line-height:1.05;white-space:nowrap;border-radius:7px;box-shadow:none;letter-spacing:0}
+.ui-tabs button.active{background:var(--ui-yellow);color:#171a1d;border-color:var(--ui-yellow);font-weight:800}
+.controls>.ui-panel{display:none!important;flex:1 1 auto!important;min-height:0!important;overflow:auto!important;margin:0!important;padding:9px!important}
+.controls>.ui-panel.ui-panel-active{display:block!important}
+.controls>.ui-panel h3{font-size:11px;letter-spacing:.1em;margin-bottom:6px;white-space:nowrap}
+.controls>.ui-panel .row{gap:4px}
+.controls>.ui-panel button{min-height:29px;padding:5px 6px;font-size:11px;white-space:nowrap}
+.controls>.ui-panel input[type=number],.controls>.ui-panel select{min-height:29px;padding:4px 6px;font-size:11px}
+.controls>.ui-panel label{font-size:10px;margin:5px 0 3px}
+.controls>.ui-panel .grid2{gap:5px}
+.controls>.ui-panel .settings details{margin:4px 0}
+.controls>.ui-panel .settings summary,.controls>.ui-panel summary{min-height:29px;padding:7px 8px;font-size:10px}
+.controls>.ui-panel .settings .body,.controls>.ui-panel details .body{padding:0 8px 6px}
+.controls>.ui-panel .small{font-size:10px}
+.controls>.ui-panel[data-ui-panel="echo"] details{background:#202529;border-color:#596168}
+.controls>.ui-panel[data-ui-panel="echo"] details[open] summary{color:var(--ui-yellow)}
+.controls>.ui-panel[data-ui-panel="echo"] input[type=range]{margin-top:2px}
+#ranges{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important}
+#ranges button{white-space:nowrap;min-width:0;padding-left:3px!important;padding-right:3px!important}
+@media(min-width:721px){
+ .layout{grid-template-columns:minmax(235px,270px) minmax(300px,1fr) minmax(375px,420px)!important;gap:9px}
+ .radarbox canvas{width:min(100%,calc(100dvh - 285px));max-height:100%}
+ .tablewrap{flex:0 0 142px;height:142px;min-height:142px;max-height:142px}
+}
+@media(max-width:1100px) and (min-width:721px){.ui-tabs button{font-size:9px}.controls>.panel:first-child .grid button{font-size:10px}}
+@media(max-width:720px){
+ .ui-tabs{position:static;top:auto}.controls{overflow-y:auto!important}.controls>.panel:first-child{position:static}
+ .layout{overflow:hidden!important}.tablewrap{display:block!important;flex:0 0 128px;height:128px;min-height:128px;max-height:128px}
+ .controls>.ui-panel{flex:none!important;max-height:none}
+}
+body.theme-classic .ui-tabs{background:#071008;border-color:#405c44}body.theme-classic .ui-tabs button.active{background:#8cff8c;color:#061006;border-color:#8cff8c}
+
+/* v8 — colonne tribord: bloc de conduite fixe puis deux onglets */
+.ui-tabs{grid-template-columns:1fr 1fr!important;}
+.ui-tabs button{font-size:11px!important;}
+.controls>.ui-panel{display:none!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;margin:0!important;padding:9px!important;}
+.controls>.ui-panel.ui-panel-active{display:block!important;}
+.controls>.ui-panel-settings{scrollbar-gutter:stable;}
+.controls>.ui-panel-settings>.panel{margin-bottom:7px;}
+.controls>.ui-panel-settings details{display:block;}
+.controls>.ui-panel-settings details[open] summary:before{content:'− ';}
+.controls>.ui-panel-settings details:not([open]) summary:before{content:'＋ ';}
+.controls>.ui-panel-scenarios>.panel{margin-bottom:7px;}
+@media(max-width:720px){
+ .controls>.ui-panel{flex:none!important;max-height:none!important;}
+ .controls>.ui-panel-settings{max-height:calc(100dvh - 250px)!important;}
+}
+
+/* v10 user layout: modern workstation defaults, all controls visible */
+body:not(.theme-classic){background:#25282b;color:#eef0f1}
+body:not(.theme-classic) .panel,
+body:not(.theme-classic) .settings details,
+body:not(.theme-classic) .ui-tabs,
+body:not(.theme-classic) .exercise-modal,
+body:not(.theme-classic) .tablewrap{background:#34383c;border-color:#62686d;box-shadow:0 8px 20px #10121455}
+body:not(.theme-classic) .readoutbox{background:#2a2e32;color:#e5e8ea;border:1px solid #596066}
+body:not(.theme-classic) button[data-turn],body:not(.theme-classic) button[data-speed],
+body:not(.theme-classic) .measure-toggle.is-on,body:not(.theme-classic) .measure-toggle.is-off{background:#3d4247;border-color:#747b81;color:#eef0f1}
+body:not(.theme-classic) tr.danger{background:#5a2029!important}
+body:not(.theme-classic) td.warn{color:#ff6674}
+body:not(.theme-classic) td.ok{color:#d7dde0}
+body:not(.theme-classic) .radarbox{background:#171a1d;border-color:#62686d}
+.layout{grid-template-columns:minmax(250px,290px) minmax(420px,1fr) minmax(330px,390px)!important;align-items:start}
+.sidebar-left,.controls{overflow-y:auto;max-height:calc(100dvh - 92px)}
+.radarbox{position:sticky;top:8px;align-self:start}
+.radarbox canvas{width:min(100%,calc(100dvh - 170px));max-height:calc(100dvh - 170px)}
+.controls{display:flex!important;flex-direction:column!important;gap:8px!important}
+.controls>.panel,.controls>.radar-utility-stack>.panel{display:block!important;width:100%;margin:0!important;overflow:visible!important}
+.radar-utility-stack{display:contents!important}
+.arpa-table-panel{margin-top:8px!important}
+.arpa-table-panel .tablewrap{height:170px;min-height:170px;max-height:170px;margin-top:0}
+.arpa-table-panel .legend{padding-bottom:2px}
+#exerciseFileDirect{font-size:11px;min-height:30px}
+@media(max-width:1100px) and (min-width:721px){.layout{grid-template-columns:220px minmax(300px,1fr) 330px!important}}
+@media(max-width:720px){
+ html,body{height:auto;min-height:100%;overflow:auto}
+ body{padding:6px}.app{height:auto;min-height:100dvh}
+ .layout{display:flex!important;flex-direction:column;overflow:visible!important}
+ .radarbox{position:relative;top:auto;width:100%;height:min(62vw,58vh);min-height:280px}
+ .radarbox canvas{width:min(100%,58vh);max-height:100%}
+ .sidebar-left,.controls{max-height:none;overflow:visible;padding:0}
+ .arpa-table-panel .tablewrap{height:180px;min-height:180px;max-height:180px}
+ .controls>.panel,.controls>.radar-utility-stack>.panel{flex:none!important}
+}
+
+/* v11 — FULL-SCREEN MARITIME CONSOLE / layout-only redesign */
+:root{--bg:#25282b;--bg2:#30353a;--panel:#343a3f;--line:#697177;--ink:#f3f5f6;--muted:#b9c0c5;--accent:#d7dde1;--shadow:0 10px 26px #0b0d0fcc}
+html,body{width:100%;height:100%;min-height:0;overflow:hidden}
+body{padding:7px;background:linear-gradient(135deg,#202326 0%,#30353a 48%,#1f2225 100%);font-family:"IBM Plex Mono","Cascadia Mono","SFMono-Regular",Consolas,monospace}
+.app{width:100%;max-width:none;height:100dvh;min-height:0;display:flex;flex-direction:column}
+.top{height:52px;flex:0 0 52px;padding:2px 8px 6px;margin:0;align-items:center;border-bottom:1px solid #555c61}
+.kicker{font-size:9px;color:#c2c9cd;letter-spacing:.2em}.title{font-size:clamp(19px,2.2vw,28px);letter-spacing:.06em}
+.tabs{display:none}.status{font-size:10px;color:#c1c7cb}
+#sim.mode{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}
+.layout{width:100%;height:100%;display:grid;grid-template-columns:minmax(220px,270px) minmax(440px,1fr) minmax(360px,430px);gap:9px;align-items:stretch;min-height:0;overflow:hidden}
+.sidebar-left,.controls{min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;padding:0 3px 0 0;scrollbar-width:thin;scrollbar-color:#6d757a #292d30}
+.sidebar-left{display:flex;flex-direction:column}.controls{display:flex;flex-direction:column}
+.radarbox{position:relative;min-width:0;min-height:0;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #747c82;border-radius:8px;background:#0c1011;box-shadow:0 0 0 2px #1c2022,0 15px 35px #090b0dcc}
+.radarbox canvas{display:block;width:min(100%,calc(100dvh - 76px));height:auto;max-width:100%;max-height:100%;aspect-ratio:1;touch-action:none}
+.badge{top:12px;left:12px;color:#d8e0e3;background:#20282acc;border:1px solid #526066;border-radius:3px;font-size:10px;padding:5px 8px}
+.panel{background:linear-gradient(145deg,#41474c,#2e3337);border:1px solid #697177;border-radius:5px;padding:8px;margin-bottom:7px;box-shadow:0 6px 16px #10121466}
+.panel h3{margin:0 0 6px;color:#d9dfe2;font-size:11px;letter-spacing:.1em}.small,label,.help,.legend{font-size:10px}.small,label{color:#c0c7ca}
+button,.tab,input,select{font:inherit}button{color:#eef1f2;background:linear-gradient(#4b5257,#363c40);border:1px solid #7b8388;border-radius:3px;min-height:30px;padding:5px 7px;box-shadow:inset 0 1px #ffffff18,0 2px 5px #1115}
+button:hover{filter:brightness(1.14)}button:active{transform:translateY(1px)}button.active,.play.primary{background:#d7dde1;color:#202427;border-color:#edf1f3;outline:none}
+input[type=number],select{width:100%;min-height:30px;padding:5px;border-radius:3px;background:#252a2d;color:#f0f2f3;border:1px solid #71797e}
+input[type=range]{width:100%;accent-color:#d7dde1}.readoutbox{padding:7px;min-height:28px;border-radius:3px;background:#262c2f;color:#e5eaec;border:1px solid #5c666b;font-size:11px;line-height:1.35}
+.row{gap:5px}.grid,.grid2{gap:5px}.clock{font-size:22px;margin:0 0 3px}.readout{font-size:10px}
+.settings details{display:block;border:1px solid #667076;border-radius:3px;margin:5px 0;background:#292e32}.settings summary{cursor:default;padding:6px 8px;min-height:0;color:#d7dde1;font-size:10px;list-style:none}.settings summary:before{content:'▾ ';color:#c6cdd1}.settings details .body{display:block;padding:0 8px 7px}
+.tablewrap{max-height:205px;overflow:auto;margin-top:5px;border:1px solid #697177;border-radius:3px;background:#252a2d}table{font-size:10px;min-width:680px}th,td{padding:6px;border-bottom:1px solid #4a5358}th{background:#40474c;color:#d4dade}
+.arpa-table-panel{flex:1 1 auto;min-height:125px}.footer{display:none}
+.controls>.panel{flex:0 0 auto}.radar-utility-stack{display:contents}.radar-utility-stack>.panel{flex:0 0 auto}
+.collision-overlay,.exercise-overlay{backdrop-filter:blur(4px)}
+@media (max-width:1500px) and (min-width:901px){.layout{grid-template-columns:220px minmax(390px,1fr) 340px}.panel{padding:7px}.panel button{font-size:11px}}
+@media (max-width:900px){html,body{overflow:auto}.app{height:auto;min-height:100dvh}.top{height:auto;flex-basis:auto}.layout{height:auto;display:flex;flex-direction:column;overflow:visible}.radarbox{height:min(70vw,70dvh);min-height:320px;order:0}.sidebar-left{order:1;overflow:visible}.controls{order:2;overflow:visible}.arpa-table-panel{flex:none}.radarbox canvas{width:min(100%,70dvh)}}
+
+/* v13 — full-viewport maritime console: preserve simulation logic, replace layout only */
+html,body{width:100%;height:100%;min-height:0;margin:0;overflow:hidden;background:#2a2e31;color:var(--ink)}
+body{padding:0;box-sizing:border-box}
+.app{width:100vw;max-width:none;height:100dvh;min-height:0;margin:0;padding:8px;display:flex;flex-direction:column;gap:6px}
+.top{height:42px;flex:0 0 42px;padding:0 4px;margin:0;align-items:center}
+.title{font-size:clamp(18px,2.2vw,28px)}
+.tabs{flex:0 0 38px;height:38px;margin:0;gap:6px}
+.tab{min-height:0;height:38px;padding:7px 11px;border-radius:7px;font-size:11px}
+.mode{display:flex!important;flex:1 1 auto;min-height:0;height:auto;overflow:hidden}
+.layout{width:100%;height:100%;min-height:0;display:grid!important;grid-template-columns:minmax(280px,300px) minmax(0,1fr) minmax(300px,320px);gap:8px;align-items:stretch;overflow:hidden}
+.sidebar-left,.controls{min-width:0;min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding-right:2px}
+.sidebar-left>*:last-child,.controls>*:last-child{margin-bottom:0}
+.radarbox{min-width:0;min-height:0;width:100%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:8px;background:#101416;border:1px solid #687178;box-shadow:0 0 0 1px #1a1e20,0 10px 28px #090b0dcc}
+.radarbox canvas{display:block;width:100%;height:100%;max-width:none;max-height:none;aspect-ratio:auto;touch-action:none}
+.panel{margin-bottom:6px;padding:8px;border-radius:6px}
+.panel h3{margin:0 0 6px;font-size:10px}
+.settings details{display:block}
+.settings details .body{display:block}
+.footer{display:none}
+@media (max-width:1100px) and (min-width:901px){.layout{grid-template-columns:minmax(240px,260px) minmax(0,1fr) minmax(280px,300px)}}
+@media (max-width:900px){html,body{overflow:auto}.app{height:auto;min-height:100dvh}.mode{overflow:visible}.layout{height:auto;display:flex!important;flex-direction:column;overflow:visible}.radarbox{height:min(70vw,calc(100dvh - 100px));min-height:280px}.sidebar-left,.controls{height:auto;max-height:none;overflow:visible}.radarbox canvas{width:100%;height:100%}}
+
+
+/* v31 : positionnement direct de l'own ship, en complément des champs X/Y */
+.own-position-pad{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px;border:1px solid #50585e;border-radius:6px;background:#1b2023}
+.own-position-pad .pad{position:relative;width:92px;height:92px;flex:0 0 92px;aspect-ratio:1;border:1px solid #687178;border-radius:50%;overflow:hidden;cursor:crosshair;background:radial-gradient(circle,#2f373c 0 1px,transparent 1px),linear-gradient(90deg,transparent 49.5%,#69737a 49.5%,#69737a 50.5%,transparent 50.5%),linear-gradient(0deg,transparent 49.5%,#69737a 49.5%,#69737a 50.5%,transparent 50.5%);background-size:10px 10px,100% 100%,100% 100%;box-shadow:inset 0 0 0 1px #111820,0 0 0 3px #111820}
+.own-position-pad .pad::before{content:'PPI';position:absolute;left:4px;top:3px;color:#aeb7bc;font:9px ui-monospace,monospace;letter-spacing:.08em}
+.own-position-pad .pad-point{position:absolute;width:12px;height:12px;transform:translate(-50%,-50%);border:2px solid #171a1d;border-radius:50%;background:#ffd84a;box-shadow:0 0 0 2px #ffd84a66,0 0 10px #ffd84a;cursor:grab;touch-action:none}
+.own-position-pad .pad-point:active{cursor:grabbing}
+.own-position-pad .pad-copy{color:#aeb7bc;font-size:10px;line-height:1.35}
+#radar.own-drag-ready{cursor:grab}#radar.own-dragging{cursor:grabbing}
+
+
+/* v34 — dockable module layout: left dock always visible and droppable */
+.layout{--left-w:72px;--right-w:320px;grid-template-columns:minmax(72px,var(--left-w)) 10px minmax(320px,1fr) 10px var(--right-w)!important;gap:0!important;align-items:stretch!important;position:relative}
+.sidebar-left,.controls{min-width:0!important;overflow-x:hidden!important}
+.sidebar-left{grid-column:1;display:flex;flex-direction:column;gap:8px;padding:8px!important;opacity:1;pointer-events:auto;border-radius:10px;transition:width .15s,background .15s;min-width:0!important;border:1px dashed #596168;background:#252a2e;overflow-y:auto}
+.sidebar-left.drag-active{background:#30383d;border-color:#aab4ba;box-shadow:inset 0 0 0 1px #ffffff10}
+.radarbox{grid-column:3!important;grid-row:1;min-width:0!important}
+.controls{grid-column:5!important;grid-row:1;display:flex!important;flex-direction:column!important;gap:8px;padding-left:8px!important}
+.controls>.panel,.controls>.radar-utility-stack>.panel,.sidebar-left>.panel{margin:0!important;flex:0 0 auto}
+.layout-resizer{grid-row:1;width:10px;cursor:col-resize;position:relative;z-index:20;touch-action:none}
+.layout-resizer:after{content:"";position:absolute;top:18%;bottom:18%;left:3px;width:2px;background:#596168;border-radius:2px;opacity:.75}
+.layout-resizer:hover:after,.layout-resizer.is-dragging:after{background:var(--accent);box-shadow:0 0 10px #d3d8dc88}
+#leftResizer{grid-column:2}#rightResizer{grid-column:4}.dock-toggle{position:absolute;z-index:30;top:8px;left:43px;width:24px;height:24px;padding:0!important;min-height:24px!important;border:1px solid #7b858b!important;border-radius:5px!important;background:#252a2e!important;color:#e1e6e8!important;line-height:20px;font-size:16px!important;cursor:pointer;box-shadow:0 2px 8px #0008}.dock-toggle:hover{background:#485158!important}.dock-empty{display:flex;align-items:center;justify-content:center;min-height:82px;height:100%;padding:10px 4px;border:1px dashed #69747b;border-radius:8px;color:#aeb7bc;font-size:10px;line-height:1.35;text-align:center;pointer-events:none}.sidebar-left:has(>.panel) .dock-empty{display:none}
+.panel{position:relative}.panel-drag-handle{display:inline-flex;align-items:center;gap:6px;cursor:grab;color:var(--muted);font-size:11px;letter-spacing:.08em;user-select:none;touch-action:none;margin:-2px 8px 5px 0;padding:2px 5px;border:1px solid transparent;border-radius:5px}.panel-drag-handle:hover{border-color:#697177;color:var(--accent)}.panel-drag-handle:active{cursor:grabbing}
+.panel.is-dragging{opacity:.42}.panel.drop-before{box-shadow:0 -3px 0 var(--accent)}.panel.drop-after{box-shadow:0 3px 0 var(--accent)}.dock-placeholder{height:44px;border:1px dashed var(--accent);border-radius:10px;background:#d3d8dc16;flex:0 0 44px}.dock-reset{margin-top:auto!important;font-size:10px!important;min-height:30px!important;opacity:.8}
+.arpa-table-panel{min-width:0}.arpa-table-panel .tablewrap{overflow:auto;max-width:100%;margin-top:0}.arpa-table-panel table{min-width:680px;width:100%;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;table-layout:auto}.arpa-table-panel thead th{position:sticky;top:0;z-index:2;background:#343a3f;color:#f1f3f4;white-space:nowrap;font-size:11px;letter-spacing:.04em}.arpa-table-panel th,.arpa-table-panel td{padding:8px 7px;white-space:nowrap;text-align:right;border-bottom:1px solid #596168}.arpa-table-panel th:first-child,.arpa-table-panel td:first-child,.arpa-table-panel th:nth-child(2),.arpa-table-panel td:nth-child(2){text-align:left}.arpa-table-panel tbody tr:nth-child(even){background:#ffffff06}.arpa-table-panel tbody tr.danger{background:#5a252d}.arpa-table-panel tbody tr.past{color:#899197;background:#ffffff04}.arpa-table-panel tbody tr.selected{outline:2px solid var(--accent);outline-offset:-2px;background:#263c4c}.arpa-table-panel td.warn{color:var(--red)}.arpa-table-panel td.caution{color:var(--amber)}.arpa-table-panel td.ok{color:var(--green)}
+@media(max-width:979px){.layout{display:flex!important;flex-direction:column!important;gap:6px!important}.sidebar-left{order:2;opacity:1;pointer-events:auto}.radarbox{order:0!important}.controls{order:1!important;padding-left:0!important}.layout-resizer{display:none}.panel-drag-handle{cursor:grab}}
+
+
+/* v40 — white module headings, yellow fiche readouts, all modules left by default */
+.arpa-table-panel.arpa-fixed-bottom{position:static;left:auto;right:auto;bottom:auto;display:none;flex:0 0 auto;margin-top:auto!important;width:100%;z-index:auto;}
+.arpa-table-panel.arpa-fixed-bottom.is-open{display:block;}
+.arpa-table-panel.arpa-fixed-bottom .tablewrap{max-height:170px;height:170px;}
+.arpa-detail-panel, .pointer-measure-panel { color:#ffd54a !important; }
+.arpa-detail-panel h3, .pointer-measure-panel h3 { color:#fff !important; }
+.arpa-detail-panel .readoutbox, .pointer-measure-panel .readoutbox { color:#ffd54a !important; }
+
+/* Reciprocal navigation: plain relative links for side-by-side deployment. */
+.app-nav-link{display:inline-flex;align-items:center;gap:5px;min-height:29px;padding:4px 9px;border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);font:inherit;font-weight:700;text-decoration:none;white-space:nowrap}
+.app-nav-link:hover{filter:brightness(1.2);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+@media(max-width:700px){.app-nav-link{font-size:11px;padding-inline:7px}}
+</style>
+<style id="v12-radar-fill">
+/* v12 — l'écran radar utilise toute la zone centrale; seuls les panneaux défilent. */
+@media (min-width:980px){
+  html,body{height:100%;min-height:100%;overflow:hidden}
+  body{padding:8px}
+  .app{height:100%;min-height:0;max-width:1500px}
+  .layout{flex:1 1 auto;min-height:0;height:auto;align-items:stretch;overflow:hidden}
+  .sidebar-left,.controls{height:100%;min-height:0;max-height:none;overflow-y:auto}
+  .radarbox{height:100%;min-height:0;position:relative;align-self:stretch;display:block}
+  .radarbox canvas{width:100%;height:100%;max-width:none;max-height:none;aspect-ratio:auto}
+}
+@media (max-width:979px) and (min-width:721px){
+  .radarbox{min-height:calc(100vh - 150px)}
+  .radarbox canvas{width:100%;height:100%;aspect-ratio:auto}
+}
+</style>
+
+<style id="v14-fullscreen-layout">
+/* v14 — autorité de mise en page : la console occupe toute la fenêtre. */
+html, body {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #2a2e31;
+}
+body { display: block; }
+.app {
+  width: 100vw;
+  max-width: none;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+#sim.mode {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.layout {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex: 1 1 auto;
+  display: grid !important;
+  grid-template-columns: 300px minmax(0, 1fr) 320px;
+  gap: 8px;
+  align-items: stretch;
+  overflow: hidden;
+}
+.sidebar-left, .controls {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.radarbox {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.radarbox canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: auto;
+  touch-action: none;
+}
+@media (max-width: 900px) {
+  html, body { overflow: auto; }
+  .app { height: auto; min-height: 100dvh; }
+  #sim.mode { overflow: visible; }
+  .layout { height: auto; display: flex !important; flex-direction: column; overflow: visible; }
+  .radarbox { height: min(70vw, calc(100dvh - 100px)); min-height: 280px; }
+  .sidebar-left, .controls { height: auto; max-height: none; overflow: visible; }
+  .radarbox canvas { width: 100%; height: 100%; }
+}
+</style>
+
+<style id="v36-arpa-on-demand">
+/* CPA/TCPA à la demande : le radar conserve toute sa hauteur quand le tableau est fermé. */
+.top-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;min-width:0}
+.arpa-toggle{
+  position:static;z-index:auto;flex:0 0 auto;min-height:40px;padding:8px 14px;
+  border:2px solid #ffd84a;border-radius:999px;background:#ffd84a;color:#171b1e;
+  font:900 14px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.055em;
+  box-shadow:0 0 0 3px #ffd84a33,0 5px 18px #000b;cursor:pointer;
+  text-shadow:none;transition:transform .15s ease,background .15s ease,box-shadow .15s ease
+}
+.arpa-toggle:hover{background:#fff09a;transform:translateY(-1px);box-shadow:0 0 0 4px #ffd84a55,0 7px 22px #000c}
+.arpa-toggle:focus-visible{outline:3px solid #68d8ff;outline-offset:4px}
+.arpa-toggle[aria-expanded="true"]{background:#68d8ff;color:#111b20;border-color:#b9eeff;box-shadow:0 0 0 3px #68d8ff44,0 5px 18px #000b}
+.arpa-fixed-bottom{display:none;position:fixed;left:8px;right:8px;bottom:8px;z-index:65;
+  margin:0!important;padding:8px 10px 7px;background:rgba(37,42,46,.98);
+  border:1px solid #596168;border-radius:8px;box-shadow:0 -10px 30px #0008}
+.arpa-fixed-bottom.is-open{display:block}
+.arpa-fixed-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}
+.arpa-fixed-heading h3{margin:0;color:var(--accent);font-size:11px;letter-spacing:.08em;white-space:nowrap}
+.arpa-fixed-heading .legend{margin:0;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.arpa-fixed-bottom .tablewrap{max-height:112px;overflow:auto;margin-top:0}
+.arpa-fixed-bottom table{min-width:680px;width:100%}
+.arpa-fixed-bottom thead th{position:sticky;top:0}
+/* Chaque dock garde son propre ascenseur; l'écran radar n'est pas sacrifié. */
+@media (min-width:980px){
+  .layout{padding-bottom:0!important}
+  .sidebar-left,.controls{height:100%;min-height:0;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable}
+}
+@media (max-width:720px){
+  .top{align-items:flex-start;gap:8px;flex-wrap:wrap}
+  .top-actions{width:100%;justify-content:flex-start;gap:6px}
+  .top-actions .status{flex:0 0 auto}
+  .arpa-toggle{min-height:34px;padding:6px 10px;font-size:11px}
+}
+@media (max-width:979px){
+  .arpa-fixed-heading{align-items:flex-start;flex-direction:column;gap:4px}
+  .arpa-fixed-heading .legend{justify-content:flex-start}
+  .arpa-fixed-bottom .tablewrap{max-height:180px}
+}
+</style>
+<style id="v42-layout-corrections">
+/* v42 : défaut équilibré des docks et tableau CPA/TCPA contenu dans la fenêtre. */
+#sim.arpa-open{padding-bottom:calc(min(28vh, 320px) + 16px)!important;}
+.arpa-fixed-bottom{display:none;position:fixed;left:8px;right:8px;bottom:8px;z-index:65;
+  height:min(28vh, 320px);max-height:28vh;min-height:0;overflow:hidden;
+  margin:0!important;padding:8px 10px 7px;background:rgba(37,42,46,.98);
+  border:1px solid #596168;border-radius:8px;box-shadow:0 -10px 30px #0008;
+  flex-direction:column;
+}
+.arpa-fixed-bottom.is-open{display:flex}
+.arpa-fixed-heading{flex:0 0 auto;min-height:0}
+.arpa-fixed-bottom .tablewrap{flex:1 1 auto;min-height:0;height:auto;max-height:none;overflow:auto;margin-top:0}
+@media (max-width:979px){
+  #sim.arpa-open{padding-bottom:calc(min(28vh, 320px) + 16px)!important}
+  .arpa-fixed-bottom{left:6px;right:6px;bottom:6px}
+}
+</style>
+<style id="v41-layout-corrections">
+/* v41: le tableau CPA/TCPA est hors des docks et réserve sa hauteur à l'ouverture. */
+#sim.arpa-open{padding-bottom:142px;}
+.arpa-fixed-bottom{left:8px;right:8px;bottom:8px;max-width:none;}
+@media (max-width:979px){#sim.arpa-open{padding-bottom:214px}.arpa-fixed-bottom{left:6px;right:6px;bottom:6px}}
+/* Tous les modules restent empilés et défilables dans le dock qui les contient. */
+.sidebar-left,.controls{overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable;}
+.sidebar-left{min-height:0!important;}
+.panel h3{color:#fff!important;}
+.arpa-detail-panel .readoutbox,.pointer-measure-panel .readoutbox{color:var(--amber)!important;}
+</style>
+<style id="v43-compact-arpa">
+/* v43 : panneau CPA/TCPA compact, sans sacrifier la zone radar. */
+#sim.arpa-open{padding-bottom:calc(min(16vh,150px) + 16px)!important;}
+.arpa-fixed-bottom{
+  height:min(16vh,150px); max-height:min(16vh,150px); min-height:0;
+  left:8px; right:8px; bottom:8px;
+  padding:4px 7px 5px;
+  gap:3px;
+}
+.arpa-fixed-heading{
+  flex:0 0 auto; min-height:0; margin:0 0 2px; gap:7px;
+  align-items:center; justify-content:space-between;
+  white-space:nowrap; overflow:hidden;
+}
+.arpa-fixed-heading h3{font-size:9px; line-height:1.1; letter-spacing:.06em; flex:0 0 auto;}
+.arpa-fixed-heading .legend{
+  display:flex; align-items:center; justify-content:flex-end; flex-wrap:nowrap;
+  gap:6px; min-width:0; overflow:hidden; font-size:9px; line-height:1.1;
+}
+.arpa-fixed-heading .legend span{white-space:nowrap;}
+.arpa-fixed-bottom .tablewrap{
+  flex:1 1 auto; min-height:0; height:auto; max-height:none;
+  overflow:auto; margin:0;
+}
+.arpa-fixed-bottom table{font-size:9px; line-height:1.1; min-width:680px;}
+.arpa-fixed-bottom thead th{font-size:9px; line-height:1.1;}
+.arpa-fixed-bottom th,.arpa-fixed-bottom td{padding:3px 5px;}
+@media(max-width:979px){
+  .arpa-fixed-bottom{left:6px;right:6px;bottom:6px;}
+  .arpa-fixed-heading{flex-direction:row;align-items:center;}
+  .arpa-fixed-heading .legend{justify-content:flex-end;}
+}
+</style>
+<style id="v44-flow-arpa-layout">
+/* v44 — le tableau ouvert appartient au flux : la zone principale prend tout l'espace restant. */
+@media (min-width:980px){
+  #sim.arpa-open{
+    display:grid!important;
+    grid-template-rows:minmax(0,1fr) minmax(0,min(16vh,150px));
+    align-content:stretch;
+    gap:0!important;
+    padding-bottom:0!important;
+    margin-bottom:-8px;
+    min-height:0;
+  }
+  #sim.arpa-open > .layout{
+    grid-row:1;
+    height:auto!important;
+    min-height:0!important;
+    flex:none!important;
+    align-self:stretch;
+  }
+  #sim.arpa-open > .arpa-fixed-bottom{
+    grid-row:2;
+    position:static!important;
+    inset:auto!important;
+    display:flex!important;
+    width:100%;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    border-radius:6px 6px 0 0;
+    box-shadow:0 -8px 24px #0008;
+  }
+}
+</style>
+<style id="v45-viewport-flow-fix">
+/* v45 — flux de hauteur unique : l'en-tête, la zone principale et le tableau
+   se partagent la fenêtre sans réserve fantôme ni panneau fixed. */
+*,*::before,*::after{box-sizing:border-box}
+html,body{width:100%;height:100%;min-height:0;margin:0;overflow:hidden}
+body{display:flex;flex-direction:column}
+.app{width:100%;height:100vh;height:100dvh;min-height:0;margin:0;padding:8px 8px 0;display:flex;flex:1 1 auto;flex-direction:column;overflow:hidden}
+.top{flex:0 0 auto;min-height:0}
+#sim.mode{flex:1 1 auto;min-height:0;height:auto;width:100%;display:flex;flex-direction:column;overflow:hidden}
+#sim.mode>.layout{flex:1 1 auto;min-height:0;height:auto;overflow:hidden}
+/* En ouverture, le tableau est une vraie ligne du layout, collée au bas. */
+#sim.arpa-open{display:grid!important;grid-template-rows:minmax(0,1fr) minmax(0,min(16vh,150px));grid-template-columns:minmax(0,1fr);gap:0!important;align-content:stretch;padding:0!important;margin:0!important;min-height:0}
+#sim.arpa-open>.layout{grid-row:1;grid-column:1;flex:1 1 auto!important;height:auto!important;min-height:0!important;align-self:stretch}
+#sim.arpa-open>.arpa-fixed-bottom{position:static!important;inset:auto!important}
+#sim.arpa-open>.arpa-fixed-bottom{grid-row:2;grid-column:1;position:static!important;inset:auto!important;display:flex!important;flex:0 0 auto!important;width:100%;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;border-radius:6px 6px 0 0;box-shadow:0 -8px 24px #0008}
+#sim.arpa-open>.arpa-fixed-bottom .tablewrap{flex:1 1 auto;min-height:0;height:auto;max-height:none;overflow:auto}
+/* Les deux docks et le radar peuvent réellement rétrécir dans la ligne 1. */
+#sim.arpa-open>.layout>.sidebar-left,#sim.arpa-open>.layout>.controls,#sim.arpa-open>.layout>.radarbox{min-height:0;height:100%;overflow-y:auto}
+.radarbox{min-height:0}
+.radarbox canvas{display:block}
+@media(max-width:900px){
+  html,body{overflow:hidden}
+  .app{height:100vh;height:100dvh;min-height:0;padding:6px 6px 0;overflow:hidden}
+  #sim.mode{min-height:0;overflow:hidden}
+  #sim.mode>.layout{min-height:0;overflow-y:auto;overflow-x:hidden}
+  #sim.arpa-open{grid-template-rows:minmax(0,1fr) minmax(0,min(16vh,150px));}
+  #sim.arpa-open>.layout{overflow-y:auto;display:flex!important;flex-direction:column!important;gap:6px!important}
+  #sim.arpa-open>.layout>.radarbox{flex:0 0 min(70vw,calc(100% - 6px));height:min(70vw,calc(100% - 6px));min-height:240px;overflow:hidden;order:0!important}
+  #sim.arpa-open>.layout>.controls{order:1!important;height:auto;overflow:visible}
+  #sim.arpa-open>.layout>.sidebar-left{order:2!important;height:auto;overflow:visible}
+  #sim.arpa-open>.layout>.radarbox canvas{width:100%;height:100%}
+}
+</style>
+
+<style id="v46-cpa-grid-layout">
+/* v46 — le tableau CPA/TCPA est une ligne du conteneur .app (il est
+   frère de #sim, pas son enfant) : aucune réserve artificielle ni overlay. */
+@media (min-width:901px){
+  .app:has(#sim.arpa-open){
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr) clamp(120px,30vh,32vh);
+    grid-template-columns:minmax(0,1fr);
+    align-content:stretch;
+    gap:0;
+    overflow:hidden;
+  }
+  .app:has(#sim.arpa-open)>.top{grid-row:1;min-width:0;}
+  .app:has(#sim.arpa-open)>#sim{
+    grid-row:2;
+    min-height:0;
+    height:auto;
+    overflow:hidden;
+    padding-bottom:0!important;
+  }
+  .app:has(#sim.arpa-open)>#sim>.layout{
+    min-height:0;
+    height:100%;
+    flex:1 1 auto;
+  }
+  .app:has(#sim.arpa-open)>#arpaTable{
+    grid-row:3;
+    position:static!important;
+    inset:auto!important;
+    display:flex!important;
+    flex-direction:column;
+    width:100%;
+    min-width:0;
+    min-height:120px;
+    height:auto!important;
+    max-height:none!important;
+    flex:none!important;
+    margin:0!important;
+    padding:8px 10px 7px;
+    border-radius:6px 6px 0 0;
+    overflow:hidden;
+  }
+  .app:has(#sim.arpa-open)>#arpaTable .tablewrap{
+    flex:1 1 auto;
+    min-height:0;
+    height:auto;
+    max-height:none;
+    overflow:auto;
+  }
+}
+@media (max-width:900px){
+  .app:has(#sim.arpa-open){
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr) clamp(120px,30vh,32vh);
+    gap:0;
+  }
+  .app:has(#sim.arpa-open)>#sim{min-height:0;height:auto;overflow:hidden;padding-bottom:0!important;}
+  .app:has(#sim.arpa-open)>#sim>.layout{min-height:0;height:100%;overflow-y:auto;}
+  .app:has(#sim.arpa-open)>#arpaTable{
+    grid-row:3; position:static!important; inset:auto!important; display:flex!important;
+    flex-direction:column; min-height:120px; height:auto!important; max-height:none!important;
+    margin:0!important; padding:6px 7px 5px; border-radius:6px 6px 0 0; overflow:hidden;
+  }
+  .app:has(#sim.arpa-open)>#arpaTable .tablewrap{flex:1 1 auto;min-height:0;height:auto;max-height:none;overflow:auto;}
+}
+</style>
+
+<style id="v47-authoritative-layout">
+/* v47: two explicit app rows when CPA is open; no fixed overlay or guessed offset. */
+@media (min-width:901px){
+  .app{display:flex;flex-direction:column;gap:0;overflow:hidden;}
+  .app:has(#sim.arpa-open){display:grid;grid-template-rows:auto minmax(0,1fr) minmax(120px,30vh);grid-template-columns:minmax(0,1fr);gap:0;}
+  .app:has(#sim.arpa-open)>.top{grid-row:1;}
+  .app:has(#sim.arpa-open)>#sim{grid-row:2;min-height:0;height:auto;overflow:hidden;}
+  .app:has(#sim.arpa-open)>#arpaTable{grid-row:3;position:static!important;inset:auto!important;display:flex!important;flex-direction:column;min-height:120px;height:auto!important;max-height:none!important;margin:0!important;border-radius:6px 6px 0 0;overflow:hidden;}
+  .app:has(#sim.arpa-open)>#arpaTable .tablewrap{flex:1 1 auto;min-height:0;height:auto;max-height:none;overflow:auto;}
+}
+@media (max-width:900px){
+  .app:has(#sim.arpa-open){display:grid;grid-template-rows:auto minmax(0,1fr) minmax(120px,30vh);gap:0;overflow:hidden;}
+  .app:has(#sim.arpa-open)>#sim{min-height:0;height:auto;overflow:hidden;padding-bottom:0!important;}
+  .app:has(#sim.arpa-open)>#arpaTable{grid-row:3;position:static!important;inset:auto!important;display:flex!important;flex-direction:column;min-height:120px;height:auto!important;max-height:none!important;margin:0!important;overflow:hidden;}
+  .app:has(#sim.arpa-open)>#arpaTable .tablewrap{flex:1 1 auto;min-height:0;height:auto;max-height:none;overflow:auto;}
+}
+</style>
+
+<style id="v48-cpa-resizer">
+/* v48: hauteur CPA/TCPA réglable, persistante pendant la session */
+.arpa-resize-handle{height:12px;flex:0 0 12px;margin:-2px 0 2px;cursor:ns-resize;touch-action:none;position:relative;z-index:4;border-radius:6px;background:transparent}
+.arpa-resize-handle::before{content:"";position:absolute;left:50%;top:4px;width:58px;height:3px;transform:translateX(-50%);border-radius:3px;background:#69747b;opacity:.9}
+.arpa-resize-handle:hover::before,.arpa-resize-handle.is-dragging::before{background:var(--accent);box-shadow:0 0 9px #d3d8dc99}
+.arpa-resize-handle:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media (min-width:901px){
+  .app:has(#sim.arpa-open){grid-template-rows:auto minmax(0,1fr) var(--arpa-h,30vh)!important}
+  .app:has(#sim.arpa-open)>#arpaTable{height:var(--arpa-h,30vh)!important;min-height:100px!important;max-height:70vh!important}
+}
+@media (max-width:900px){
+  .app:has(#sim.arpa-open){grid-template-rows:auto minmax(0,1fr) var(--arpa-h,30vh)!important}
+  .app:has(#sim.arpa-open)>#arpaTable{height:var(--arpa-h,30vh)!important;min-height:100px!important;max-height:70vh!important}
+}
+</style>
+
+<style id="v49-cpa-panel-rebuild">
+/* v49 — CPA/TCPA : panneau en colonne pleine, sans espace mort. */
+.arpa-fixed-bottom{
+  display:none!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:0!important;
+  min-width:0!important;
+  min-height:100px!important;
+  overflow:hidden!important;
+  padding:0!important;
+}
+.arpa-fixed-bottom.is-open{display:flex!important}
+.arpa-fixed-bottom .arpa-resize-handle{
+  flex:0 0 12px!important;
+  width:100%;height:12px!important;margin:0!important;
+}
+.arpa-fixed-heading{
+  flex:0 0 27px!important;
+  min-height:27px!important;
+  height:27px!important;
+  margin:0!important;
+  padding:0 10px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  overflow:hidden!important;
+  border-top:1px solid #596168;
+  border-bottom:1px solid #596168;
+  background:#2b3034;
+}
+.arpa-fixed-heading h3{margin:0!important;line-height:1!important;white-space:nowrap}
+.arpa-fixed-heading .legend{margin:0!important;min-width:0;overflow:hidden;white-space:nowrap;line-height:1!important}
+.arpa-table-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow:auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+}
+.arpa-table-body table{
+  display:table!important;
+  width:100%!important;
+  min-width:680px;
+  height:100%!important;
+  margin:0!important;
+  border-collapse:collapse;
+  table-layout:auto;
+}
+.arpa-table-body thead{height:1px}
+.arpa-table-body thead th{position:sticky;top:0;z-index:2}
+.arpa-table-body tbody{height:100%!important}
+.arpa-table-body tbody tr{height:1px}
+.arpa-table-body th,.arpa-table-body td{padding:5px 7px}
+@media(max-width:900px){
+  .arpa-fixed-heading{padding:0 7px!important}
+  .arpa-fixed-heading .legend{font-size:8px}
+  .arpa-table-body th,.arpa-table-body td{padding:4px 5px}
+}
+body.theme-classic .arpa-fixed-heading{background:#101a12;border-color:#405c44}
+/* v50 — le contenu CPA commence directement sous le titre; les lignes du
+   tableau gardent leur hauteur naturelle (aucune hauteur forcée/étirement). */
+.arpa-fixed-bottom{position:relative!important;}
+.arpa-fixed-bottom .arpa-resize-handle{position:absolute!important;top:0;left:0;height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important;}
+.arpa-fixed-bottom .arpa-resize-handle::before{top:3px;}
+.arpa-fixed-bottom .arpa-fixed-heading{flex:0 0 auto!important;height:auto!important;min-height:27px!important;}
+.arpa-fixed-bottom .arpa-table-body{flex:1 1 auto!important;min-height:0!important;height:auto!important;}
+.arpa-fixed-bottom .arpa-table-body table{height:auto!important;min-height:0!important;}
+.arpa-fixed-bottom .arpa-table-body thead,
+.arpa-fixed-bottom .arpa-table-body tbody{height:auto!important;}
+.arpa-fixed-bottom .arpa-table-body tbody tr{height:auto!important;}
+.arpa-fixed-bottom .arpa-table-body th,
+.arpa-fixed-bottom .arpa-table-body td{line-height:1.2!important;}
+</style>
+
+<style id="v51-cpa-readable-fill">
+/* v51 — CPA/TCPA : le panneau est une colonne compacte (poignée, titre, tableau).
+   Le tableau occupe toute la hauteur restante et ses rangées sont étirées. */
+.arpa-fixed-bottom{
+  padding:0!important; gap:0!important; border-radius:6px 6px 0 0!important;
+  display:none!important; flex-direction:column!important; align-items:stretch!important;
+  min-height:100px!important; overflow:hidden!important;
+}
+.arpa-fixed-bottom.is-open{display:flex!important}
+.arpa-fixed-bottom .arpa-resize-handle{
+  flex:0 0 12px!important; width:100%!important; height:12px!important;
+  min-height:12px!important; margin:0!important; padding:0!important;
+  position:relative!important; inset:auto!important; overflow:visible!important;
+}
+.arpa-fixed-bottom .arpa-fixed-heading{
+  flex:0 0 27px!important; height:27px!important; min-height:27px!important;
+  margin:0!important; padding:0 10px!important; gap:10px!important;
+  border-top:1px solid #596168; border-bottom:1px solid #596168;
+  display:flex!important; align-items:center!important; overflow:hidden!important;
+}
+.arpa-fixed-bottom .arpa-fixed-heading h3{margin:0!important;line-height:1!important;white-space:nowrap}
+.arpa-fixed-bottom .arpa-fixed-heading .legend{margin:0!important;line-height:1!important;white-space:nowrap;overflow:hidden}
+.arpa-fixed-bottom .arpa-table-body{
+  flex:1 1 auto!important; min-height:0!important; height:auto!important;
+  margin:0!important; padding:0!important; border:0!important; border-radius:0!important;
+  overflow:hidden!important;
+}
+.arpa-fixed-bottom .arpa-table-body table{
+  display:table!important; width:100%!important; height:100%!important;
+  min-width:680px; margin:0!important; border-collapse:collapse; table-layout:auto;
+  font-size:var(--arpa-font-size,18px)!important;
+}
+.arpa-fixed-bottom .arpa-table-body thead{height:auto!important}
+.arpa-fixed-bottom .arpa-table-body tbody{height:100%!important}
+.arpa-fixed-bottom .arpa-table-body tbody tr{height:auto!important}
+.arpa-fixed-bottom .arpa-table-body th,
+.arpa-fixed-bottom .arpa-table-body td{
+  padding:clamp(4px,calc(var(--arpa-font-size,18px)*.34),10px) 7px!important;
+  font-size:inherit!important; line-height:1.12!important; white-space:nowrap;
+}
+.arpa-fixed-bottom .arpa-table-body thead th{position:static!important}
+@media(max-width:900px){
+  .arpa-fixed-bottom .arpa-fixed-heading{padding:0 7px!important}
+  .arpa-fixed-bottom .arpa-fixed-heading .legend{font-size:8px}
+  .arpa-fixed-bottom .arpa-table-body th,.arpa-fixed-bottom .arpa-table-body td{padding-left:5px!important;padding-right:5px!important}
+}
+body.theme-classic .arpa-fixed-bottom .arpa-fixed-heading{background:#101a12;border-color:#405c44}
+</style>
+
+<style id="v52-cpa-tight-layout">
+/* v52 — géométrie CPA/TCPA : aucun espace distribué entre poignée, titre et tableau.
+   La hauteur de ligne est contenue dans le corps; thead/tbody ne réclament plus
+   chacun 100% de la hauteur du tableau (cause du vide vertical visible en v51). */
+.arpa-fixed-bottom,
+.arpa-fixed-bottom.is-open{
+  box-sizing:border-box!important;
+  padding:0!important;
+  gap:0!important;
+  overflow:hidden!important;
+}
+.arpa-fixed-bottom .arpa-resize-handle{
+  box-sizing:border-box!important;
+  flex:0 0 12px!important;
+  height:12px!important;
+  min-height:12px!important;
+  margin:0!important;
+  padding:0!important;
+}
+.arpa-fixed-bottom .arpa-fixed-heading{
+  box-sizing:border-box!important;
+  flex:0 0 27px!important;
+  height:27px!important;
+  min-height:27px!important;
+  margin:0!important;
+  padding:0 10px!important;
+  line-height:1!important;
+}
+.arpa-fixed-bottom .arpa-table-body{
+  box-sizing:border-box!important;
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  overflow:auto!important;
+}
+.arpa-fixed-bottom .arpa-table-body table{
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  border-collapse:collapse!important;
+  border-spacing:0!important;
+  table-layout:auto!important;
+  vertical-align:top!important;
+}
+/* Important: 100% on tbody/table-row-group double-counted the body in v51. */
+.arpa-fixed-bottom .arpa-table-body thead,
+.arpa-fixed-bottom .arpa-table-body tbody{
+  height:auto!important;
+}
+.arpa-fixed-bottom .arpa-table-body tr{
+  height:auto!important;
+  vertical-align:middle!important;
+}
+.arpa-fixed-bottom .arpa-table-body th,
+.arpa-fixed-bottom .arpa-table-body td{
+  box-sizing:border-box!important;
+  vertical-align:middle!important;
+}
+</style>
+<style id="v53-cpa-no-gap">
+/* v53 — CPA/TCPA ouvert : la ligne simulateur reçoit une hauteur explicite.
+   La cascade précédente laissait #sim/.layout remplir la ligne 1fr tandis que
+   .radarbox restait intrinsèque, d'où l'espace vide sous le radar. */
+@media (min-width:901px){
+  .app:has(#sim.arpa-open){
+    grid-template-rows:auto minmax(0,auto) var(--arpa-h,30vh)!important;
+  }
+  .app:has(#sim.arpa-open)>#sim{
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+  }
+  .app:has(#sim.arpa-open)>#sim>.layout{
+    height:calc(100dvh - 58px - var(--arpa-h,30vh))!important;
+    min-height:0!important;
+    align-items:stretch!important;
+    overflow:visible!important;
+  }
+  .app:has(#sim.arpa-open)>#sim>.layout>.radarbox{
+    height:100%!important;
+    min-height:0!important;
+  }
+}
+</style>
+<style id="language-toggle-fix">
+.radar-lang-toggle{position:relative!important;z-index:100!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;visibility:visible!important;opacity:1!important;min-width:64px!important;min-height:30px!important;height:30px!important;padding:4px 9px!important;margin:0 0 0 6px!important;border:1px solid currentColor!important;border-radius:5px!important;background:rgba(12,22,30,.92)!important;color:inherit!important;font:700 11px/1 system-ui,sans-serif!important;letter-spacing:.05em;white-space:nowrap!important;cursor:pointer!important}
+@media(max-width:620px){.radar-lang-toggle{min-width:72px!important;min-height:38px!important;height:38px!important;margin-left:4px!important}}
+.top{position:relative}.top-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.top .radar-lang-toggle{margin-left:0!important}
+
+/* V68 — toolbar/header controls stay in their intended header positions. */
+.top-actions{position:static!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;transform:none!important}
+#themeToggle,#arpaToggle{position:static!important;top:auto!important;left:auto!important;right:auto!important;transform:none!important;display:inline-flex!important}
+</style><style id="minimal-radar-dock-fix">
+/* Minimal repair: reserve a measurable central track for the PPI after the
+   dynamically inserted resizer elements, and let the canvas fill it. */
+@media (min-width:901px){
+  .layout{display:grid!important;grid-template-columns:minmax(72px,var(--left-w,300px)) 10px minmax(280px,1fr) 10px minmax(280px,var(--right-w,320px))!important;grid-template-rows:minmax(0,1fr)!important;align-items:stretch!important;gap:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
+  .sidebar-left{grid-column:1!important;grid-row:1!important;min-width:0!important;min-height:0!important}
+  #leftResizer{grid-column:2!important;grid-row:1!important}
+  .radarbox{grid-column:3!important;grid-row:1!important;min-width:0!important;min-height:0!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+  .radarbox canvas{display:block!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;aspect-ratio:auto!important}
+  #rightResizer{grid-column:4!important;grid-row:1!important}
+  .controls{grid-column:5!important;grid-row:1!important;min-width:0!important;min-height:0!important;height:100%!important}
+}
+@media (max-width:900px){.radarbox canvas{width:100%!important;height:100%!important}}
+</style></head><body><div class="app"><header class="top"><div><div class="kicker">BRIDGE / TRAINING INSTRUMENT</div><div class="title">Simulateur Radar</div></div><div class="top-actions"><button id="radarLangToggle" class="radar-lang-toggle" type="button" aria-label="Français / English">FR | EN</button><button id="arpaToggle" class="arpa-toggle" type="button" aria-controls="arpaTable" aria-expanded="false">☷ CPA / TCPA</button><button id="themeToggle" class="theme-switch" type="button" aria-pressed="false">◐ Moderne (gris)</button><a class="app-nav-link" href="generator.html" title="Ouvrir le générateur d’exercices">↗ Générateur</a><div class="status">OFFLINE<br><span id="status">VEILLE</span></div></div></header>
+
+<!-- SECTION SIMULATEUR AVEC DONNÉES / MESURES / ARPA À GAUCHE DU RADAR -->
+<section id="sim" class="mode"><div class="layout">
+
+<!-- COLONNE GAUCHE : MESURES, ARPA, RELÈVEMENTS ET DONNÉES CIBLE -->
+<aside class="sidebar-left" id="leftDock" aria-label="Colonne latérale gauche — zone de dépôt"><div class="dock-empty" aria-hidden="true">Déposer un module ici</div>
+  <div class="panel arpa-detail-panel">
+    <h3>FICHE ARPA (CIBLE ACTIVE)</h3>
+    <div id="targetDetail" class="readoutbox">Sélectionnez une cible sur la carte pour afficher sa fiche ARPA détaillée.</div>
+  </div>
+
+  <div class="panel pointer-measure-panel">
+    <h3>MESURE POINTEUR (CURSEUR)</h3>
+    <div id="touchReadout" class="readoutbox">Appui sur la carte : relèvement — · distance —</div>
+  </div>
+
+  <div class="panel settings">
+    <h3>OUTILS DE MESURE (EBL / VRM)</h3>
+    <div class="measure-stack">
+      <div class="measure-control">
+        <label>VRM (NM)<input id="vrm" type="number" min="0" max="24" step=".1" value="0"></label>
+        <button id="vrmToggle" class="measure-toggle is-off" type="button" aria-pressed="false">VRM OFF</button>
+      </div>
+      <div class="measure-control">
+        <label>EBL (°)<input id="ebl" type="number" min="0" max="360" step="0.1" value="0" inputmode="decimal"></label>
+        <button id="eblToggle" class="measure-toggle is-off" type="button" aria-pressed="false">EBL OFF</button>
+      </div>
+    </div>
+    <label>Décalage centre X (NM)<input id="offsetX" type="number" step=".1" value="0"></label>
+    <label>Décalage centre Y (NM)<input id="offsetY" type="number" step=".1" value="0"></label>
+<button id="recenterBtn" type="button" style="width:100%;margin-top:6px">⌖ Recentrer</button>
+    <div class="own-position-pad" aria-label="Position de l'own ship dans le PPI">
+      <div id="ownPositionPad" class="pad" role="application" aria-label="Mini-carte de positionnement"><span id="ownPositionPoint" class="pad-point" role="button" aria-label="Own ship draggable"></span></div>
+      <div class="pad-copy">Glisser l'own ship<br>sur le PPI ou ici.<br><b>X / Y synchronisés</b></div>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button id="rings" class="active">Anneaux ON</button>
+      <button id="headingLine" class="active">Ligne de foi ON</button>
+    </div>
+    <label>Graduation de cap <button id="headingTicks" class="active">ON / OFF</button></label>
+  </div>
+
+  <div class="panel settings">
+    <h3>ALARMES & LIMITES ARPA</h3>
+    <div class="mini">
+      <label>Seuil CPA (NM)<input id="cpaLimit" type="number" min="0" max="10" step=".1" value="1.5"></label>
+      <label>Seuil TCPA (min)<input id="tcpaLimit" type="number" min="0" max="120" value="30"></label>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button id="alarmEnable" class="active">Alarmes ON</button>
+      <button id="guardEnable">Zone de garde OFF</button>
+    </div>
+    <div class="help">Alarme + anneau : une cible est signalée dès qu’elle entre dans ce rayon autour du navire.</div>
+    <label>Rayon de garde (NM)<input id="guardRadius" type="number" min=".1" max="24" step=".1" value="2"></label>
+  </div>
+
+</aside>
+
+<!-- COLONNE CENTRALE : ÉCRAN RADAR -->
+<div class="radarbox">
+  <canvas id="radar"></canvas>
+</div>
+
+<!-- COLONNE DROITE : COMMANDES, CONDUITE NAVIRE ET PARAMÈTRES -->
+<aside class="controls" id="rightDock" aria-label="Modules de commandes">
+  <div class="panel">
+    <div class="small">SCÉNARIO ACTIF</div>
+    <div class="clock" id="clock">00:00</div>
+    <div class="readout"><span id="scenario">Veille côtière</span><span>VITESSE ×<b id="rateVal">1</b></span></div>
+    <div class="row" style="margin-top:9px"><button id="pause" class="play primary">▶ PLAY</button><button id="reset">↻ RESET</button></div>
+    <div class="grid" style="margin-top:6px"><button data-rate="0.5">×0.5</button><button data-rate="1" class="active">×1</button><button data-rate="2">×2</button><button data-rate="4">×4</button><button data-rate="8">×8</button></div>
+  </div>
+
+  <div class="panel">
+    <h3>ÉCHELLE & PRÉSENTATION</h3>
+    <div class="grid" id="ranges"></div>
+    <div class="row" style="margin-top:7px"><button data-orient="north" class="active">N-UP</button><button data-orient="course">C-UP</button><button data-orient="head">H-UP</button></div>
+    <div class="row" style="margin-top:6px"><button data-vec="rel" class="active">Vect. relatifs</button><button data-vec="true">Vect. vrais</button></div>
+    <label>GAIN <span id="gainVal">72</span>%</label><input id="gain" type="range" min="0" max="100" value="72">
+  </div>
+
+  <div class="panel">
+    <h3>NOTRE NAVIRE</h3>
+    <div class="grid2">
+      <div><label>CAP °</label><input id="ownCourse" type="number" min="0" max="359" value="35"></div>
+      <div><label>VITESSE kn</label><input id="ownSpeed" type="number" min="0" max="40" step=".5" value="12"></div>
+    </div>
+    <div class="grid2" style="margin-top:7px">
+      <button data-turn="-1">◀ −1°</button><button data-turn="1">+1° ▶</button>
+      <button data-turn="-10">◀ −10°</button><button data-turn="10">+10° ▶</button>
+      <button data-speed="-.5">− 0.5 kn</button><button data-speed=".5">+ 0.5 kn</button>
+    </div>
+  </div>
+
+  <div class="radar-utility-stack">
+  <div class="panel settings">
+    <h3>RÉGLAGES AFFICHAGE & ÉCHO</h3>
+    <details open><summary>TRACES / VECTEURS</summary><div class="body">
+      <label>Traces <select id="trailLen"><option value="0">Désactivées</option><option value="60">1 min</option><option value="180">3 min</option><option value="360">6 min</option></select></label>
+      <div class="row"><button type="button" data-trailmode="rel" class="active">Trace relative</button><button type="button" data-trailmode="true">Trace vraie</button></div><button type="button" id="clearTrails" style="width:100%;margin-top:6px">⌫ Effacer les traces</button>
+      <label>Durée des vecteurs <select id="vectorDuration"><option>3</option><option>6</option><option>12</option><option>15</option><option>30</option></select> min</label>
+      <label>Historique de positions <select id="historyStep"><option value="0">Aucun</option><option value="15">15 s</option><option value="60">1 min</option></select></label>
+    </div></details>
+    <details open><summary>TRAITEMENT ÉCHO</summary><div class="body">
+      <label>Anti-clutter mer <input id="sea" type="range" min="0" max="100" value="25"><b id="seaVal">25</b></label>
+      <label>Anti-clutter pluie <input id="rain" type="range" min="0" max="100" value="0"><b id="rainVal">0</b></label>
+      <label>Rémanence <input id="persistence" type="range" min="0" max="100" value="35"><b id="persistenceVal">35</b></label>
+      <label>Luminosité <input id="brightness" type="range" min="30" max="150" value="100"><b id="brightnessVal">100</b></label>
+    </div></details>
+  </div>
+
+  <div class="panel"><h3>SCÉNARIOS</h3><button id="loadExercise" class="primary" style="width:100%;margin-bottom:7px" type="button">↥ Charger exercice</button><input id="exerciseFileDirect" type="file" accept=".json,application/json" style="display:none"><div class="grid2" id="scens"><div id="exerciseList" style="display:contents"></div></div><div class="small" style="margin-top:7px">Format partagé avec generateur.html · chargement à l’arrêt</div></div>
+</div>
+</aside>
+</div>
+
+
+</section>
+
+  <!-- Tableau CPA/TCPA à la demande, hors des colonnes dockables. -->
+<!-- Tableau CPA/TCPA flottant, affiché uniquement à la demande. Le bouton est intégré à l’en-tête pour rester dans le flux et ne recouvrir aucun module. -->
+<div id="arpaTable" class="panel arpa-table-panel arpa-fixed-bottom" aria-label="Tableau CPA et TCPA" aria-hidden="true">
+  <div class="arpa-resize-handle" id="arpaResizeHandle" role="separator" aria-label="Redimensionner la hauteur du tableau CPA/TCPA" aria-orientation="horizontal" tabindex="0"></div>
+  <header class="arpa-fixed-heading">
+    <h3>CPA / TCPA — SUIVI DES CIBLES</h3>
+    <div class="legend"><span>● contact radar</span><span>△ pêche</span><span>⊘ mouillage</span><span>⚠ CPA sous seuil / TCPA dans seuil</span></div>
+  </header>
+  <div class="arpa-table-body">
+    <table><thead><tr><th>CIBLE</th><th>TYPE</th><th>RELÈV. °</th><th>DIST. NM</th><th>CAP °</th><th>VIT. kn</th><th>CPA NM</th><th>TCPA</th><th>ÉTAT</th></tr></thead><tbody id="tbody"></tbody></table>
+  </div>
+</div>
+
+<div class="footer">SIMULATEUR HORS LIGNE · données locales uniquement</div></div><div id="collisionOverlay" class="collision-overlay" role="alertdialog" aria-modal="true" aria-labelledby="collisionTitle"><div class="collision-card"><h2 id="collisionTitle">COLLISION</h2><p id="collisionMessage">Collision détectée</p><button id="collisionReset" type="button">↻ Recommencer</button></div></div><div id="toast" class="toast"></div>
+<div id="exerciseModal" class="exercise-overlay" aria-hidden="true" role="presentation">
+<div class="exercise-modal" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" tabindex="-1">
+<div class="exercise-modal-header"><div><h2 id="exerciseModalTitle">Charger un exercice</h2><div class="small">Choisissez un exercice intégré ou sauvegardé localement.</div></div><button id="closeExerciseModal" class="exercise-modal-close" type="button" aria-label="Fermer">×</button></div>
+<div id="exerciseModalList" class="exercise-modal-list" aria-live="polite"></div>
+<div class="exercise-file-row"><button id="chooseExerciseFile" type="button">⇧ Choisir un fichier JSON</button><label for="exerciseFile" class="small">Sélection de fichier JSON</label><input id="exerciseFile" type="file" accept=".json,application/json" style="display:block;margin-top:8px;width:100%;color:var(--muted)"></div>
+</div></div>
+<div id="v8-compat" hidden aria-hidden="true"><canvas id="editor"></canvas><div id="shipList"></div><div id="selectedInfo"></div><input id="editCourse"><input id="editSpeed"><select id="editType"></select></div>
+<script>
+const THEME = {
+    bg: '#111518', gradOuter: '#111518', gradInner: '#242a2f',
+    echo: '#ffd84a', echoGlow: 8, dangerEcho: '#ffcf32', clutter: '#9da6ad',
+    rings: '#667078', radarGrid:'#505a62', text: '#c4cbd0', border: '#727b82',
+    ebl: '#ffe27a', vrm: '#e8c94a', heading: '#ffe27a', own: '#ffd84a'
+};
+const DISPLAY_PALETTES = {
+  modern: {bg:'#111518',gradOuter:'#111518',gradInner:'#242a2f',echo:'#ffd84a',dangerEcho:'#ff4d5d',clutter:'#9da6ad',rings:'#667078',radarGrid:'#505a62',text:'#c4cbd0',border:'#727b82',ebl:'#ffe27a',vrm:'#e8c94a',heading:'#ffe27a',own:'#ffd84a'},
+  classic: {bg:'#000000',gradOuter:'#000000',gradInner:'#06150a',echo:'#66ff66',dangerEcho:'#ff3030',clutter:'#55b85f',rings:'#73d17b',radarGrid:'#34753e',text:'#b9efbd',border:'#65b96e',ebl:'#a7e6ad',vrm:'#9fe0a6',heading:'#d2ffd4',own:'#baffc0'}
+};
+function applyDisplayTheme(mode){
+  const p=DISPLAY_PALETTES[mode==='classic'?'classic':'modern']; Object.assign(THEME,p);
+  document.body.classList.toggle('theme-classic',mode==='classic');
+  const b=document.getElementById('themeToggle'); if(b){b.setAttribute('aria-pressed',String(mode==='classic'));b.textContent=mode==='classic'?'◉ Classique (vert)':'◐ Moderne (gris)';}
+}
+function loadDisplayTheme(){let mode='modern';try{mode=localStorage.getItem('radar-display-theme')==='classic'?'classic':'modern'}catch(e){}applyDisplayTheme(mode);return mode}
+function saveDisplayTheme(mode){try{localStorage.setItem('radar-display-theme',mode)}catch(e){}}
+
+
+'use strict';const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],D=Math.PI/180;
+let displayTheme=loadDisplayTheme();
+$('#themeToggle').onclick=()=>{displayTheme=displayTheme==='classic'?'modern':'classic';applyDisplayTheme(displayTheme);saveDisplayTheme(displayTheme);render()};const rad=a=>a*D,norm=a=>(a%360+360)%360,wrapEbl=a=>{let n=Number(a);if(!Number.isFinite(n))return 0;n%=360;if(n<0)n+=360;return n},vel=(c,s)=>[Math.sin(rad(c))*s,Math.cos(rad(c))*s];
+const scenarios=[{name:'Test ARPA & Mesures',own:{x:0,y:0,c:0,s:12},t:[[-0.8,4.5,180,12,'NAVIRE A (Face)','normal'],[4.5,2,270,11,'NAVIRE B (Travers)','normal'],[-2.5,-2.5,45,15,'NAVIRE C (Rattrap)','normal'],[2.5,-1.5,0,0,'BOUÉE','anchor']]},{name:'Veille côtière',own:{x:0,y:0,c:35,s:12},t:[[-2.4,4.5,210,10,'ALPHA','normal'],[3.2,2.8,250,8,'BRAVO','fish'],[-1,-5,15,14,'CHARLIE','normal']]},{name:'Croisement bâbord',own:{x:0,y:0,c:0,s:10},t:[[-3,4,135,12,'DELTA','normal'],[3,5,210,9,'ECHO','normal'],[1,-4,10,6,'FOXTROT','nuc']]},{name:'Trafic dense',own:{x:0,y:0,c:75,s:14},t:[[2,4,250,12,'GOLF','normal'],[-2,3,180,7,'HOTEL','fish'],[4,-2,90,5,'INDIA','anchor'],[-4,-3,40,10,'JULIET','normal']]}];
+const BUILTIN_EXERCISE={version:'radar-exercice-1',name:'Anti-collision standard',own:{x:0,y:0,c:0,s:10},ships:[{x:2,y:2,c:270,s:10,name:'TRIBORD-CROISEMENT',type:'normal'},{x:0,y:4,c:180,s:10,name:'FACE-A-FACE',type:'normal'},{x:-1,y:-4,c:0,s:16,name:'RATTRAPANT-BABORD',type:'normal'},{x:3,y:-2,c:0,s:0,name:'PECHEUR-MOUILLAGE',type:'anchor'}],coast:[],scale:6,vec:'rel'};
+function normalizeCoasts(x){
+  // Accept the generator's coast/coastShapes aliases without double-loading them.
+  const sources=[]; for(const k of ['coast','coastShapes','coastlines','land']) if(Array.isArray(x?.[k])) sources.push(...x[k]);
+  const out=[];
+  const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
+  const point=p=>{
+    if(Array.isArray(p)&&p.length>=2){const a=num(p[0]),b=num(p[1]);return a===null||b===null?null:[a,b]}
+    if(p&&typeof p==='object'){
+      const a=num(p.x??p.lon??p.lng??p.longitude),b=num(p.y??p.lat??p.latitude);
+      return a===null||b===null?null:[a,b];
+    } return null;
+  };
+  const pointsOf=v=>{
+    if(!Array.isArray(v)) return [];
+    const direct=v.map(point); if(direct.length && direct.every(Boolean)) return direct;
+    return v.flatMap(z=>Array.isArray(z)?pointsOf(z):[]);
+  };
+  const add=(type,pts)=>{pts=pts.filter(Boolean); if(pts.length<2)return; const closed=type==='polygon'; const key=(closed?'polygon':'polyline')+':'+JSON.stringify(pts); if(!out.some(s=>s._key===key))out.push({type:closed?'polygon':'polyline',points:pts,_key:key});};
+  const visit=shape=>{
+    if(Array.isArray(shape)){const pts=pointsOf(shape); if(pts.length>=2)add('polyline',pts); else shape.forEach(visit); return;}
+    if(!shape||typeof shape!=='object')return;
+    const type=String(shape.type||shape.kind||'').toLowerCase();
+    const pts=shape.points??shape.coordinates??shape.vertices??shape.path;
+    if(pts){const p=pointsOf(pts); if(p.length>=2)add(type.includes('polygon')||type==='land'?'polygon':'polyline',p); return;}
+    const cx=num(shape.cx??shape.center?.x??shape.x), cy=num(shape.cy??shape.center?.y??shape.y);
+    if(type==='rect'||type==='rectangle'||(num(shape.w??shape.width)!==null&&num(shape.h??shape.height)!==null)){
+      const w=num(shape.w??shape.width),h=num(shape.h??shape.height);
+      // Generator JSON uses x/y as the SOUTH-WEST (unrotated) corner,
+      // while w/h are in NM and angle is in degrees. Convert to the rectangle
+      // center before rotating; positive angle/sense is unchanged from v22.
+      const angle=num(shape.angle??shape.rotation??shape.rot??shape.cap??shape.heading??shape.orientation) ?? 0;
+      if(cx!==null&&cy!==null&&w!==null&&h!==null){
+        const drawCx=cx+w/2,drawCy=cy+h/2;
+        const a=rad(angle),ux=Math.cos(a),uy=-Math.sin(a),vx=Math.sin(a),vy=Math.cos(a);
+        const corner=(lx,ly)=>[drawCx+ux*lx+vx*ly,drawCy+uy*lx+vy*ly];
+        add('polygon',[corner(-w/2,-h/2),corner(w/2,-h/2),corner(w/2,h/2),corner(-w/2,h/2)]);
+        const added=out[out.length-1]; if(added) {added.rect={x:drawCx,y:drawCy,w,h,angle};}
+      } return;
+    }
+    if(type==='circle'||num(shape.r)!==null){const r=num(shape.r??shape.radius); if(cx!==null&&cy!==null&&r!==null){const p=[];for(let i=0;i<48;i++){const a=i*2*Math.PI/48;p.push([cx+Math.cos(a)*Math.abs(r),cy+Math.sin(a)*Math.abs(r)])}add('polygon',p)}return;}
+    if(type==='ellipse'||num(shape.rx)!==null||num(shape.ry)!==null){const rx=num(shape.rx??shape.radiusX),ry=num(shape.ry??shape.radiusY);if(cx!==null&&cy!==null&&rx!==null&&ry!==null){const p=[];for(let i=0;i<48;i++){const a=i*2*Math.PI/48;p.push([cx+Math.cos(a)*Math.abs(rx),cy+Math.sin(a)*Math.abs(ry)])}add('polygon',p)}return;}
+    for(const k of ['coast','coastShapes','coastlines','land']) if(Array.isArray(shape[k])) shape[k].forEach(visit);
+  };
+  sources.forEach(visit); out.forEach(s=>delete s._key); return out;
+}
+function normalizeDST(d){
+  if(!d)return null;
+  const point=(v,fx,fy)=>Array.isArray(v)?[+v[0],+v[1]]:(v&&typeof v==='object'?[+(v.x??v.lon??fx),+(v.y??v.lat??fy)]:null);
+  const en=point(d.entry,d.x,d.y), so=point(d.sortie,d.x2,d.y2);
+  let x=Number.isFinite(+d.x)?+d.x:en?.[0], y=Number.isFinite(+d.y)?+d.y:en?.[1];
+  let x2=Number.isFinite(+d.x2)?+d.x2:so?.[0], y2=Number.isFinite(+d.y2)?+d.y2:so?.[1];
+  const heading=d.heading??d.cap??d.course, length=+(d.length??d.longueur);
+  if((!Number.isFinite(x2)||!Number.isFinite(y2))&&Number.isFinite(+heading)&&Number.isFinite(length)&&Number.isFinite(x)&&Number.isFinite(y)){
+    const a=rad(+heading);x2=x+Math.sin(a)*length;y2=y+Math.cos(a)*length;
+  }
+  const w=+(d.width??d.largeur??1); if(![x,y,x2,y2,w].every(Number.isFinite))return null;
+  const sens=String(d.sens??d.direction??'').toLowerCase();
+  const reverse=!!d.reverse||sens==='reverse'||sens==='retour'||sens==='inverse'||sens==='inversé'||sens==='sortie-entrée';
+  return {x,y,x2,y2,width:Math.max(.2,w),reverse,name:String(d.name||d.nom||'DST')};
+}
+function dstGeom(d){const dx=d.x2-d.x,dy=d.y2-d.y,L=Math.hypot(dx,dy)||1;return {ux:dx/L,uy:dy/L,nx:-dy/L,ny:dx/L,L}}
+function dstInfo(p,d){const g=dstGeom(d),rx=p.x-d.x,ry=p.y-d.y,along=rx*g.ux+ry*g.uy,side=rx*g.nx+ry*g.ny,base=Math.atan2(g.ux,g.uy)/D;return {along,side,g,inBounds:along>=0&&along<=g.L&&Math.abs(side)<=d.width/2,sep:along>=0&&along<=g.L&&Math.abs(side)<=Math.min(.12,d.width*.12),lane:side<0?0:1,desired:norm(side<0?(d.reverse?base+180:base):(d.reverse?base:base+180))}}
+function normalizeExercise(x,skipStart=false){if(!x||typeof x!=='object'||!x.own)throw Error('Format JSON incompatible');let ships=Array.isArray(x.ships)?x.ships:(Array.isArray(x.targets)?x.targets.map(a=>({x:a.x,y:a.y,c:a.c,s:a.s,name:a.name,type:a.type})):null);if(!ships)throw Error('Format JSON incompatible');let out={version:'radar-exercice-1',name:String(x.name||'Exercice'),own:{x:+(x.own.x||0),y:+(x.own.y||0),c:norm(+(x.own.c||0)),s:Math.max(0,+(x.own.s||0))},ships:ships.map((a,i)=>({x:+a.x||0,y:+a.y||0,c:norm(+a.c||0),s:a.type==='anchor'?0:Math.max(0,+a.s||0),name:String(a.name||'C-'+String(i+1).padStart(2,'0')),type:['normal','fish','nuc','anchor','sailboat'].includes(a.type)?a.type:'normal',maneuvers:Array.isArray(a.maneuvers)?a.maneuvers.map(m=>({cap:m?.cap==null?null:norm(+m.cap),vitesse:m?.vitesse==null?null:Math.max(0,+m.vitesse),x:+(m?.x??0)||0,y:+(m?.y??m?.lat??0)||0,lat:+(m?.lat??m?.y??0)||0})).filter(m=>Number.isFinite(m.x)&&Number.isFinite(m.y)):[]})),coast:normalizeCoasts(x),dsts:Array.isArray(x.dsts)?x.dsts.map(normalizeDST).filter(Boolean):[],scale:+x.scale||6,vec:x.vec||'rel',echoDegradation:(()=>{const d=x.echoDegradation||{};const n=k=>Math.max(0,Math.min(100,Number.isFinite(+d[k])?+d[k]:0));return {sea:n('sea'),rain:n('rain'),noise:n('noise'),weak:n('weak'),flicker:n('flicker')}})()};if(!skipStart&&x.simulationStart&&x.simulationStart.own)out.simulationStart=normalizeExercise(x.simulationStart,true);return out;}
+function loadExercise(x){let b=normalizeExercise(x),start=b.simulationStart||b;S.idx=-1;S.own=clone(start.own);S.targets=clone(start.ships);S.coast=clone(start.coast);S.dsts=clone(start.dsts||[]);S.scale=start.scale;S.vec=start.vec||S.vec;S.echoDegradation=start.echoDegradation||{sea:0,rain:0,noise:0,weak:0,flicker:0};S.rate=1;S.time=0;S.paused=true;S.cUpHeading=S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.targets.forEach(a=>a._trail=[]);S.selected=null;S.lastAlarm=false;S.collision=null;S.initial={own:clone(S.own),targets:clone(S.targets),coast:clone(S.coast),dsts:clone(S.dsts),scale:S.scale};closeCollision();$('#scenario').textContent=b.name;$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='VEILLE';render();toast('Exercice chargé · simulation à l’arrêt')}
+
+let S={idx:0,own:{x:0,y:0,c:35,s:12},targets:[],time:0,scale:6,orient:'north',vec:'rel',rate:1,paused:true,gain:72,cUpHeading:35,trailSample:0,settings:{trailLen:60,trailMode:'rel',vectorDuration:6,historyStep:30,sea:25,rain:0,persistence:35,brightness:100,vrm:0,ebl:0,vrmOn:false,eblOn:false,offsetX:0,offsetY:0,rings:true,headingLine:true,headingTicks:true,cpaLimit:1.5,tcpaLimit:30,alarm:true,guard:false,guardRadius:2},trails:[],trailSeq:0,history:[],selected:null,lastAlarm:false,collision:null,initial:null,coast:[],dsts:[],dstAlert:false,echoDegradation:{sea:0,rain:0,noise:0,weak:0,flicker:0}};
+function clone(o){return JSON.parse(JSON.stringify(o))}
+let savedSettings=null;try{savedSettings=localStorage.getItem('radar-settings')}catch(e){}if(savedSettings)try{Object.assign(S.settings,JSON.parse(savedSettings))}catch(e){}
+function syncMeasureToggles(){[['vrmToggle','vrmOn','VRM'],['eblToggle','eblOn','EBL']].forEach(([id,key,label])=>{let e=$('#'+id);if(!e)return;e.classList.toggle('is-on',!!S.settings[key]);e.classList.toggle('is-off',!S.settings[key]);e.setAttribute('aria-pressed',String(!!S.settings[key]));e.textContent=label+' '+(S.settings[key]?'ON':'OFF')})}
+function saveSettings(){try{localStorage.setItem('radar-settings',JSON.stringify(S.settings))}catch(e){}}
+function targetColor(a,state=S){let m=motion(a,state.own),settings=state.settings||S.settings,cpaLimit=+settings.cpaLimit,tcpaLimit=+settings.tcpaLimit,danger=m.cpa<cpaLimit&&m.tcpa>=0&&m.tcpa<=tcpaLimit;return {danger,color:danger?THEME.dangerEcho:THEME.echo,motion:m}}
+function dangerous(m){return m.cpa<S.settings.cpaLimit&&m.tcpa>=0&&m.tcpa<=S.settings.tcpaLimit}
+function closeCollision(){let o=$('#collisionOverlay');if(o)o.classList.remove('is-open')}
+function showCollision(a,d,kind='COLLISION'){S.collision={name:a?a.name:null,distance:d};S.paused=true;$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent=kind;$('#collisionTitle').textContent=kind;$('#collisionMessage').textContent=(a?('Cible : '+a.name+' · '):'')+'distance '+d.toFixed(1)+' NM';$('#collisionOverlay').classList.add('is-open')}
+function segmentDistance(ax,ay,bx,by){let vx=bx-ax,vy=by-ay,den=vx*vx+vy*vy,t=den?-(ax*vx+ay*vy)/den:0;t=Math.max(0,Math.min(1,t));return Math.hypot(ax+t*vx,ay+t*vy)}
+// Geometry convention: world x=east, y=north; rectangle x/y is its center;
+// angle is clockwise from north, matching the editor and the renderer.
+// Transform a world point into the rectangle's center-local frame before testing.
+function rectLocalPoint(px,py,r){let a=rad(r.angle||0),dx=px-r.x,dy=py-r.y;return [dx*Math.cos(a)-dy*Math.sin(a),dx*Math.sin(a)+dy*Math.cos(a)]}
+function pointInRotatedRect(px,py,r){let q=rectLocalPoint(px,py,r);return Math.abs(q[0])<=r.w/2&&Math.abs(q[1])<=r.h/2}
+function pointInCoast(px,py,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){let [xi,yi]=poly[i],[xj,yj]=poly[j],hit=((yi>py)!==(yj>py))&&px<(xj-xi)*(py-yi)/(yj-yi)+xi;if(hit)inside=!inside}return inside}
+function segmentsIntersect(ax,ay,bx,by,cx,cy,dx,dy){const cross=(ux,uy,vx,vy)=>ux*vy-uy*vx, ab=cross(bx-ax,by-ay,cx-ax,cy-ay), ad=cross(bx-ax,by-ay,dx-ax,dy-ay), cd=cross(dx-cx,dy-cy,ax-cx,ay-cy), cb=cross(dx-cx,dy-cy,bx-cx,by-cy);return ((ab===0&&ad===0)||(ab>=0)!==(ad>=0))&&((cd>=0)!==(cb>=0))} function coastDistance(px,py,shape){
+  if(shape.rect){let r=shape.rect,q=rectLocalPoint(px,py,r);if(Math.abs(q[0])<=r.w/2&&Math.abs(q[1])<=r.h/2)return 0;let dx=Math.max(Math.abs(q[0])-r.w/2,0),dy=Math.max(Math.abs(q[1])-r.h/2,0);return Math.hypot(dx,dy)}
+  let best=Infinity,pts=shape.points;for(let i=1;i<pts.length;i++)best=Math.min(best,segmentDistance(px-pts[i-1][0],py-pts[i-1][1],px-pts[i][0],py-pts[i][1]));if(shape.type==='polygon'){best=Math.min(best,segmentDistance(px-pts[pts.length-1][0],py-pts[pts.length-1][1],px-pts[0][0],py-pts[0][1]));if(pointInCoast(px,py,pts))return 0}return best}
+function collisionCheck(prevOwn,prevTargets){if(S.collision)return;const threshold=.1;for(const coast of (S.coast||[])){let d=coastDistance(S.own.x,S.own.y,coast),pts=coast.points||[],crossed=false;if(prevOwn&&pts.length>1){for(let i=1;i<pts.length;i++)if(segmentsIntersect(prevOwn.x,prevOwn.y,S.own.x,S.own.y,pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1]))crossed=true;if(coast.type==='polygon'&&segmentsIntersect(prevOwn.x,prevOwn.y,S.own.x,S.own.y,pts[pts.length-1][0],pts[pts.length-1][1],pts[0][0],pts[0][1]))crossed=true}if((Number.isFinite(d)&&d<=threshold)||crossed){showCollision(null,Number.isFinite(d)?d:0,'ÉCHOUEMENT');return}}let hit=null;for(const a of S.targets){let before=prevTargets&&prevTargets.get(a);let d=before?segmentDistance(before.x-before.ox,before.y-before.oy,a.x-S.own.x,a.y-S.own.y):Math.hypot(a.x-S.own.x,a.y-S.own.y);if(d<=threshold){hit={a,d};break}}if(hit)showCollision(hit.a,hit.d)} function dstAlertCheck(){if(!S.dsts?.length){S.dstAlert=false;return;}const d=S.dsts[0], objs=[S.own,...S.targets],bad=objs.some(a=>{const z=dstInfo(a,d);if(!z.inBounds)return false; if(z.sep)return true; const diff=Math.abs(norm(a.c-z.desired+180)-180); return diff>60;});if(bad&&!S.dstAlert)toast('INFO DST : séparation / contre-sens');S.dstAlert=bad;}
+function alarmCheck(){dstAlertCheck();let cpaHit=S.targets.some(a=>dangerous(motion(a))),guardHit=S.settings.guard&&S.targets.some(a=>Math.hypot(a.x-S.own.x,a.y-S.own.y)<=+S.settings.guardRadius);let hit=cpaHit||guardHit;if(hit&&!S.lastAlarm&&S.settings.alarm){toast(guardHit?'⚠ ALARME ZONE DE GARDE':'⚠ ALARME CPA/TCPA');try{let c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.frequency.value=720;g.gain.value=.08;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.35)}catch(e){}}S.lastAlarm=hit}
+function bindSetting(id,key,type='value'){let e=$('#'+id);if(!e)return; e.value=S.settings[key];e.oninput=e.onchange=()=>{S.settings[key]=type==='number'?+e.value:e.value;saveSettings();render()}}
+function loadScenario(i){let b=scenarios[i];S.idx=i;S.own={x:b.own.x,y:b.own.y,c:b.own.c,s:b.own.s};S.targets=b.t.map(a=>({x:a[0],y:a[1],c:a[2],s:a[3],name:a[4],type:a[5]}));S.time=0;S.paused=true;S.cUpHeading=S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.targets.forEach(a=>a._trail=[]);S.selected=null;S.lastAlarm=false;S.collision=null;S.initial={own:clone(S.own),targets:clone(S.targets),coast:clone(S.coast),dsts:clone(S.dsts),scale:S.scale};closeCollision();render()}
+function motion(a,own=S.own){let px=a.x-own.x,py=a.y-own.y,tv=vel(a.c,a.s),ov=vel(own.c,own.s),rx=tv[0]-ov[0],ry=tv[1]-ov[1],v2=rx*rx+ry*ry,tc=v2?-(px*rx+py*ry)/v2:Infinity;return {...a,range:Math.hypot(px,py),brg:norm(Math.atan2(px,py)/D),tcpa:tc*60,cpa:tc>0?Math.hypot(px+rx*tc,py+ry*tc):Math.hypot(px,py),rx,ry,tvx:tv[0],tvy:tv[1]}}
+function echoDetection(a,state=S){let m=motion(a,state.own), typeFactor=a.type==='fish'?.62:a.type==='anchor'?.78:a.type==='nuc'?.9:1;let rangeFactor=Math.max(0,1-m.range/(state.scale*1.08));let threshold=.16+(1-state.gain/100)*.62;let clutter=(state.settings.sea+state.settings.rain)/260;return typeFactor*rangeFactor>threshold+clutter*.18} 
+function echoStyle(a,state=S){let m=motion(a,state.own), typeFactor=a.type==='fish'?.72:a.type==='anchor'?.82:1, range=Math.max(0,1-m.range/(state.scale*1.1));let persistence=Math.max(0,Math.min(100,+state.settings.persistence||0))/100,brightness=Math.max(.3,Math.min(1.5,(+state.settings.brightness||100)/100));let strength=Math.max(.08,Math.min(1,(state.gain/100)*(.38+.62*range)*typeFactor));let alpha=Math.min(1,strength*(.35+.65*persistence)*brightness);return {alpha,size:2.8+strength*5.2,glow:3+strength*8*brightness}}
+function degradedEcho(a,state=S){const d=state.echoDegradation||{};const r=Math.hypot(a.x-state.own.x,a.y-state.own.y);const sea=Math.max(0,1-(r/Math.max(.01,state.scale*.45)));const rain=Math.max(0,1-Math.abs(Math.sin(a.x*1.7+a.y*.9))*0.7);const noise=(+d.noise||0)/100;const weak=(+d.weak||0)/100*(a.type==='fish'?1.15:a.type==='sailboat'?1.25:1);const flick=(+d.flicker||0)/100;const phase=Math.sin((state.time||0)*1.7+a.x*4.3+a.y*2.1);const loss=Math.max(0,weak+flick*(phase>.25?1:0)-noise*.15);return {loss,clutter:Math.min(1,sea*(+d.sea||0)/100+rain*(+d.rain||0)/100*.6)};}
+function drawClutter(x,cx,cy,R,state){let amount=Math.floor(18+(state.gain/100)*115);let brightness=Math.max(.3,Math.min(1.5,(+state.settings.brightness||100)/100));let d=state.echoDegradation||{}, baseSea=(+d.sea||0)/100,baseRain=(+d.rain||0)/100,baseNoise=(+d.noise||0)/100;let opacity=Math.max(0,((state.gain/100)*.22-(state.settings.sea+state.settings.rain)/700)*brightness);opacity=Math.min(1,opacity+baseNoise*.18+baseSea*.16+baseRain*.12);if(!opacity)return;x.save();for(let i=0;i<amount;i++){let ang=(i*47.17)%6.283,r=R*(.25+((i*83)%100)/100*.75),px=cx+Math.cos(ang)*r,py=cy+Math.sin(ang)*r;x.fillStyle=`${THEME.clutter}${Math.floor(opacity*255).toString(16).padStart(2,'0')}`;x.fillRect(px,py,1.4,1.4)}x.restore()}
+const TRAIL_INTERVAL=2;
+/* Trail samples are immutable world snapshots.  Keeping OWN at the same sample time
+   is essential: a relative trail is targetWorld(t) - ownWorld(t), never targetWorld(t)
+   - ownWorld(now). */
+function validTrailSample(p){return !!p&&Number.isFinite(+p.x)&&Number.isFinite(+p.y)&&Number.isFinite(+p.ownX)&&Number.isFinite(+p.ownY)&&Number.isFinite(+p.t)}
+function trailSampleValues(p){return {x:+p.x,y:+p.y,ownX:+p.ownX,ownY:+p.ownY,t:+p.t,seq:Number.isFinite(+p.seq)?+p.seq:null}}
+const TURN_RATE={normal:3.0,fish:1.6,nuc:.7,anchor:.35,sailboat:2.2};
+function dstFlowForEntry(a,d){
+  // La voie est choisie d'après le cap à l'entrée : le sens le plus proche gagne.
+  // d.reverse inverse les deux sens, sans changer la règle tribord de ce sens.
+  const g=dstGeom(d), base=d.reverse?-1:1;
+  const hBase=norm(Math.atan2(base*g.ux,base*g.uy)/D);
+  const hOpp=norm(hBase+180), db=Math.abs(((a.c-hBase+540)%360)-180), dop=Math.abs(((a.c-hOpp+540)%360)-180);
+  return db<=dop?base:-base;
+}
+function dstLaneHeading(a,d,z){
+  const g=z.g, flow=a._dstFlow||dstFlowForEntry(a,d);
+  // Règle de circulation à droite : -n est à tribord en sens +g, +n en sens -g.
+  const laneSide=flow>0?-1:1, laneCenter=laneSide*d.width*.25;
+  const cross=Math.max(-1.5,Math.min(1.5,(laneCenter-z.side)*1.8));
+  return norm(Math.atan2(flow*g.ux+cross*g.nx,flow*g.uy+cross*g.ny)/D);
+}
+function dstRouteUpdate(a,dt){
+  // Le navire propre n'appelle jamais cette fonction; NUC, mouillage et vitesse nulle sont exclus.
+  if(!Array.isArray(S.dsts)||!S.dsts.length||a.type==='nuc'||a.type==='anchor'||!(a.s>0))return false;
+  let active=Number.isInteger(a._dstIndex)?S.dsts[a._dstIndex]:null;
+  if(active){
+    const z=dstInfo(a,active), flow=a._dstFlow||1;
+    const exited=flow>0?z.along>z.g.L+.04:z.along<-.04;
+    if(exited){delete a._dstIndex;delete a._dstLane;delete a._dstFlow;delete a._dstDesired;return false;}
+    const desired=dstLaneHeading(a,active,z),diff=((desired-a.c+540)%360)-180;
+    const maxTurn=(TURN_RATE[a.type]||3)*dt;
+    a.c=norm(a.c+Math.max(-maxTurn,Math.min(maxTurn,diff)));
+    a._dstDesired=desired; return true;
+  }
+  for(let i=0;i<S.dsts.length;i++){
+    const d=S.dsts[i],z=dstInfo(a,d); if(!z.inBounds)continue;
+    const flow=dstFlowForEntry(a,d);
+    a._dstIndex=i; a._dstFlow=flow; a._dstLane=flow>0?0:1; a._dstDesired=dstLaneHeading(a,d,z);
+    const diff=((a._dstDesired-a.c+540)%360)-180,maxTurn=(TURN_RATE[a.type]||3)*dt;
+    a.c=norm(a.c+Math.max(-maxTurn,Math.min(maxTurn,diff))); return true;
+  }
+  return false;
+}
+function routeUpdate(a,dt){
+  if(dstRouteUpdate(a,dt))return;
+  const route=Array.isArray(a.maneuvers)?a.maneuvers:[]; if(!route.length)return;
+  let wi=Number.isInteger(a._wp)?a._wp:0; let m=route[wi];
+  if(m&&Math.hypot((+m.x||0)-a.x,(+m.y||0)-a.y)<=.06){a._wp=wi+1;wi++;m=route[wi];}
+  if(!m)return;
+  const desired=norm(Math.atan2((+m.x||0)-a.x,(+m.y||0)-a.y)/D);
+  const diff=((desired-a.c+540)%360)-180; const maxTurn=(TURN_RATE[a.type]||3)*dt;
+  a.c=norm(a.c+Math.max(-maxTurn,Math.min(maxTurn,diff)));
+  const targetSpeed=m.vitesse==null?a.s:Math.max(0,+m.vitesse||0), accel=(a.type==='anchor'?0.05:a.type==='fish'?.25:a.type==='sailboat'?.18:.35)*dt;
+  a.s+=Math.max(-accel,Math.min(accel,targetSpeed-a.s));
+  a._routeTarget=wi;
+}
+function step(dt,state=S){let ox=state.own.x,oy=state.own.y;let prevTargets=new Map((state.targets||[]).map(a=>[a,{x:a.x,y:a.y,ox,oy}]));let ov=vel(state.own.c,state.own.s);state.own.x+=ov[0]*dt/3600;state.own.y+=ov[1]*dt/3600;state.targets?.forEach(a=>{routeUpdate(a,dt);if(a.type==='nuc'||a.type==='anchor')return;let v=vel(a.c,a.s);a.x+=v[0]*dt/3600;a.y+=v[1]*dt/3600});let oldTime=state.time;state.time+=dt;let st=state.settings;if(st.trailLen>0){let sample=state.trailSample||0;while(state.time-sample>=TRAIL_INTERVAL){sample+=TRAIL_INTERVAL;state.trailSeq=(state.trailSeq||0)+1;state.targets.forEach(a=>{a._trail=a._trail||[];if(Number.isFinite(a.x)&&Number.isFinite(a.y)&&Number.isFinite(state.own.x)&&Number.isFinite(state.own.y))a._trail.push({x:a.x,y:a.y,ownX:state.own.x,ownY:state.own.y,t:sample,seq:state.trailSeq});a._trail=a._trail.filter(p=>{let q=trailSampleValues(p);return validTrailSample(p)&&state.time-q.t<=st.trailLen})})}state.trailSample=sample}else{state.targets?.forEach(a=>a._trail=[]);state.trailSample=state.time}if(st.historyStep>0&&Math.floor(state.time/st.historyStep)!==Math.floor(oldTime/st.historyStep))state.history.push({t:state.time,targets:state.targets.map(a=>[a.x,a.y])});collisionCheck({x:ox,y:oy},prevTargets);alarmCheck()}
+function orientHeading(state=S){return state.orient==='north'?0:state.orient==='course'?(state.cUpHeading??state.own.c):state.own.c} function transform(dx,dy,own=S.own,orient=S.orient,state=S){let ang=orient==='north'?0:orient==='course'?(state.cUpHeading??own.c):own.c;let x=dx*Math.cos(rad(ang))-dy*Math.sin(rad(ang)),y=dx*Math.sin(rad(ang))+dy*Math.cos(rad(ang));return [x,y]} function ownOffset(state=S){return [+(state.settings?.offsetX||0),+(state.settings?.offsetY||0)]} function screenPoint(dx,dy,state,cx,cy,R,anchorOwn=true){let q=transform(dx,dy,state.own,state.orient,state),o=anchorOwn?ownOffset(state):[0,0];return [cx+(q[0]+o[0])/state.scale*R,cy-(q[1]+o[1])/state.scale*R]}
+function rayCircleBoundary(ox,oy,dx,dy,cx,cy,R){const vx=ox-cx,vy=oy-cy;const b=vx*dx+vy*dy;const disc=Math.max(0,b*b-(vx*vx+vy*vy-R*R));const t=-b+Math.sqrt(disc);return [ox+dx*t,oy+dy*t]}
+function drawRadar(canvas,state=S,editor=false){let r=canvas.getBoundingClientRect(),d=window.devicePixelRatio||1,w=Math.max(1,r.width),h=Math.max(1,r.height);canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);let x=canvas.getContext('2d');x.setTransform(d,0,0,d,0,0);let cx=w/2,cy=h/2,R=Math.max(1,Math.min(w,h)/2-24);canvas.__radarMetrics={cx,cy,R,w,h,d}; x.fillStyle=THEME.bg;x.fillRect(0,0,w,h);let g=x.createRadialGradient(cx,cy,0,cx,cy,R);g.addColorStop(0,THEME.gradInner);g.addColorStop(1,THEME.gradOuter);x.fillStyle=g;x.beginPath();x.arc(cx,cy,R,0,7);x.fill();x.strokeStyle=THEME.border;x.lineWidth=1;x.stroke();/* v47: all PPI content is clipped to the circular radar */x.save();x.beginPath();x.arc(cx,cy,R,0,Math.PI*2);x.clip();drawClutter(x,cx,cy,R,state);x.strokeStyle=THEME.radarGrid;let [ox,oy]=ownOffset(state),ownCx=cx+ox/state.scale*R,ownCy=cy-oy/state.scale*R;if(state.settings?.vrmOn&&state.settings?.vrm>0){x.strokeStyle=THEME.vrm;x.setLineDash([2,4]);x.beginPath();x.arc(ownCx,ownCy,R*state.settings.vrm/state.scale,0,7);x.stroke();x.setLineDash([])}if(state.settings?.guard&&state.settings?.guardRadius>0){x.save();x.strokeStyle=THEME.dangerEcho;x.lineWidth=2;x.setLineDash([6,4]);x.beginPath();x.arc(ownCx,ownCy,R*state.settings.guardRadius/state.scale,0,7);x.stroke();x.setLineDash([]);x.fillStyle=THEME.dangerEcho;x.font='bold 10px monospace';x.textAlign='center';x.fillText((window.radarCanvasText?window.radarCanvasText('guard',Number(state.settings.guardRadius).toFixed(1)):'GARDE '+Number(state.settings.guardRadius).toFixed(1)+' NM'),ownCx,ownCy-R*state.settings.guardRadius/state.scale-5);x.restore()}if(state.settings?.eblOn){let ebl=wrapEbl(state.settings.ebl);let ea=rad(ebl-orientHeading(state));let [ex,ey]=rayCircleBoundary(ownCx,ownCy,Math.sin(ea),-Math.cos(ea),cx,cy,R),[ebx,eby]=rayCircleBoundary(ownCx,ownCy,-Math.sin(ea),Math.cos(ea),cx,cy,R);x.save();x.strokeStyle=THEME.ebl;x.fillStyle=THEME.ebl;x.lineWidth=2;x.setLineDash([7,4]);x.beginPath();x.moveTo(ownCx,ownCy);x.lineTo(ex,ey);x.stroke();x.setLineDash([]);x.beginPath();x.arc(ex,ey,3,0,7);x.fill();x.font='bold 10px monospace';x.textAlign='center';x.textBaseline='middle';
+/* v57 — EBL rayon depuis le centre/own ship jusqu'au bord ; libellé au bord, orienté vers l'intérieur. */
+const eblLabel='EBL '+Number(ebl).toFixed(1)+'°';const eblInX=-Math.sin(ea),eblInY=Math.cos(ea);const eblLabelX=ex+eblInX*10,eblLabelY=ey+eblInY*10;const eblTextW=x.measureText(eblLabel).width;x.save();x.translate(eblLabelX,eblLabelY);let eblTextAngle=ea;if(Math.cos(eblTextAngle)<0)eblTextAngle+=Math.PI;x.rotate(eblTextAngle);x.fillStyle=THEME.bg+'dd';x.fillRect(-eblTextW/2-3,-7,eblTextW+6,14);x.fillStyle=THEME.ebl;x.fillText(eblLabel,0,0);x.restore();x.restore()}if(state.settings?.headingLine!==false){/* Ligne de foi : rayon uniquement depuis le own ship vers l'avant. */let ha=rad(state.own.c-orientHeading(state)),[hfx,hfy]=rayCircleBoundary(ownCx,ownCy,Math.sin(ha),-Math.cos(ha),cx,cy,R);x.strokeStyle=THEME.heading;x.beginPath();x.moveTo(ownCx,ownCy);x.lineTo(hfx,hfy);x.stroke()}if(state.settings?.rings!==false){x.strokeStyle=THEME.rings;[.25,.5,.75,1].forEach(f=>{x.setLineDash([3,6]);x.beginPath();x.arc(cx,cy,R*f,0,7);x.stroke()});x.setLineDash([]);x.fillStyle=THEME.text;x.font='10px monospace';x.textAlign='left';[.25,.5,.75,1].forEach(f=>x.fillText((state.scale*f).toFixed(1)+' NM',cx+5,cy-R*f+12));}x.strokeStyle=THEME.rings;x.beginPath();x.moveTo(cx-R,cy);x.lineTo(cx+R,cy);x.moveTo(cx,cy-R);x.lineTo(cx,cy+R);x.stroke();x.fillStyle=THEME.text;x.font='11px monospace';x.textAlign='center';let oh=orientHeading(state),card=['N','E','S','W'];card.forEach((q,i)=>{let z=transform(Math.sin(i*Math.PI/2)*R,Math.cos(i*Math.PI/2)*R,state.own,state.orient);x.fillText(q,cx+z[0],cy-z[1]+(i===0?-6:14))});/* Heading graduation: draw true-bearing ticks on the PPI edge. */if(state.settings?.headingTicks!==false){x.save();x.strokeStyle=THEME.text;x.fillStyle=THEME.text;x.lineWidth=1;x.font='9px monospace';for(let deg=0;deg<360;deg+=10){let a=rad(deg),len=deg%30===0?10:deg%10===0?6:4;let p0=transform(Math.sin(a)*(R-len),Math.cos(a)*(R-len),state.own,state.orient),p1=transform(Math.sin(a)*(R-1),Math.cos(a)*(R-1),state.own,state.orient);x.beginPath();x.moveTo(cx+p0[0],cy-p0[1]);x.lineTo(cx+p1[0],cy-p1[1]);x.stroke();if(deg%30===0){let lp=transform(Math.sin(a)*(R-15),Math.cos(a)*(R-15),state.own,state.orient);x.fillText(String(deg).padStart(3,'0'),cx+lp[0],cy-lp[1]+3)}}x.restore()}x.strokeStyle=THEME.dangerEcho;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx-R,cy);x.stroke();x.strokeStyle=THEME.own;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+R,cy);x.stroke();
+let dsts=Array.isArray(state.dsts)?state.dsts.filter(d=>d&&[d.x,d.y,d.x2,d.y2,d.width].every(Number.isFinite)):[];dsts.forEach(d=>{const g=dstGeom(d),pts=[{x:d.x+g.nx*d.width/2,y:d.y+g.ny*d.width/2},{x:d.x2+g.nx*d.width/2,y:d.y2+g.ny*d.width/2},{x:d.x2-g.nx*d.width/2,y:d.y2-g.ny*d.width/2},{x:d.x-g.nx*d.width/2,y:d.y-g.ny*d.width/2}].map(p=>screenPoint(p.x-state.own.x,p.y-state.own.y,state,cx,cy,R));x.save();x.fillStyle=THEME.radarGrid+'28';x.strokeStyle=THEME.radarGrid+'aa';x.lineWidth=1.2;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();x.fill();x.stroke();x.setLineDash([5,5]);let a=screenPoint(d.x-state.own.x,d.y-state.own.y,state,cx,cy,R),b=screenPoint(d.x2-state.own.x,d.y2-state.own.y,state,cx,cy,R);x.strokeStyle=THEME.amber||THEME.rings;x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();x.setLineDash([]);x.strokeStyle=(THEME.amber||THEME.rings)+'66';x.lineWidth=Math.max(3,Math.min(10,d.width/state.scale*R*.10));x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();x.fillStyle=THEME.text;x.font='bold 10px monospace';[.25,.6,.85].forEach(t=>{let q=screenPoint(d.x+g.ux*g.L*t+g.nx*d.width*.25-state.own.x,d.y+g.uy*g.L*t+g.ny*d.width*.25-state.own.y,state,cx,cy,R);x.fillText('◀',q[0],q[1]);q=screenPoint(d.x+g.ux*g.L*t-g.nx*d.width*.25-state.own.x,d.y+g.uy*g.L*t-g.ny*d.width*.25-state.own.y,state,cx,cy,R);x.fillText('▶',q[0],q[1]);});x.restore()});let coast=state.coast||[];if(coast.length){x.save();x.lineWidth=1.5;x.shadowColor=THEME.echo;x.shadowBlur=4;coast.forEach(shape=>{let pts=shape.points||[];if(pts.length<2)return;x.beginPath();pts.forEach((p,i)=>{let pt=screenPoint(p[0]-state.own.x,p[1]-state.own.y,state,cx,cy,R);i?x.lineTo(pt[0],pt[1]):x.moveTo(pt[0],pt[1])});if(shape.type==='polygon')x.closePath();x.fillStyle=THEME.echo+'42';x.strokeStyle=THEME.echo;if(shape.type==='polygon')x.fill();x.stroke()});x.restore()}
+(state.targets||[]).forEach(a=>{if(a._trail&&state.settings?.trailLen>0&&a._trail.length>1){x.strokeStyle=targetColor(a,state).color+'88';x.lineWidth=1;x.beginPath();let drawing=false,prev=null;for(const raw of a._trail){const p=trailSampleValues(raw);const valid=validTrailSample(raw);const consecutive=prev&&((p.seq!==null&&prev.seq!==null)?p.seq===prev.seq+1:(p.t-prev.t>0&&p.t-prev.t<=TRAIL_INTERVAL*1.5));if(!valid||!consecutive){drawing=false;prev=valid?p:null;continue}let rel=state.settings.trailMode==='rel',dx=p.x-(rel?p.ownX:0),dy=p.y-(rel?p.ownY:0),pt=screenPoint(dx,dy,state,cx,cy,R);if(!Number.isFinite(pt[0])||!Number.isFinite(pt[1])){drawing=false;prev=null;continue}if(!drawing){x.moveTo(pt[0],pt[1]);drawing=true}else x.lineTo(pt[0],pt[1]);prev=p}x.stroke()}});(state.targets||state.ships||[]).forEach(a=>{const de=degradedEcho(a,state);const intermittentLoss=(!editor && de.loss>0 && de.flick>0 && Math.sin((state.time||0)*1.7+a.x*4.3+a.y*2.1)>0.25 && de.loss>0.35);if(!editor&&(!echoDetection(a,state)||de.loss>0.92||intermittentLoss))return;let m=editor?{...a,range:Math.hypot(a.x-state.own.x,a.y-state.own.y),brg:0}:motion(a,state.own);if(m.range>state.scale*1.1)return;let q=transform(a.x-state.own.x,a.y-state.own.y,state.own,state.orient,state),pt=screenPoint(a.x-state.own.x,a.y-state.own.y,state,cx,cy,R),px=pt[0],py=pt[1],col=targetColor(a,state).color;let es=editor?{alpha:Math.max(.25,1-degradedEcho(a,state).loss),size:5,glow:0}:echoStyle(a,state);if(!editor){const de=degradedEcho(a,state);es.alpha*=Math.max(.18,1-de.loss*.72);es.glow=Math.max(0,es.glow-de.clutter*3)}x.strokeStyle=col;x.fillStyle=col;x.globalAlpha=es.alpha;x.shadowColor=col;x.shadowBlur=es.glow;x.lineWidth=(state.selected!=null && a===state.targets[state.selected])?3:2;x.beginPath();if(a.type==='fish'){x.moveTo(px,py-7);x.lineTo(px-7,py+6);x.lineTo(px+7,py+6);x.closePath()}else if(a.type==='anchor'){x.arc(px,py,6,0,7)}else{x.arc(px,py,5,0,7);x.moveTo(px-7,py);x.lineTo(px+7,py)}x.stroke();x.font='bold 10px monospace';if(Math.hypot(px-cx,py-cy)<=R)x.fillText(a.name,px+11,py-8);x.globalAlpha=1;x.shadowBlur=0;if(!editor){let vx=S.vec==='true'?m.tvx:m.rx,vy=S.vec==='true'?m.tvy:m.ry,q2=transform((a.x-state.own.x)+vx*(+S.settings.vectorDuration||6)/60,(a.y-state.own.y)+vy*(+S.settings.vectorDuration||6)/60,state.own,state.orient,state);
+let vpt=screenPoint((a.x-state.own.x)+vx*(+S.settings.vectorDuration||6)/60,(a.y-state.own.y)+vy*(+S.settings.vectorDuration||6)/60,state,cx,cy,R);x.setLineDash(S.vec==='true'?[]:[3,4]);x.beginPath();x.moveTo(px,py);x.lineTo(vpt[0],vpt[1]);x.stroke();x.setLineDash([])}});x.fillStyle=THEME.own;let ownAng=rad((state.own.c-orientHeading(state)));x.save();x.translate(ownCx,ownCy);x.rotate(ownAng);x.beginPath();x.moveTo(0,-13);x.lineTo(-8,10);x.lineTo(0,6);x.lineTo(8,10);x.closePath();x.fill();x.restore();x.font='bold 10px monospace';x.fillText('OWN',ownCx,ownCy+25);x.restore();
+/* Informations utiles dans l'espace rectangulaire hors du disque radar. */
+x.save();x.font='600 11px ui-monospace, SFMono-Regular, Menlo, monospace';x.textBaseline='top';x.fillStyle=THEME.text;x.globalAlpha=.96;
+const pad=12, line=16, orientLabel=state.orient==='north'?'N-UP':state.orient==='course'?'C-UP':'H-UP';
+const canvasText=window.radarCanvasText||function(k,v){return k==='heading'?'CAP '+v:k==='speed'?'VITESSE '+v:k==='range'?'PORTÉE '+v:k==='orient'?'ORIENT. '+v:k+' '+v};
+const left=[canvasText('heading',Number(state.own.c).toFixed(1)+'°'),canvasText('speed',Number(state.own.s).toFixed(1)+' kn'),canvasText('range',Number(state.scale).toFixed(1)+' NM')];
+const right=[canvasText('orient',orientLabel),canvasText('ebl',state.settings?.eblOn?Number(wrapEbl(state.settings.ebl)).toFixed(1)+'°':'OFF'),canvasText('vrm',state.settings?.vrmOn&&state.settings?.vrm>0?Number(state.settings.vrm).toFixed(1)+' NM':'OFF')];
+function corner(lines,px,py,align){x.textAlign=align;lines.forEach((t,i)=>x.fillText(t,px,py+i*line))}
+corner(left,pad,pad,'left');corner(right,w-pad,pad,'right');
+x.strokeStyle=THEME.border;x.globalAlpha=.38;x.lineWidth=1;x.beginPath();x.moveTo(pad, h-38);x.lineTo(Math.min(w*.34,240),h-38);x.stroke();x.fillStyle=THEME.muted||THEME.text;x.font='10px ui-monospace, SFMono-Regular, Menlo, monospace';x.textAlign='left';x.fillText((window.radarCanvasText?window.radarCanvasText('radar',state.settings?.rings!==false):'RADAR // '+(state.settings?.rings===false?'ANNEAUX OFF':'ANNEAUX ON')),pad,h-25);x.restore();}
+function formatTcpa(v){if(!isFinite(v))return '—';if(v<0)return 'passé';let sec=Math.round(v*60);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
+function updateArpaTableMetrics(){
+  const panel=document.getElementById('arpaTable'), body=panel?.querySelector('.arpa-table-body'), table=body?.querySelector('table');
+  if(!panel||!body||!table)return;
+  const rows=table.querySelectorAll('tbody tr'), rowCount=Math.max(1,rows.length);
+  const bodyH=body.getBoundingClientRect().height||0;
+  /* v52: only the font is responsive. Do not assign a second height to the
+     table rows: native table layout then fills the body without a phantom gap. */
+  const font=Math.max(11,Math.min(28,(bodyH/Math.max(1,rowCount+1))*0.56));
+  panel.style.setProperty('--arpa-font-size',font.toFixed(2)+'px');
+  panel.style.setProperty('--arpa-row-count',String(rowCount));
+  rows.forEach(row=>{row.style.height='auto'});
+}
+function renderArpaTable(){let rows=S.targets.map((a,i)=>{let st=targetColor(a,S),m=st.motion;return {a,i,st,m}}).sort((x,y)=>{let xd=x.m.tcpa>=0?x.m.tcpa:Infinity,yd=y.m.tcpa>=0?y.m.tcpa:Infinity;return (x.st.danger?0:1)-(y.st.danger?0:1)||xd-yd});$('#tbody').innerHTML=rows.map(({a,i,st,m})=>{let sel=S.selected===i, past=isFinite(m.tcpa)&&m.tcpa<0, caution=!st.danger&&((m.cpa<S.settings.cpaLimit)||(m.tcpa>=0&&m.tcpa<=S.settings.tcpaLimit));return `<tr class=\"${st.danger?'danger ':''}${past?'past ':''}${sel?'selected':''}\"><td><b>${a.name}</b></td><td>${({normal:'Normal',fish:'Pêche',nuc:'NUC',anchor:'Mouillage'}[a.type]||a.type)}</td><td>${Number(m.brg).toFixed(1)}°</td><td>${m.range.toFixed(1)} NM</td><td>${Number(a.c).toFixed(1)}°</td><td>${a.s.toFixed(1)} kn</td><td class=\"${m.cpa<S.settings.cpaLimit?'warn':''}\">${m.cpa.toFixed(1)} NM</td><td class=\"${past?'':(m.tcpa>=0&&m.tcpa<=S.settings.tcpaLimit?'warn':'')}\">${formatTcpa(m.tcpa)}</td><td class=\"${st.danger?'warn':past?'':caution?'caution':'ok'}\">${st.danger?'DANGER':past?'PASSÉ':caution?'SURVEILLER':'OK'}</td></tr>`}).join('');updateArpaTableMetrics()}
+function render(){if($('#sim').classList.contains('hidden'))return;$('#clock').textContent=String(Math.floor(S.time/60)).padStart(2,'0')+':'+String(Math.floor(S.time%60)).padStart(2,'0');const scenarioName=S.idx>=0&&scenarios[S.idx]?scenarios[S.idx].name:($('#scenario').textContent||'Exercice');$('#scenario').textContent=scenarioName;$('#rateVal').textContent=S.rate;const radarBadge=$('#radarBadge');if(radarBadge)radarBadge.textContent=(S.orient==='north'?'N-UP':S.orient==='course'?'C-UP':'H-UP')+' · '+Number(S.scale).toFixed(1)+' NM';$('#gainVal').textContent=S.gain;drawRadar($('#radar'));updateOwnPositionPad();$('#ownCourse').value=Math.round(S.own.c);$('#ownSpeed').value=Number(S.own.s).toFixed(1);if(S.selected!=null&&S.targets[S.selected]){let a=S.targets[S.selected],m=motion(a);$('#targetDetail').textContent=`${a.name} · ${{normal:'Normal',fish:'Pêche',nuc:'NUC',anchor:'Mouillage'}[a.type]||a.type} · Rv ${Number(m.brg).toFixed(1)}° · ${m.range.toFixed(1)} NM · cap ${Number(a.c).toFixed(1)}° · ${a.s.toFixed(1)} kn · CPA ${m.cpa.toFixed(1)} NM · TCPA ${isFinite(m.tcpa)?m.tcpa.toFixed(1):'—'} min`;}else if(S.selected==null){$('#targetDetail').textContent='Sélectionnez une cible sur la carte pour sa fiche ARPA.';}renderArpaTable();}
+function toast(t){let q=$('#toast');q.textContent=t;q.style.display='block';setTimeout(()=>q.style.display='none',1800)}function refreshEditor(){drawRadar($('#editor'),{...E,targets:E.ships,coast:E.coast,orient:'north'},true);$('#shipList').innerHTML=E.ships.length?E.ships.map((a,i)=>`<div class="ship-row"><b>${a.name} <span style="color:${a.type==='normal'?'var(--green)':'var(--amber)'}">${a.type}</span></b><span>${Number(a.c).toFixed(1)}°</span><span>${Number(a.s).toFixed(1)}kn</span><button data-select="${i}">${E.selected===i?'ÉDITÉ':'Modifier'}</button></div>`).join(''):'Aucun contact.';if(E.selected!=null){let a=E.ships[E.selected];$('#selectedInfo').textContent=a.name;$('#editCourse').value=a.c;$('#editSpeed').value=a.s;$('#editType').value=a.type}}
+function randomize(){E.ships=[];for(let i=0;i<+$('input#shipCount').value;i++){let ang=Math.random()*7,dist=2+Math.random()*3.5;E.ships.push({x:Math.sin(ang)*dist,y:Math.cos(ang)*dist,c:Math.round(Math.random()*359),s:Math.round(Math.random()*14+3),name:String.fromCharCode(65+i)+'-'+String(i+1).padStart(2,'0'),type:['normal','normal','fish','nuc'][Math.floor(Math.random()*4)]})}E.selected=null;refreshEditor();toast('Exercice généré')}
+function preset(){E.coast=[[-6,5],[-5,3],[-4,2],[-4,-1],[-3,-3],[-1,-4],[1,-4],[3,-3],[5,-1],[6,3],[6,6]];refreshEditor();toast('Côte bretonne chargée')}
+function exportData(){let b=new Blob([JSON.stringify(E,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='exercice-radar.json';a.click();URL.revokeObjectURL(a.href)}
+function startExercise(){E.running=true;E.paused=false;S.own=clone(E.own);S.targets=clone(E.ships);S.coast=clone(E.coast);S.dsts=clone(E.dsts||[]);S.time=0;S.scale=E.scale;S.rate=E.rate;S.collision=null;S.initial={own:clone(S.own),targets:clone(S.targets),coast:clone(S.coast),dsts:clone(S.dsts),scale:S.scale};closeCollision();document.querySelector('[data-tab="sim"]').click();$('#scenario').textContent='Exercice personnalisé';toast('Exercice lancé')}
+$('#collisionReset').onclick=()=>{if(!S.initial)return;S.own=clone(S.initial.own);S.targets=clone(S.initial.targets);S.coast=clone(S.initial.coast);S.dsts=clone(S.initial.dsts||[]);S.scale=S.initial.scale;S.time=0;S.trailSample=0;S.trailSeq=0;S.history=[];S.targets.forEach(a=>a._trail=[]);S.collision=null;closeCollision();S.paused=true;$('#status').textContent='VEILLE';render()};
+$$('[data-tab]').forEach(b=>b.onclick=()=>{$$('[data-tab]').forEach(z=>z.classList.toggle('active',z===b));$$('.mode').forEach(z=>z.classList.toggle('hidden',z.id!==b.dataset.tab));if(b.dataset.tab==='ex')refreshEditor();else render()});$$('[data-rate]').forEach(b=>b.onclick=()=>{S.rate=+b.dataset.rate;$$('[data-rate]').forEach(z=>z.classList.toggle('active',z===b));render()});$$('[data-vec]').forEach(b=>b.onclick=()=>{S.vec=b.dataset.vec;$$('[data-vec]').forEach(z=>z.classList.toggle('active',z===b));render()});$$('[data-orient]').forEach(b=>b.onclick=()=>{S.orient=b.dataset.orient;if(S.orient==='course')S.cUpHeading=S.own.c;$$('[data-orient]').forEach(z=>z.classList.toggle('active',z===b));render()});
+const RANGE_STEPS=[1.5,3,6,12,24];let rangeButtons=[];function setRange(n){S.scale=n;rangeButtons.forEach(z=>z.classList.toggle('active',+z.dataset.range===n));render()}RANGE_STEPS.forEach(n=>{let b=document.createElement('button');b.dataset.range=n;b.textContent=n+' NM';b.onclick=()=>setRange(n);rangeButtons.push(b);$('#ranges').append(b)});setRange(S.scale);$('#radar').addEventListener('wheel',e=>{e.preventDefault();let i=RANGE_STEPS.indexOf(S.scale);if(i<0)i=2;setRange(RANGE_STEPS[Math.max(0,Math.min(RANGE_STEPS.length-1,i+(e.deltaY>0?1:-1)))])},{passive:false});$$('[data-turn]').forEach(b=>b.onclick=()=>{S.own.c=norm(S.own.c+(+b.dataset.turn));render()});$$('[data-speed]').forEach(b=>b.onclick=()=>{S.own.s=Math.max(0,S.own.s+(+b.dataset.speed));render()});$('#ownCourse').onchange=e=>{S.own.c=norm(+e.target.value);render()};$('#ownSpeed').onchange=e=>{S.own.s=Math.max(0,+e.target.value);render()};$('#gain').oninput=e=>{S.gain=+e.target.value;render()};$('#pause').onclick=()=>{if(S.collision)return;S.paused=!S.paused;$('#pause').textContent=S.paused?'▶ PLAY':'Ⅱ PAUSE';$('#pause').classList.toggle('primary',!S.paused);$('#status').textContent=S.paused?'PAUSE':'EN LECTURE';};$('#reset').onclick=()=>{if(S.idx>=0)loadScenario(S.idx);else loadExercise(BUILTIN_EXERCISE);$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='VEILLE';};scenarios.forEach((a,i)=>{let b=document.createElement('button');b.textContent=a.name;b.onclick=()=>loadScenario(i);$('#scens').append(b)});
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function exerciseEntries(){let list=[{name:BUILTIN_EXERCISE.name,data:BUILTIN_EXERCISE}];try{let saved=JSON.parse(localStorage.getItem('radar-exercices')||'[]');if(Array.isArray(saved))saved.forEach((x,i)=>{if(x&&typeof x==='object')list.push({name:x.name||'Sauvegarde '+(i+1),data:x})})}catch(e){}let one=null;try{one=JSON.parse(localStorage.getItem('radar-exercice')||'null')}catch(e){}if(one&&one.name&&!list.some(a=>a.name===one.name))list.push({name:one.name,data:one});return list}
+function renderExerciseChoices(container,list){container.innerHTML=list.map((a,i)=>`<button type="button" data-exercise="${i}">${escapeHtml(a.name)}</button>`).join('');container.onclick=e=>{let b=e.target.closest('[data-exercise]');if(!b)return;try{loadExercise(list[+b.dataset.exercise].data);closeExerciseModal()}catch(err){toast(err.message)}}}
+function refreshExerciseList(){let list=exerciseEntries();renderExerciseChoices($('#exerciseList'),list);renderExerciseChoices($('#exerciseModalList'),list)}
+function openExerciseModal(){let modal=$('#exerciseModal');if(!modal)return;refreshExerciseList();modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');modal.querySelector('.exercise-modal').focus()}
+function closeExerciseModal(){let modal=$('#exerciseModal');if(!modal)return;modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true')}
+$('#loadExercise').addEventListener('click',()=>$('#exerciseFileDirect').click());
+$('#closeExerciseModal').addEventListener('click',closeExerciseModal);
+$('#exerciseModal').addEventListener('click',e=>{if(e.target.id==='exerciseModal')closeExerciseModal()});
+$('#chooseExerciseFile').addEventListener('click',()=>$('#exerciseFile').click());
+$('#exerciseFile').addEventListener('change',e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader;r.onload=()=>{try{loadExercise(JSON.parse(r.result));closeExerciseModal();refreshExerciseList()}catch(err){toast(err.message)}};r.readAsText(f);e.target.value=''});
+$('#exerciseFileDirect').addEventListener('change',e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader;r.onload=()=>{try{loadExercise(JSON.parse(r.result));refreshExerciseList()}catch(err){toast(err.message)}};r.readAsText(f);e.target.value=''});
+window.addEventListener('resize',()=>render());window.addEventListener('orientationchange',()=>setTimeout(render,120));document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExerciseModal()});refreshExerciseList();
+
+["trailLen","vectorDuration","historyStep","sea","rain","persistence","brightness","vrm","ebl","offsetX","offsetY","guardRadius","cpaLimit","tcpaLimit"].forEach(id=>{let k=id;bindSetting(id,k,id==='trailLen'||id==='vectorDuration'||id==='historyStep'||id==='sea'||id==='rain'||id==='persistence'||id==='brightness'||id==='vrm'||id==='ebl'||id==='offsetX'||id==='offsetY'||id==='guardRadius'||id==='cpaLimit'||id==='tcpaLimit'?'number':'value')});const eblInput=$('#ebl');if(eblInput){eblInput.value=wrapEbl(S.settings.ebl);eblInput.oninput=eblInput.onchange=()=>{S.settings.ebl=wrapEbl(eblInput.value);eblInput.value=S.settings.ebl;saveSettings();render()};}
+syncMeasureToggles();
+$('#recenterBtn').onclick=()=>{
+    S.settings.offsetX=0; S.settings.offsetY=0;
+    $('#offsetX').value=0; $('#offsetY').value=0;
+    saveSettings(); render();
+};
+["sea","rain","persistence","brightness"].forEach(id=>{let input=$('#'+id);if(!input)return;$('#'+id+'Val').textContent=input.value;input.oninput=()=>{$('#'+id+'Val').textContent=input.value;S.settings[id]=+input.value;saveSettings();render()}});
+['vrmToggle','eblToggle'].forEach(id=>$('#'+id).onclick=()=>{let k=id==='vrmToggle'?'vrmOn':'eblOn';S.settings[k]=!S.settings[k];let el=$('#'+id);el.classList.toggle('is-on',S.settings[k]);el.classList.toggle('is-off',!S.settings[k]);el.setAttribute('aria-pressed',String(S.settings[k]));el.textContent=(id==='vrmToggle'?'VRM ':'EBL ')+(S.settings[k]?'ON':'OFF');saveSettings();render()});
+['rings','headingLine','headingTicks','guardEnable','alarmEnable'].forEach(id=>$('#'+id).onclick=()=>{let k=id==='guardEnable'?'guard':id==='alarmEnable'?'alarm':id;S.settings[k]=!S.settings[k];$('#'+id).classList.toggle('active',S.settings[k]);let label=id==='guardEnable'?'Zone de garde '+(S.settings[k]?'ON':'OFF'):id==='alarmEnable'?'Alarmes '+(S.settings[k]?'ON':'OFF'):id==='rings'?'Anneaux '+(S.settings[k]?'ON':'OFF'):id==='headingLine'?'Ligne de foi '+(S.settings[k]?'ON':'OFF'):'ON / OFF';$('#'+id).textContent=window.radarTranslate?window.radarTranslate(label):label;saveSettings();render()});
+$$('[data-trailmode]').forEach(b=>b.onclick=()=>{const mode=b.dataset.trailmode;if(S.settings.trailMode!==mode){S.settings.trailMode=mode;/* Never bridge samples from the previous display frame. */S.targets.forEach(a=>a._trail=[]);S.trailSample=S.time;saveSettings();}$$('[data-trailmode]').forEach(z=>z.classList.toggle('active',z.dataset.trailmode===mode));render()});
+$('#clearTrails').onclick=()=>{S.targets.forEach(a=>a._trail=[]);S.history=[];toast('Traces effacées')};
+
+/* Mesure interactive : conversions écran <-> radar centralisées pour rester cohérentes
+   avec le dessin, quel que soit le mode N-UP/H-UP/C-UP et le mode de trace. */
+function radarPointerMetrics(canvas){let r=canvas.getBoundingClientRect(),m=canvas.__radarMetrics||{};return {r,cx:Number.isFinite(m.cx)?m.cx:r.width/2,cy:Number.isFinite(m.cy)?m.cy:r.height/2,R:Number.isFinite(m.R)?m.R:Math.max(1,Math.min(r.width,r.height)/2-24)};}
+function radarPointerPoint(canvas,e){let m=radarPointerMetrics(canvas);return {m,px:e.clientX-m.r.left,py:e.clientY-m.r.top};}
+function radarMeasurementPoint(canvas,e,state=S){let q=radarPointerPoint(canvas,e),[ox,oy]=ownOffset(state),dx=q.px-(q.m.cx+ox/state.scale*q.m.R),dy=q.py-(q.m.cy-oy/state.scale*q.m.R);return {...q,dx,dy,distancePx:Math.hypot(dx,dy),distanceNm:Math.hypot(dx,dy)/q.m.R*state.scale,displayBearing:wrapEbl(Math.atan2(dx,-dy)/D),trueBearing:wrapEbl(Math.atan2(dx,-dy)/D+orientHeading(state))};}
+function pointSegmentDistance(px,py,ax,ay,bx,by){let vx=bx-ax,vy=by-ay,wx=px-ax,wy=py-ay,t=(vx*wx+vy*wy)/(vx*vx+vy*vy||1);t=Math.max(0,Math.min(1,t));return Math.hypot(px-(ax+t*vx),py-(ay+t*vy));}
+function clampOwnOffset(v){let limit=Math.max(.1,S.scale*.82);return Math.max(-limit,Math.min(limit,+v||0));}
+function clampOwnPair(x,y){let limit=Math.max(.1,S.scale*.82),px=+x||0,py=+y||0,d=Math.hypot(px,py);if(d>limit){px=px/d*limit;py=py/d*limit;}return [px,py];}
+function setOwnOffset(x,y){let q=clampOwnPair(x,y);S.settings.offsetX=q[0];S.settings.offsetY=q[1];$('#offsetX').value=Number(S.settings.offsetX).toFixed(1);$('#offsetY').value=Number(S.settings.offsetY).toFixed(1);saveSettings();render();}
+function updateOwnPositionPad(){let pad=$('#ownPositionPad'),point=$('#ownPositionPoint');if(!pad||!point)return;let limit=Math.max(.1,S.scale*.82),px=(+S.settings.offsetX||0)/limit,py=-(+S.settings.offsetY||0)/limit,pr=Math.hypot(px,py),maxR=.45;if(pr>maxR){px=px/pr*maxR;py=py/pr*maxR;}point.style.left=(50+px*100)+'%';point.style.top=(50+py*100)+'%';}
+function ownOffsetFromRadarPoint(q){let cx=q.m.cx,cy=q.m.cy,q0=clampOwnPair((q.px-cx)/q.m.R*S.scale,(cy-q.py)/q.m.R*S.scale);return {x:q0[0],y:q0[1]};}
+function ownOffsetFromPadEvent(e){let pad=$('#ownPositionPad'),r=pad.getBoundingClientRect(),limit=Math.max(.1,S.scale*.82);let nx=(e.clientX-r.left)/r.width-.5,ny=(e.clientY-r.top)/r.height-.5,pr=Math.hypot(nx,ny),maxR=.45;if(pr>maxR){nx=nx/pr*maxR;ny=ny/pr*maxR;}return {x:nx/maxR*limit,y:-ny/maxR*limit};}
+function radarMeasurementHit(canvas,e,state=S,tolerance=8){let q=radarMeasurementPoint(canvas,e,state),eblHit=null,vrmHit=null;let ownX=q.m.cx+ownOffset(state)[0]/state.scale*q.m.R,ownY=q.m.cy-ownOffset(state)[1]/state.scale*q.m.R;if(state.settings?.eblOn){let a=rad(state.settings.ebl-orientHeading(state)),[ex,ey]=rayCircleBoundary(ownX,ownY,Math.sin(a),-Math.cos(a),q.m.cx,q.m.cy,q.m.R);let d=pointSegmentDistance(q.px,q.py,ownX,ownY,ex,ey);if(d<=tolerance)eblHit={type:'ebl',distance:d};}if(state.settings?.vrmOn&&state.settings?.vrm>0){let radius=q.m.R*state.settings.vrm/state.scale,d=Math.abs(q.distancePx-radius);if(d<=tolerance)vrmHit={type:'vrm',distance:d};}return eblHit&&vrmHit?(eblHit.distance<=vrmHit.distance?eblHit:vrmHit):(eblHit||vrmHit);}
+function setInteractiveMeasurement(kind,q){if(kind==='ebl'){S.settings.ebl=q.trueBearing;$('#ebl').value=Number(S.settings.ebl).toFixed(1);}else if(kind==='vrm'){S.settings.vrm=Math.max(0,Math.min(S.scale,q.distanceNm));$('#vrm').value=Number(S.settings.vrm).toFixed(1);}}
+let radarDrag=null,ownPositionDrag=null;
+$('#radar').addEventListener('pointerdown',e=>{
+    let canvas=e.currentTarget;
+    let q0=radarPointerPoint(canvas,e),[ox0,oy0]=ownOffset(S),ownPx=q0.m.cx+ox0/S.scale*q0.m.R,ownPy=q0.m.cy-oy0/S.scale*q0.m.R;
+    if(Math.hypot(q0.px-ownPx,q0.py-ownPy)<18){ownPositionDrag={pointerId:e.pointerId};canvas.setPointerCapture?.(e.pointerId);canvas.classList.add('own-dragging');e.preventDefault();return;}
+    let hit=radarMeasurementHit(canvas,e,S);
+    if(hit){radarDrag={kind:hit.type,pointerId:e.pointerId};canvas.setPointerCapture?.(e.pointerId);canvas.style.cursor='grabbing';e.preventDefault();let q=radarMeasurementPoint(canvas,e,S);setInteractiveMeasurement(hit.type,q);saveSettings();render();return;}
+    let q=radarMeasurementPoint(canvas,e,S);
+    let touchLabel='Appui : relèvement '+Number(q.trueBearing).toFixed(1)+'° · distance '+q.distanceNm.toFixed(1)+' NM';$('#touchReadout').textContent=window.radarTranslate?window.radarTranslate(touchLabel):touchLabel;
+    let x=q.dx/q.m.R*S.scale,y=-q.dy/q.m.R*S.scale;
+    let hitTarget=S.targets.map((a,i)=>({i,d:Math.hypot(a.x-S.own.x-x,a.y-S.own.y-y)})).sort((a,b)=>a.d-b.d)[0];
+    if(hitTarget&&hitTarget.d<.7){S.selected=hitTarget.i;let a=S.targets[hitTarget.i],mm=motion(a);$('#targetDetail').textContent=`${a.name} · ${{normal:'Normal',fish:'Pêche',nuc:'NUC',anchor:'Mouillage'}[a.type]||a.type} · Rv ${Number(mm.brg).toFixed(1)}° · ${mm.range.toFixed(1)} NM · cap ${Number(a.c).toFixed(1)}° · ${a.s.toFixed(1)} kn · CPA ${mm.cpa.toFixed(1)} · TCPA ${isFinite(mm.tcpa)?mm.tcpa.toFixed(1):'—'} min`;render();}
+});
+$('#radar').addEventListener('pointermove',e=>{let canvas=e.currentTarget;if(ownPositionDrag&&ownPositionDrag.pointerId===e.pointerId){let q=radarPointerPoint(canvas,e),o=ownOffsetFromRadarPoint(q);setOwnOffset(o.x,o.y);e.preventDefault();return;}if(radarDrag&&radarDrag.pointerId===e.pointerId){let q=radarMeasurementPoint(canvas,e,S);setInteractiveMeasurement(radarDrag.kind,q);saveSettings();render();e.preventDefault();return;}let hit=radarMeasurementHit(canvas,e,S);canvas.style.cursor=hit?'grab':'default';});
+function endRadarDrag(e){let canvas=$('#radar');if(ownPositionDrag&&(e.pointerId==null||ownPositionDrag.pointerId===e.pointerId)){ownPositionDrag=null;canvas.classList.remove('own-dragging');canvas.releasePointerCapture?.(e.pointerId);saveSettings();render();return;}if(!radarDrag||(e.pointerId!=null&&radarDrag.pointerId!==e.pointerId))return;radarDrag=null;canvas.style.cursor='default';if(e.pointerId!=null)canvas.releasePointerCapture?.(e.pointerId);saveSettings();render();}
+$('#radar').addEventListener('pointerup',endRadarDrag);$('#radar').addEventListener('pointercancel',endRadarDrag);$('#radar').addEventListener('lostpointercapture',()=>{ownPositionDrag=null;$('#radar').classList.remove('own-dragging');if(radarDrag){radarDrag=null;$('#radar').style.cursor='default';}});
+
+
+let padPositionDrag=false;
+$('#ownPositionPad').addEventListener('pointerdown',e=>{padPositionDrag=true;$('#ownPositionPad').setPointerCapture?.(e.pointerId);let o=ownOffsetFromPadEvent(e);setOwnOffset(o.x,o.y);e.preventDefault();});
+$('#ownPositionPad').addEventListener('pointermove',e=>{if(!padPositionDrag)return;let o=ownOffsetFromPadEvent(e);setOwnOffset(o.x,o.y);e.preventDefault();});
+$('#ownPositionPad').addEventListener('pointerup',e=>{padPositionDrag=false;$('#ownPositionPad').releasePointerCapture?.(e.pointerId);});
+$('#ownPositionPad').addEventListener('pointercancel',()=>{padPositionDrag=false;});
+const radarBox=document.querySelector('.radarbox');
+let radarResizeQueued=false;
+function scheduleRadarResize(){if(radarResizeQueued)return;radarResizeQueued=true;requestAnimationFrame(()=>{radarResizeQueued=false;render()})}
+if(window.ResizeObserver&&radarBox)new ResizeObserver(scheduleRadarResize).observe(radarBox);
+window.addEventListener('resize',scheduleRadarResize,{passive:true});
+loadScenario(0);
+$('#pause').textContent='▶ PLAY';
+$('#status').textContent='VEILLE';
+let last=performance.now();
+function loop(now){let dt=Math.min(1,(now-last)/1000);last=now;if(!S.paused){step(dt*S.rate,S);render()}else if(!$('#sim').classList.contains('hidden'))render();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+
+
+/* v35 layout controller: robust native drag/drop, persistent docks, stable module ids. */
+(function(){
+ const KEY='radar-layout-v42';
+ const layout=document.querySelector('.layout'), left=document.getElementById('leftDock'), right=document.getElementById('rightDock');
+ if(!layout||!left||!right)return;
+ const panels=()=>Array.from(document.querySelectorAll('.layout .panel')).filter(p=>!p.closest('.exercise-overlay'));
+ const directPanels=dock=>Array.from(dock.children).filter(x=>x.classList.contains('panel'));
+ const state={leftW:300,rightW:320};
+ const resetButton=()=>document.getElementById('resetLayout');
+ function insertAtEnd(dock,node){const reset=resetButton(); if(dock===right&&reset&&reset.parentNode===dock)dock.insertBefore(node,reset); else dock.appendChild(node);}
+ function updateEmpty(){const empty=left.querySelector('.dock-empty');if(empty)empty.style.display=directPanels(left).length?'none':'flex';}
+ function ensureHandle(p){if(!p.querySelector(':scope > .panel-drag-handle')){const h=document.createElement('div');h.className='panel-drag-handle';h.draggable=true;h.innerHTML='<span aria-hidden="true">⠿</span><span>déplacer</span>';p.prepend(h)}}
+ function normalize(){
+   const existingReset=resetButton();if(existingReset&&existingReset.parentNode!==left)left.appendChild(existingReset);
+   document.querySelectorAll('.radar-utility-stack').forEach(stack=>{Array.from(stack.children).filter(x=>x.classList.contains('panel')).forEach(p=>insertAtEnd(right,p));stack.remove()});
+   panels().forEach((p,i)=>{if(!p.dataset.dockId)p.dataset.dockId='module-'+i;ensureHandle(p)});
+   directPanels(left).forEach(p=>insertAtEnd(right,p));
+   if(!resetButton()){const reset=document.createElement('button');reset.type='button';reset.className='dock-reset';reset.id='resetLayout';reset.textContent='↺ Réinitialiser l’affichage';left.appendChild(reset);reset.addEventListener('click',resetLayout)}
+ }
+ function save(){try{localStorage.setItem(KEY,JSON.stringify({left:directPanels(left).map(p=>p.dataset.dockId),right:directPanels(right).map(p=>p.dataset.dockId),leftW:state.leftW,rightW:state.rightW}))}catch(e){}}
+ function defaultOrder(){
+   const ps=panels(), byId=new Map(ps.map(p=>[p.dataset.dockId,p]));
+   const orderedIds=ps.map(p=>p.dataset.dockId);
+   const leftCount=Math.ceil(orderedIds.length/2);
+   // Défaut et réinitialisation : moitié gauche, moitié droite, dans l'ordre courant.
+   orderedIds.slice(0,leftCount).forEach(id=>{const p=byId.get(id);if(p)left.appendChild(p)});
+   orderedIds.slice(leftCount).forEach(id=>{const p=byId.get(id);if(p)insertAtEnd(right,byId.get(id))});
+   state.leftW=300;state.rightW=320;applyWidths();
+ }
+ function applyWidths(){
+   if(directPanels(left).length)state.leftW=Math.max(300,state.leftW);
+   state.leftW=Math.max(72,Math.min(420,state.leftW));state.rightW=Math.max(260,Math.min(520,state.rightW));
+   layout.style.setProperty('--left-w',state.leftW+'px');layout.style.setProperty('--right-w',state.rightW+'px');
+   left.classList.toggle('drag-active',!!dragging);updateEmpty();
+ }
+ function load(){
+   let x=null;try{x=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){x=null}
+   const ps=panels(), validIds=new Set(ps.map(p=>p.dataset.dockId));
+   const finite=(v,fallback)=>Number.isFinite(Number(v))?Number(v):fallback;
+   const leftIds=Array.isArray(x?.left)?x.left.filter(id=>typeof id==='string'&&validIds.has(id)):[];
+   const rightIds=Array.isArray(x?.right)?x.right.filter(id=>typeof id==='string'&&validIds.has(id)):[];
+   const seen=new Set(), safeLeft=[], safeRight=[];
+   leftIds.concat(rightIds).forEach(id=>{if(!seen.has(id)){seen.add(id);(leftIds.includes(id)?safeLeft:safeRight).push(id)}});
+   // A stale, duplicated, or incomplete layout is repaired by retaining valid
+   // placements and appending every omitted module in its current DOM order.
+   const omitted=ps.filter(p=>!seen.has(p.dataset.dockId)).map(p=>p.dataset.dockId);
+   const target=safeLeft.length||safeRight.length?safeRight.concat(omitted):[];
+   if(!safeLeft.length&&!safeRight.length){defaultOrder();return}
+   const by=new Map(ps.map(p=>[p.dataset.dockId,p]));
+   safeLeft.forEach(id=>{const p=by.get(id);if(p)left.appendChild(p)});
+   target.forEach(id=>{const p=by.get(id);if(p)insertAtEnd(right,p)});
+   state.leftW=Math.max(72,Math.min(420,finite(x?.leftW,300)));
+   state.rightW=Math.max(260,Math.min(520,finite(x?.rightW,320)));
+   applyWidths();
+ }
+ function resetLayout(){try{localStorage.removeItem(KEY)}catch(e){}defaultOrder();window.dispatchEvent(new Event('radar-reset-layout'));}
+ function makeResizer(id,side){const r=document.createElement('div');r.className='layout-resizer';r.id=id;r.setAttribute('role','separator');r.setAttribute('aria-label',side==='left'?'Largeur colonne gauche':'Largeur colonne droite');layout.insertBefore(r,side==='left'?document.querySelector('.radarbox'):right);let startX,startW;
+   r.addEventListener('pointerdown',e=>{startX=e.clientX;startW=side==='left'?state.leftW:state.rightW;r.classList.add('is-dragging');r.setPointerCapture(e.pointerId);document.body.style.cursor='col-resize';e.preventDefault()});
+   r.addEventListener('pointermove',e=>{if(!r.hasPointerCapture(e.pointerId))return;const delta=e.clientX-startX;const w=side==='left'?Math.max(0,Math.min(420,startW+delta)):Math.max(260,Math.min(520,startW-delta));if(side==='left')state.leftW=Math.max(directPanels(left).length?300:72,w);else state.rightW=w;applyWidths();window.dispatchEvent(new Event('resize'))});
+   r.addEventListener('pointerup',()=>{r.classList.remove('is-dragging');document.body.style.cursor='';save()})
+ }
+ function clearDropMarkers(){document.querySelectorAll('.drop-before,.drop-after').forEach(x=>x.classList.remove('drop-before','drop-after'))}
+ function dropTarget(e,dock){const el=e.target&&e.target.nodeType===1?e.target:null;const p=el?.closest('.panel');if(!p||p.classList.contains('is-dragging')||p.parentElement!==dock)return null;const box=p.getBoundingClientRect();return {p,after:e.clientY>box.top+box.height/2}}
+ let dragging=null;
+ /* Native HTML5 drag is not dependable on touch screens. Mirror the same
+    operation with Pointer Events so a handle works with mouse, pen and touch. */
+ function bindPointerDockDrag(){
+   let pd=null;
+   document.addEventListener('pointerdown',e=>{
+     const h=e.target.closest?.('.panel-drag-handle'); if(!h)return;
+     const p=h.closest('.panel'); if(!p)return;
+     pd={p,id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
+     h.setPointerCapture?.(e.pointerId); e.preventDefault();
+   },{passive:false});
+   document.addEventListener('pointermove',e=>{
+     if(!pd||pd.id!==e.pointerId)return;
+     if(!pd.moved && Math.hypot(e.clientX-pd.x,e.clientY-pd.y)<6)return;
+     pd.moved=true; dragging=pd.p; pd.p.classList.add('is-dragging'); left.classList.add('drag-active');
+     const el=document.elementFromPoint(e.clientX,e.clientY),dock=el?.closest?.('#leftDock,#rightDock');
+     clearDropMarkers(); if(dock){const t=dropTarget({target:el,clientY:e.clientY},dock); if(t)t.p.classList.add(t.after?'drop-after':'drop-before');dock.classList.add('drag-active');}
+     e.preventDefault();
+   },{passive:false});
+   document.addEventListener('pointerup',e=>{
+     if(!pd||pd.id!==e.pointerId)return;
+     const p=pd.p, el=document.elementFromPoint(e.clientX,e.clientY), dock=el?.closest?.('#leftDock,#rightDock');
+     if(pd.moved&&dock){const t=dropTarget({target:el,clientY:e.clientY},dock);if(t&&t.p!==p)dock.insertBefore(p,t.after?t.p.nextSibling:t.p);else if(!t)insertAtEnd(dock,p);if(dock===left)state.leftW=Math.max(300,state.leftW);applyWidths();save();}
+     p.classList.remove('is-dragging');clearDropMarkers();left.classList.remove('drag-active');if(dock)dock.classList.remove('drag-active');dragging=null;pd=null;
+   },{passive:false});
+   document.addEventListener('pointercancel',()=>{if(pd){pd.p.classList.remove('is-dragging');clearDropMarkers();dragging=null;pd=null}});
+ }
+
+ document.addEventListener('dragstart',e=>{const h=e.target.closest('.panel-drag-handle');if(!h)return;const p=h.closest('.panel');dragging=p;p.classList.add('is-dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',p.dataset.dockId);left.classList.add('drag-active');if(state.leftW<240){state.leftW=300;applyWidths()}});
+ document.addEventListener('dragend',()=>{if(dragging)dragging.classList.remove('is-dragging');clearDropMarkers();dragging=null;applyWidths();save()});
+ [left,right].forEach(dock=>{dock.addEventListener('dragover',e=>{if(!dragging)return;e.preventDefault();e.dataTransfer.dropEffect='move';clearDropMarkers();const t=dropTarget(e,dock);if(t){t.p.classList.add(t.after?'drop-after':'drop-before');dock.classList.add('drag-active')}else dock.classList.add('drag-active')});dock.addEventListener('dragleave',e=>{if(e.target===dock){dock.classList.remove('drag-active');clearDropMarkers()}});dock.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();if(!dragging)return;const moving=dragging,t=dropTarget(e,dock);if(t&&t.p!==moving){dock.insertBefore(moving,t.after?t.p.nextSibling:t.p)}else if(!t){insertAtEnd(dock,moving)}moving.classList.remove('drop-before','drop-after');clearDropMarkers();dock.classList.remove('drag-active');if(dock===left)state.leftW=Math.max(300,state.leftW);applyWidths();save()})});
+ normalize();bindPointerDockDrag();makeResizer('leftResizer','left');makeResizer('rightResizer','right');
+ applyWidths();load();
+ requestAnimationFrame(()=>{if(typeof render==='function')render();});
+ if(window.ResizeObserver){const ro=new ResizeObserver(()=>{if(typeof render==='function')requestAnimationFrame(render)});ro.observe(document.querySelector('.radarbox'))}window.addEventListener('resize',()=>{if(typeof render==='function')requestAnimationFrame(render)});
+})();
+
+</script>
+<script>
+/* CPA/TCPA on-demand: accessible en permanence, fermé par défaut. */
+(function(){
+  const toggle=document.getElementById('arpaToggle');
+  const table=document.getElementById('arpaTable');
+  if(!toggle||!table)return;
+  const sim=document.getElementById('sim');
+  const app=document.querySelector('.app');
+  const resizeHandle=document.getElementById('arpaResizeHandle');
+  const ARPA_HEIGHT_KEY='radar-arpa-height-v51';
+  const DEFAULT_ARPA_HEIGHT=0.30;
+  let arpaHeight=0;
+  function viewportHeight(){return window.innerHeight||document.documentElement.clientHeight||800;}
+  function clampArpaHeight(px){return Math.max(100,Math.min(viewportHeight()*0.70,px));}
+  function setArpaHeight(px,persist=true){
+    arpaHeight=clampArpaHeight(px);
+    app?.style.setProperty('--arpa-h',arpaHeight+'px');
+    if(persist)try{sessionStorage.setItem(ARPA_HEIGHT_KEY,String(Math.round(arpaHeight)))}catch(e){}
+    redrawAfterLayout();
+  }
+  function loadArpaHeight(){
+    let saved=0;try{saved=Number(sessionStorage.getItem(ARPA_HEIGHT_KEY))}catch(e){}
+    setArpaHeight(saved>0?saved:viewportHeight()*DEFAULT_ARPA_HEIGHT,false);
+  }
+  function redrawAfterLayout(){requestAnimationFrame(()=>{window.dispatchEvent(new Event('resize'));if(typeof render==='function')render();updateArpaTableMetrics();});}
+  if(window.ResizeObserver){const ro=new ResizeObserver(redrawAfterLayout);if(sim)ro.observe(sim);ro.observe(table);}
+  function setOpen(open){
+    table.classList.toggle('is-open',open);
+    document.getElementById('sim')?.classList.toggle('arpa-open',open);
+    table.setAttribute('aria-hidden',String(!open));
+    toggle.setAttribute('aria-expanded',String(open));
+    toggle.textContent=open?'× Fermer CPA / TCPA':'☷ CPA / TCPA';
+    /* Laisser le flux et le ResizeObserver stabiliser les boîtes avant le redraw. */
+    requestAnimationFrame(()=>{ window.dispatchEvent(new Event('resize')); if(typeof render==='function')render(); updateArpaTableMetrics(); });
+  }
+  let dragStartY=0,dragStartH=0,dragPointerId=null;
+  resizeHandle?.addEventListener('pointerdown',e=>{
+    dragPointerId=e.pointerId;dragStartY=e.clientY;dragStartH=table.getBoundingClientRect().height;
+    resizeHandle.classList.add('is-dragging');resizeHandle.setPointerCapture?.(e.pointerId);document.body.style.cursor='ns-resize';e.preventDefault();
+  });
+  resizeHandle?.addEventListener('pointermove',e=>{
+    if(dragPointerId!==e.pointerId)return;
+    setArpaHeight(dragStartH+(dragStartY-e.clientY));e.preventDefault();
+  });
+  function endArpaResize(e){if(dragPointerId===null||(e?.pointerId!=null&&e.pointerId!==dragPointerId))return;resizeHandle?.classList.remove('is-dragging');resizeHandle?.releasePointerCapture?.(dragPointerId);dragPointerId=null;document.body.style.cursor='';}
+  resizeHandle?.addEventListener('pointerup',endArpaResize);resizeHandle?.addEventListener('pointercancel',endArpaResize);resizeHandle?.addEventListener('lostpointercapture',endArpaResize);
+  resizeHandle?.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();setArpaHeight((arpaHeight||table.getBoundingClientRect().height)+(e.key==='ArrowUp'?20:-20));}});
+  window.addEventListener('resize',()=>{requestAnimationFrame(updateArpaTableMetrics)},{passive:true});
+  window.addEventListener('radar-reset-layout',()=>setArpaHeight(viewportHeight()*DEFAULT_ARPA_HEIGHT));
+  toggle.addEventListener('click',()=>setOpen(!table.classList.contains('is-open')));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&table.classList.contains('is-open')){setOpen(false);toggle.focus()}});
+  loadArpaHeight();
+  setOpen(false);
+  requestAnimationFrame(updateArpaTableMetrics);
+})();
+</script>
+<script id="radar-i18n">
+(function(){'use strict';
+  var lang='fr';
+  try{lang=localStorage.getItem('radarLang')==='en'?'en':'fr'}catch(e){}
+  var T={
+    'Simulateur Radar':'Radar Simulator','Générateur d\'exercices':'Exercise generator','Générer un exercice aléatoire':'Generate a random exercise','Générer une trajectoire type':'Generate a typical track','Côte réelle':'Real coast','Côte réelle locale':'Local real coast','Préréglage':'Preset','Pas-de-Calais · détroit du Pas':'Pas-de-Calais · Strait of Dover','Rade de Brest':'Brest Roads','Rayon':'Radius','Rayon de sélection':'Selection radius','Fond':'Basemap','Recentrer':'Recenter','Importer une côte GeoJSON, GPX ou OSM':'Import a GeoJSON, GPX or OSM coastline','Importer un fichier de côte':'Import coastline file','Fermer':'Close','Valider et importer':'Validate and import','Cliquez sur la carte pour placer le centre du cercle · OWN au centre par défaut.':'Click the map to place the circle centre · OWN is centred by default.','Type de scénario':'Scenario type','Anti-collision (radial)':'Collision avoidance (radial)','Croisement':'Crossing','Dépassement':'Overtaking','Mix aléatoire':'Random mix','Nombre de navires':'Number of vessels','Distance des contacts':'Contact distance','Proche':'Near','Standard':'Standard','Lointaine':'Far','Aléatoire':'Random','Composition de la flotte / types ARPA':'Fleet composition / ARPA types','Normal':'Normal','Pêche':'Fishing vessel','Voilier':'Sailing vessel','Mouillage':'Vessel at anchor','Ajouter une côte / île':'Add coastline / island','Créer des waypoints':'Create waypoints','Distance côte':'Coast distance','Type de côte':'Coast type','Île':'Island','Détroit':'Strait','Baie':'Bay','Cap':'Cape','Port':'Port','Archipel':'Archipelago','Nombre de waypoints':'Number of waypoints','Dégradation de l\'écho (export + aperçu)':'Echo degradation (export + preview)','Dégradation de l’écho':'Echo degradation','Aucune':'None','Légère':'Light','Moyenne':'Medium','Forte':'Strong','Conserver les réglages actuels':'Keep current settings','Mer / clapot':'Sea / swell','Pluie':'Rain','Bruit de fond':'Background noise','Échos faibles':'Weak echoes','Scintillement':'Flicker','Annuler':'Cancel','Supprimer':'Delete','Appliquer':'Apply','Terminer':'Finish','Quitter':'Exit','Supprimer forme':'Delete shape','Éditeur de côte · formes':'Coastline editor · shapes','Cercle / île':'Circle / island','Rectangle':'Rectangle','Ellipse':'Ellipse','Polygone libre':'Free polygon','Île allongée':'Elongated island','Inverser les sens':'Reverse directions','Largeur totale (NM)':'Total width (NM)','Inclinaison (°)':'Angle (°)','Glissez sur le radar pour dessiner':'Drag on the radar to draw','Waypoint de route':'Route waypoint','Nom':'Name','Type':'Type','Cap':'Heading','Vitesse':'Speed','Contact':'Target','Export':'Export','Import':'Import','Générer':'Generate','Aperçu':'Preview','▶ Aperçu':'▶ Preview','Ⅱ Pause':'Ⅱ Pause','Réinitialiser l’exercice':'Reset exercise','Tout effacer':'Clear all','Classique':'Classic','Moderne':'Modern','Échelle':'Range','CAP OWN':'OWN HEADING','Déplacer la barre':'Move toolbar','Poignée pour déplacer la barre':'Toolbar drag handle','Clic vide : ajouter · glisser : déplacer · clic droit : menu':'Empty click: add · drag: move · right-click: menu','CPA / TCPA — TABLEAU DE SITUATION':'CPA / TCPA — SITUATION TABLE','Distance':'Range','Relèvement':'Bearing','Réglages':'Settings','Créer la route':'Create route','Traits de pêche':'Fishing tracks','Route erratique NUC':'Erratic NUC track','Patrouille circulaire / loiter':'Circular patrol / loiter','Route en S / zigzag voilier':'S-track / sailing vessel zigzag','Navette de ferry':'Ferry shuttle','Parallèle à la côte':'Parallel to coastline','Virage brusque au CPA':'Hard turn at CPA','Orientation':'Orientation','Paramètre':'Parameter','Mode':'Mode','OUESSANT':'OUESSANT','BRIDGE / TRAINING INSTRUMENT':'BRIDGE / TRAINING INSTRUMENT','ANTICOLLISION':'ANTICOLLISION','OFFLINE':'OFFLINE','VEILLE':'STANDBY','RÉGLAGES AFFICHAGE & ÉCHO':'DISPLAY & ECHO SETTINGS','TRACES':'TRAILS','TRACES / VECTEURS':'TRAILS / VECTORS','Désactivées':'Disabled','Trace relative':'Relative trail','Trace vraie':'True trail','Effacer les traces':'Clear trails','Durée des vecteurs':'Vector duration','Historique de positions':'Position history','Aucun':'None','TRAITEMENT ÉCHO':'ECHO PROCESSING','Anti-clutter mer':'Sea clutter suppression','Anti-clutter pluie':'Rain clutter suppression','Rémanence':'Persistence','Luminosité':'Brightness','SCÉNARIOS':'SCENARIOS','Charger exercice':'Load exercise','Format partagé avec generateur.html · chargement à l’arrêt':'Format shared with generator.html · load while stopped','Mesures & ARPA':'Measurements & ARPA','Sélectionnez une cible sur la carte pour afficher sa fiche ARPA détaillée.':'Select a target on the radar to display its detailed ARPA data.','Appui sur la carte : relèvement — · distance —':'Tap the radar: bearing — · range —','Seuil CPA':'CPA threshold','Seuil TCPA':'TCPA threshold','Rayon de garde':'Guard radius','N-UP':'N-UP','C-UP':'C-UP','H-UP':'H-UP','CPA / TCPA — SUIVI DES CIBLES':'CPA / TCPA — TARGET MONITOR','contact radar':'radar contact','pêche':'fishing vessel','mouillage':'vessel at anchor','CPA sous seuil / TCPA dans seuil':'CPA below threshold / TCPA within threshold','CIBLE':'TARGET','TYPE':'TYPE','RELÈV.':'BRG.','DIST.':'RANGE','CAP':'HDG.','VIT.':'SPD.','ÉTAT':'STATUS','DANGER':'DANGER','PASSÉ':'PAST','SURVEILLER':'MONITOR','OK':'OK','SIMULATEUR HORS LIGNE · données locales uniquement':'OFFLINE SIMULATOR · local data only','Collision détectée':'Collision detected','Recommencer':'Restart','Exercice chargé · simulation à l’arrêt':'Exercise loaded · simulation stopped','Exercice lancé':'Exercise started','Exercice généré':'Exercise generated','Côte bretonne chargée':'Brittany coastline loaded','Traces effacées':'Trails cleared','PAUSE':'PAUSED','EN LECTURE':'PLAYING','ALARME ZONE DE GARDE':'GUARD ZONE ALARM','ALARME CPA/TCPA':'CPA/TCPA ALARM','INFO DST : séparation / contre-sens':'TSS INFO: separation / wrong-way traffic','ÉCHOUEMENT':'GROUNDING','Sélectionnez une cible sur la carte pour sa fiche ARPA.':'Select a target on the radar for its ARPA data.','NAPM':'NAPM — mechanically propelled vessel','Moderne (gris)':'Modern (grey)','Classique (vert)':'Classic (green)','SCÉNARIO ACTIF':'ACTIVE SCENARIO','Veille côtière':'Coastal watch','Croisement bâbord':'Port-side crossing','Trafic dense':'Dense traffic','Anti-collision standard':'Standard collision avoidance','Réinitialiser l’affichage':'Reset layout','Fermer CPA / TCPA':'Close CPA / TCPA','Choisir un fichier JSON':'Choose a JSON file','Sélection de fichier JSON':'JSON file selection','Charger un exercice':'Load an exercise','Choisissez un exercice intégré ou sauvegardé localement.':'Choose a built-in or locally saved exercise.','Bruit de fond':'Background noise','ÉCHELLE':'Range','NAPM / Normal':'NAPM — mechanically propelled vessel','Données importées':'Data imported','Fichier d’export invalide':'Invalid export file','Fichier de côte invalide':'Invalid coastline file','ÉCHELLE & PRÉSENTATION':'RANGE & PRESENTATION','Vect. relatifs':'Relative vectors','Vect. vrais':'True vectors','GAIN':'GAIN','NOTRE NAVIRE':'OWN SHIP','CAP °':'HEADING °','VITESSE kn':'SPEED kn','OUTILS DE MESURE (EBL / VRM)':'MEASUREMENT TOOLS (EBL / VRM)','MESURE POINTEUR (CURSEUR)':'POINTER MEASUREMENT (CURSOR)','Décalage centre X (NM)':'Centre offset X (NM)','Décalage centre Y (NM)':'Centre offset Y (NM)','Glisser l’own ship':'Drag the own ship','sur le PPI ou ici.':'on the PPI or here.','X / Y synchronisés':'X / Y synchronized','Ligne de foi ON':'Heading line ON','Graduation de cap':'Heading graduation','ALARMES & LIMITES ARPA':'ALARMS & ARPA LIMITS','Alarmes ON':'Alarms ON','Zone de garde OFF':'Guard zone OFF','Zone de garde ON':'Guard zone ON','Alarme + anneau : une cible est signalée dès qu’elle entre dans ce rayon autour du navire.':'Alarm + ring: a target is flagged when it enters this radius around own ship.','Rayon de garde (NM)':'Guard radius (NM)','FICHE ARPA (CIBLE ACTIVE)':'ARPA SHEET (ACTIVE TARGET)','Sélectionnez une cible sur la carte pour afficher sa fiche ARPA détaillée.':'Select a target on the radar to display its detailed ARPA sheet.','Appui sur la carte : relèvement — · distance —':'Tap the radar: bearing — · range —','DÉPLACER':'MOVE','Déposer un module ici':'Drop a module here','Vecteurs':'Vectors','Présentations':'Presentations','Anneaux ON':'Rings ON','Anneaux OFF':'Rings OFF','Ligne de foi OFF':'Heading line OFF','ON / OFF':'ON / OFF','CPA / TCPA — SUIVI DES CIBLES':'CPA / TCPA — TARGET MONITOR','Moderne (gris)':'Modern (grey)','Classique (vert)':'Classic (green)','Colonne latérale gauche — zone de dépôt':'Left sidebar — drop zone','Modules de commandes':'Control modules','Position de l\'own ship dans le PPI':'Own ship position on the PPI','Mini-carte de positionnement':'Position mini-map','Redimensionner la hauteur du tableau CPA/TCPA':'Resize CPA/TCPA table height','Appui :':'Tap:','relèvement ':'bearing ','Rv ':'Brg. ','cap ':'heading ','Cible : ':'Target: ','distance ':'range ','passé':'past','ÉDITÉ':'EDITED','Modifier':'Edit','Aucun contact.':'No contacts.','déplacer':'move','Exercice personnalisé':'Custom exercise','Test ARPA & Mesures':'ARPA & Measurements test'};
+  var R={};Object.keys(T).forEach(function(k){R[T[k]]=k});
+  var textSource=new WeakMap(), attrSource=new WeakMap(), applying=false, queued=false;
+  function tr(s){if(!s)return s;var d=lang==='en'?T:R;Object.keys(d).sort(function(a,b){return b.length-a.length}).forEach(function(k){s=s.split(k).join(d[k])});return s}
+  function applyText(n){if(!n||!n.nodeValue)return;var source=textSource.get(n);if(source===undefined){source=n.nodeValue;textSource.set(n,source)}var next=tr(source);if(n.nodeValue!==next)n.nodeValue=next}
+  function applyAttr(e,a){if(!e.hasAttribute(a))return;var m=attrSource.get(e);if(!m){m={};attrSource.set(e,m)}if(m[a]===undefined)m[a]=e.getAttribute(a);var next=tr(m[a]);if(e.getAttribute(a)!==next)e.setAttribute(a,next)}
+  function walk(root){root=root||document;applying=true;try{var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),n;while(n=w.nextNode()){if(n.parentElement&&n.parentElement.closest('script,style'))continue;applyText(n)}var els=root.querySelectorAll?root.querySelectorAll('[title],[aria-label],[placeholder],option'):[];for(var i=0;i<els.length;i++){['title','aria-label','placeholder'].forEach(function(a){applyAttr(els[i],a)});if(els[i].tagName==='OPTION')applyText(els[i].firstChild)}if(root.nodeType===1&&root.matches&&root.matches('[title],[aria-label],[placeholder],option')){['title','aria-label','placeholder'].forEach(function(a){applyAttr(root,a)});if(root.tagName==='OPTION')applyText(root.firstChild)}document.documentElement.lang=lang}finally{applying=false}}
+  function queueWalk(nodes){if(queued)return;queued=true;Promise.resolve().then(function(){queued=false;if(applying)return;for(var i=0;i<nodes.length;i++)if(nodes[i]&&nodes[i].nodeType===1)walk(nodes[i])})}
+  function updateCanvasText(){window.radarCanvasText=function(k,v){if(lang==='en'){var en={heading:'HEADING ',speed:'SPEED ',range:'RANGE ',orient:'ORIENT. ',ebl:'EBL ',vrm:'VRM '};return k==='guard'?'GUARD '+v+' NM':k==='radar'?'RADAR // '+(v?'RINGS ON':'RINGS OFF'):en[k]!==undefined?en[k]+v:''}var fr={heading:'CAP ',speed:'VITESSE ',range:'PORTÉE ',orient:'ORIENT. ',ebl:'EBL ',vrm:'VRM '};return k==='guard'?'GARDE '+v+' NM':k==='radar'?'RADAR // '+(v?'ANNEAUX ON':'ANNEAUX OFF'):fr[k]!==undefined?fr[k]+v:''}}
+  function setLanguage(x){var next=x==='en'?'en':'fr';if(next===lang){walk(document);updateCanvasText();return}lang=next;try{localStorage.setItem('radarLang',lang)}catch(e){};updateCanvasText();walk(document);if(typeof render==='function')render();if(typeof draw==='function')draw();var b=document.getElementById('radarLangToggle');if(b){b.title=lang==='en'?'Switch to French':'Passer en anglais';b.setAttribute('aria-label',b.title)}}
+  var bar=document.querySelector('.toolbar')||document.querySelector('header.top');if(bar){var b=document.getElementById('radarLangToggle')||document.createElement('button');b.id='radarLangToggle';b.type='button';b.className='radar-lang-toggle';b.textContent='FR | EN';b.onclick=function(){setLanguage(lang==='fr'?'en':'fr')};b.title=lang==='en'?'Switch to French':'Passer en anglais';b.setAttribute('aria-label',b.title);if(!b.parentNode)bar.appendChild(b)}
+  updateCanvasText();window.setRadarLanguage=setLanguage;window.radarTranslate=tr;walk(document);
+  if(window.MutationObserver) new MutationObserver(function(ms){if(applying)return;var added=[];ms.forEach(function(m){for(var i=0;i<m.addedNodes.length;i++)if(m.addedNodes[i].nodeType===1)added.push(m.addedNodes[i]);if(m.type==='characterData'&&m.target.parentElement)added.push(m.target.parentElement)});if(added.length)queueWalk(added)}).observe(document.body,{childList:true,characterData:true,subtree:true});
+})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+</body></html>
