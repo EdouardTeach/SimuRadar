@@ -1,5 +1,11 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1422"><title>SimuRadar — Simulateur radar maritime</title>
+<link rel="icon" type="image/png" href="favicon-radar.png">
+<meta property="og:title" content="SimuRadar — Simulateur radar maritime">
+<meta property="og:description" content="Simulateur radar maritime interactif pour visualiser les échos, suivre les cibles et explorer la situation en mer.">
+<meta property="og:image" content="thumbnail.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 :root{--bg:#171a1d;--bg2:#22272b;--panel:rgba(37,42,46,.94);--line:#596168;--ink:#f1f3f4;--muted:#b4bbc0;--accent:#d3d8dc;--red:#ff7180;--green:#69e0a4;--amber:#f6c76b;--shadow:0 16px 40px #00000066}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(ellipse at 50% -15%,#3a4146 0,#171a1d 55%);color:var(--ink);font:14px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:manipulation}body{padding:12px}.app{max-width:1480px;margin:auto}.top{display:flex;align-items:end;justify-content:space-between;padding:6px 4px 14px;margin-bottom:12px}.kicker{color:var(--accent);letter-spacing:.16em;font-size:10px;font-weight:700}.title{font-weight:750;font-size:clamp(22px,5vw,32px);letter-spacing:-.04em}.status{font-size:10px;color:var(--muted);text-align:right}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.tab,button,select,input{font:inherit}.tab,button{color:var(--ink);background:#30363b;border:1px solid #69727a;border-radius:14px;min-height:46px;padding:10px 13px;cursor:pointer;box-shadow:0 4px 12px #02081222}.tab{font-weight:700;letter-spacing:.04em}.tab.active,.play.primary{background:#d3d8dc;color:#1a1d20;border-color:#d3d8dc}button:active{transform:translateY(1px);filter:brightness(1.12)}button.active{outline:2px solid #c7cdd166;background:#4a5258}button.danger{color:#ffabb1;border-color:#874c59}
 
@@ -2063,7 +2069,7 @@ html,body{height:100%;min-height:0;overflow:hidden}
     </div></details>
   </div>
 
-  <div class="panel"><h3>SCÉNARIOS</h3><button id="loadExercise" class="primary" style="width:100%;margin-bottom:7px" type="button" aria-label="Charger un exercice radar">↥ Charger exercice</button><input id="exerciseFileDirect" type="file" accept=".json,application/json" style="display:none"><div class="grid2" id="scens"><div id="exerciseList" style="display:contents"></div></div><div class="small" style="margin-top:7px">Format partagé avec generateur.html · chargement à l’arrêt</div></div>
+  <div class="panel"><h3>SCÉNARIOS</h3><button id="loadExercise" class="primary" style="width:100%;margin-bottom:7px" type="button" aria-label="Charger un exercice radar">↥ Charger exercice</button><input id="exerciseFileDirect" type="file" accept=".json,application/json" style="display:none"><div class="grid2" id="scens"><div id="exerciseList" style="display:contents"></div></div><div class="small" style="margin-top:7px">Format partagé avec generator.html · chargement à l’arrêt</div></div>
 </div>
 </aside>
 </div>
@@ -2743,6 +2749,7 @@ function loadExercise(x){let b=normalizeExercise(resolveStartScene(x));let start
 
 /* Seuil de risque RIPAM : CPA prédit strictement inférieur à 0,5 NM. */
 const COLREG_CPA_NM = 0.5;
+const COLREG_MAX_RANGE_NM = 1.0;
 let S={idx:0,own:{x:0,y:0,c:35,s:12,shipType:'cargo'},customShipTypes:[],targets:[],time:0,scale:6,orient:'north',vec:'rel',rate:1,paused:true,gain:72,cUpHeading:35,trailSample:0,settings:{trailLen:60,trailMode:'rel',vectorDuration:6,historyStep:30,sea:25,rain:0,contrast:100,brightness:100,pulseWidth:'MP',rainClouds:false,gainGhosts:false,vrm:0,ebl:0,vrmOn:false,eblOn:false,offsetX:0,offsetY:0,rings:true,headingLine:true,headingTicks:true,indexLines:false,indexLineSpacing:1,indexLineAngle:0,colreg:true,cpaLimit:1.5,tcpaLimit:30,alarm:true,guard:false,guardRadius:2},trails:[],trailSeq:0,history:[],selected:null,lastAlarm:false,collision:null,initial:null,simulationStartFlag:null,coast:[],dsts:[],rainZones:[],passage:null,dstAlert:false,band:'X',echoDegradation:{sea:0,rain:0,noise:0,weak:0,flicker:0,rainClouds:false,ghostEchoes:false,seaState:0}};
 /**
  * Rôle : fonction clone; voir le contexte de définition pour l’opération précise.
@@ -3387,7 +3394,7 @@ function decideColreg(a,b,randomFn=Math.random){
   const tc=v2?-(px*rx+py*ry)/v2:Infinity,cpa=tc>=0?Math.hypot(px+rx*tc,py+ry*tc):Math.hypot(px,py);
   const tcpaMinutes=tc*60;
   const result=(role,maneuver,side)=>({role,maneuver,side,cpa,tcpaMinutes,relativeOwn:ra,relativeOther:rb});
-  if(!(cpa<COLREG_CPA_NM))return result('none','none',0);
+  if(!(cpa<COLREG_CPA_NM)||Math.hypot(px,py)>COLREG_MAX_RANGE_NM)return result('none','none',0);
   if(Math.abs(ra)<=12.5&&Math.abs(rb)<=12.5)return result('both','head-on',1);
   const courseDiff=Math.abs(((a.c-b.c+540)%360)-180);
   // Dans le secteur arrière de 135°, le navire le plus rapide est le rattrapant.
@@ -5166,7 +5173,7 @@ function(){'use strict';
     "Brillance":"Brightness",
     "SCÉNARIOS":"SCENARIOS",
     "Charger exercice":"Load exercise",
-    "Format partagé avec generateur.html · chargement à l’arrêt":"Format shared with generator.html · load while stopped",
+    "Format partagé avec generator.html · chargement à l’arrêt":"Format shared with generator.html · load while stopped",
     "Mesures & ARPA":"Measurements & ARPA",
     "Sélectionnez une cible sur la carte pour afficher sa fiche ARPA détaillée.":"Select a target on the radar to display its detailed ARPA data.",
     "Touchez le radar : relèvement — · distance —":"Tap the radar: bearing — · range —",
@@ -6054,6 +6061,7 @@ body.phone-mode .panel button,body.phone-mode .panel select,body.phone-mode .pan
 body.phone-mode .helm-bar button{min-height:42px!important}
 body.phone-mode .helm-setpoints input{min-height:40px!important}
 </style>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 </body></html>
