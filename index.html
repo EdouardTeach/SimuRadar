@@ -1,12 +1,5 @@
-<!doctype html><!-- Documentation ajoutée sans modification du comportement.
-Architecture : SimuRadar autonome ; CSS/DOM et styles historiques en tête, interface de simulation,
-banque d’exercices et moteur radar dans le grand script principal. Scripts suivants : contrôleurs
-CPA/TCPA, traduction FR/EN, panneaux repliables, orientation tactile et bande X/S.
-Sections repérées par les lignes source : présentation/CSS 1–1111 ; contrôleur de panneaux 1112–1136 ;
-interface et moteur 1860–3761 ; modules auxiliaires 3762–3938. Partage avec generator-17.html via
-le format d’exercice JSON/localStorage et contrats de bande radar, langue et presets de navire.
--->
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1422"><title>SimuRadar</title>
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1422"><title>SimuRadar — Simulateur radar maritime</title>
 <style>
 :root{--bg:#171a1d;--bg2:#22272b;--panel:rgba(37,42,46,.94);--line:#596168;--ink:#f1f3f4;--muted:#b4bbc0;--accent:#d3d8dc;--red:#ff7180;--green:#69e0a4;--amber:#f6c76b;--shadow:0 16px 40px #00000066}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(ellipse at 50% -15%,#3a4146 0,#171a1d 55%);color:var(--ink);font:14px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:manipulation}body{padding:12px}.app{max-width:1480px;margin:auto}.top{display:flex;align-items:end;justify-content:space-between;padding:6px 4px 14px;margin-bottom:12px}.kicker{color:var(--accent);letter-spacing:.16em;font-size:10px;font-weight:700}.title{font-weight:750;font-size:clamp(22px,5vw,32px);letter-spacing:-.04em}.status{font-size:10px;color:var(--muted);text-align:right}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.tab,button,select,input{font:inherit}.tab,button{color:var(--ink);background:#30363b;border:1px solid #69727a;border-radius:14px;min-height:46px;padding:10px 13px;cursor:pointer;box-shadow:0 4px 12px #02081222}.tab{font-weight:700;letter-spacing:.04em}.tab.active,.play.primary{background:#d3d8dc;color:#1a1d20;border-color:#d3d8dc}button:active{transform:translateY(1px);filter:brightness(1.12)}button.active{outline:2px solid #c7cdd166;background:#4a5258}button.danger{color:#ffabb1;border-color:#874c59}
 
@@ -480,6 +473,9 @@ body{padding:0;box-sizing:border-box}
 .app-nav-link{display:inline-flex;align-items:center;gap:5px;min-height:29px;padding:4px 9px;border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);font:inherit;font-weight:700;text-decoration:none;white-space:nowrap}
 .app-nav-link:hover{filter:brightness(1.2);background:color-mix(in srgb,var(--accent) 14%,transparent)}
 @media(max-width:700px){.app-nav-link{font-size:11px;padding-inline:7px}}
+
+/* Menu de départ OWN : action contextuelle compacte, ancrée au radar. */
+.sim-start-menu{position:absolute;z-index:80;min-width:220px;padding:5px;background:#252b2f;border:1px solid #ffd34e;border-radius:6px;box-shadow:0 8px 22px #000a}.sim-start-menu button{width:100%;text-align:left;color:#fff2bd;border-color:#8e7735;background:#34332b}
 </style>
 <style id="v12-radar-fill">
 /* v12 — l'écran radar utilise toute la zone centrale; seuls les panneaux défilent. */
@@ -1482,9 +1478,9 @@ body { margin:0!important; padding:0!important; }
 }
 </style>
 
-<!-- worker-helm-landscape-fix neutralisé : remplacé par helm-landscape-grid -->
 
-<!-- worker-helm-landscape-final neutralisé : remplacé par helm-landscape-grid -->
+
+
 
 <style id="helm-landscape-grid">
 /* Barre de conduite en grille compacte : une seule rangée, uniquement sur téléphone tactile en paysage. */
@@ -1803,13 +1799,7 @@ html,body{height:100%;min-height:0;overflow:hidden}
 }
 </style>
 
-<!-- v17: keep column resize handles visible & finger-draggable on phone landscape.
-     Earlier rules hid the handles on touch/portrait via `.layout-resizer{display:none!important;}`.
-     That broke resize on phone landscape. We:
-       - override `display` so handles stay visible
-       - widen the touch target to ~24px (was 14px) for thumb use
-       - keep `touch-action:none` so the browser does not steal touches for page gestures
-       - leave desktop behaviour unchanged (no min-width override for desktop) -->
+
 <style id="phone-landscape-resizer-fix-v17">
 /* Phone landscape (touch + narrow + landscape): keep handles, make them thumb-friendly.
    We keep the 3-column layout already enforced by resizable-docks-final. */
@@ -1921,12 +1911,40 @@ html,body{height:100%;min-height:0;overflow:hidden}
   }
 }
 </style>
-</head><body><div class="app"><header class="top"><div><div class="kicker">BRIDGE / TRAINING INSTRUMENT</div><div class="title">Simulateur Radar</div></div><div class="top-actions"><div id="bandSelector" class="band-selector" role="group" aria-label="Radar band"><button type="button" data-band="X" class="active" title="Bande X · 3 cm · meilleure résolution, sensible à la pluie · X-band: sharper picture, more rain sensitive">X</button><button type="button" data-band="S" title="Bande S · 10 cm · portée plus longue, moins sensible à la pluie · S-band: longer range, less rain sensitive">S</button></div><div id="pulseSelector" class="band-selector" role="group" aria-label="Pulse length"><button type="button" data-pulse="SP" title="SP · Short Pulse · SP: impulsion courte">SP</button><button type="button" data-pulse="MP" class="active" title="MP · Medium Pulse · MP: impulsion moyenne">MP</button><button type="button" data-pulse="LP" title="LP · Long Pulse · LP: impulsion longue">LP</button></div><button id="radarLangToggle" class="radar-lang-toggle" type="button" aria-label="Français / English">FR | EN</button><button id="arpaToggle" class="arpa-toggle" type="button" aria-controls="arpaTable" aria-expanded="false">☷ CPA / TCPA</button><button id="themeToggle" class="theme-switch" type="button" aria-pressed="false">◐ Moderne (gris)</button><a class="app-nav-link" href="generator.html" title="Ouvrir le générateur d’exercices">↗ Générateur</a><a class="app-nav-link github-link" href="https://github.com/EdouardTeach/SimuRadar" target="_blank" rel="noopener noreferrer" title="Ouvrir le dépôt GitHub" aria-label="Ouvrir le dépôt GitHub"><svg class="github-icon" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.74.08-.74 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.8 1.31 3.49 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.29-1.23 3.29-1.23.65 1.65.24 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.62-2.81 5.64-5.48 5.94.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5Z"/></svg><span>GitHub</span></a><div class="status">OFFLINE<br><span id="status">VEILLE</span></div></div></header>
+<style id="centered-simulator-topbar">
+.top{justify-content:center!important;flex-wrap:wrap}
+.top-inner{display:flex;align-items:end;justify-content:center;gap:12px;width:fit-content;max-width:100%;flex-wrap:wrap}
+.top-inner>.top-actions{margin-left:auto;flex:0 1 auto}
+.top-actions>.radar-lang-toggle{margin-left:auto!important}
+@media(max-width:900px){.top-inner{width:100%;justify-content:center}.top-inner>.top-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}}
+</style>
+<style id="left-title-right-controls-header">
+/* Barre principale : titre en haut à gauche, outils groupés à droite. */
+.top{justify-content:flex-start!important;align-items:flex-start!important;flex-wrap:nowrap!important}
+.top-inner{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:12px!important;width:100%!important;max-width:none!important;flex-wrap:nowrap!important}
+.top-inner>div:first-child{flex:0 1 auto;min-width:0;text-align:left!important;align-self:flex-start!important}
+.top-inner .title{text-align:left!important;max-width:100%;}
+.top-inner>.top-actions{margin-left:auto!important;flex:0 1 auto;justify-content:flex-end!important;align-self:flex-start!important;min-width:0}
+@media(max-width:900px){
+ .top{flex-wrap:wrap!important}
+ .top-inner{width:100%!important;align-items:flex-start!important;justify-content:space-between!important;flex-wrap:wrap!important;gap:6px!important}
+ .top-inner>div:first-child{flex:0 1 auto;max-width:100%}
+ .top-inner>.top-actions{width:auto!important;max-width:100%;margin-left:auto!important;justify-content:flex-end!important;flex-wrap:wrap!important;overflow:visible!important}
+ .top-actions .app-nav-link,.top-actions .github-link{display:inline-flex!important;visibility:visible!important}
+}
+@media(max-width:560px){
+ .top-inner{align-items:flex-start!important}
+ .top-inner>div:first-child{flex:1 1 100%;}
+ .top-inner>.top-actions{flex:1 1 100%;width:100%!important;justify-content:flex-end!important}
+ .top .title{font-size:clamp(14px,4vw,19px)!important;line-height:1.15}
+}
+</style>
+</head><body><div class="app"><header class="top"><div class="top-inner"><div><div class="title">Radar Simulator</div></div><div class="top-actions"><div id="bandSelector" class="band-selector" role="group" aria-label="Radar band"><button type="button" data-band="X" class="active" title="Bande X · 3 cm · meilleure résolution, sensible à la pluie · X-band: sharper picture, more rain sensitive">X</button><button type="button" data-band="S" title="Bande S · 10 cm · portée plus longue, moins sensible à la pluie · S-band: longer range, less rain sensitive">S</button></div><div id="pulseSelector" class="band-selector" role="group" aria-label="Pulse length"><button type="button" data-pulse="SP" title="SP · Short Pulse · SP: impulsion courte">SP</button><button type="button" data-pulse="MP" class="active" title="MP · Medium Pulse · MP: impulsion moyenne">MP</button><button type="button" data-pulse="LP" title="LP · Long Pulse · LP: impulsion longue">LP</button></div><button id="radarLangToggle" class="radar-lang-toggle" type="button" aria-label="Français / English">FR | EN</button><button id="arpaToggle" class="arpa-toggle" type="button" aria-label="Afficher ou masquer le tableau CPA/TCPA" aria-controls="arpaTable" aria-expanded="false"> CPA / TCPA</button><button id="themeToggle" class="theme-switch" type="button" aria-label="Changer le thème d’affichage du radar" aria-pressed="false">◐ Moderne (gris)</button><a class="app-nav-link" href="generator.html" title="Ouvrir le générateur d’exercices">↗ Générateur</a><a class="app-nav-link github-link" href="https://github.com/EdouardTeach/SimuRadar" target="_blank" rel="noopener noreferrer" title="Ouvrir le dépôt GitHub" aria-label="Ouvrir le dépôt GitHub"><svg class="github-icon" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.74.08-.74 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.8 1.31 3.49 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.29-1.23 3.29-1.23.65 1.65.24 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.62-2.81 5.64-5.48 5.94.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5Z"/></svg><span>GitHub</span></a><div class="status">OFFLINE<br><span id="status">VEILLE</span></div></div></div></header>
 
-<!-- SECTION SIMULATEUR AVEC DONNÉES / MESURES / ARPA À GAUCHE DU RADAR -->
+
 <section id="sim" class="mode"><div class="layout">
 
-<!-- COLONNE GAUCHE : MESURES, ARPA, RELÈVEMENTS ET DONNÉES CIBLE -->
+<!-- Zone de dépôt des panneaux de mesures et de suivi des cibles : les modules peuvent être réorganisés ici. -->
 <aside class="sidebar-left" id="leftDock" aria-label="Colonne latérale gauche — zone de dépôt"><div class="dock-empty" aria-hidden="true">Déposer un module ici</div>
   <div class="panel arpa-detail-panel">
     <h3>FICHE ARPA (CIBLE ACTIVE)</h3>
@@ -1939,19 +1957,22 @@ html,body{height:100%;min-height:0;overflow:hidden}
   </div>
 
   <div class="panel settings">
-    <h3>OUTILS DE MESURE (EBL / VRM)</h3>
+    <h3>MESURE (EBL / VRM / PARALLÈLE INDEX)</h3>
     <div class="measure-stack">
       <div class="measure-control">
-        <label>VRM (NM)<input id="vrm" type="number" min="0" max="24" step=".1" value="0"></label>
+        <label>VRM (NM)<input id="vrm" type="number" min="0" max="24" step=".1" value="0.0"></label>
         <button id="vrmToggle" class="measure-toggle is-off" type="button" aria-pressed="false">VRM OFF</button>
       </div>
       <div class="measure-control">
-        <label>EBL (°)<input id="ebl" type="number" min="0" max="360" step="0.1" value="0" inputmode="decimal"></label>
+        <label>EBL (°)<input id="ebl" type="number" min="0" max="360" step="0.1" value="0.0" inputmode="decimal"></label>
         <button id="eblToggle" class="measure-toggle is-off" type="button" aria-pressed="false">EBL OFF</button>
       </div>
+      <div class="measure-control index-measure-control"><label>Parallèle index · espacement depuis OWN (NM)<input id="indexLinesSpacing" type="number" min="0.1" max="24" step="0.1" value="1.0"></label><button id="indexLinesToggle" class="measure-toggle is-off" type="button" aria-pressed="false">Index OFF</button></div>
+      <label>Parallèle index · angle EBL (°)<input id="indexLineAngle" type="number" min="0" max="360" step="0.1" value="0.0"></label><span id="indexLinesValues" class="help" aria-live="polite">Parallèle index désactivé</span>
     </div>
-    <label>Décalage centre X (NM)<input id="offsetX" type="number" step=".1" value="0"></label>
-    <label>Décalage centre Y (NM)<input id="offsetY" type="number" step=".1" value="0"></label>
+    <label>Décalage centre X (NM)<input id="offsetX" type="number" step=".1" value="0.0"></label>
+    <label>Décalage centre Y (NM)<input id="offsetY" type="number" step=".1" value="0.0"></label>
+
 <button id="recenterBtn" type="button" style="width:100%;margin-top:6px">⌖ Recentrer</button>
     <div class="own-position-pad" aria-label="Position de l'own ship dans le PPI">
       <div id="ownPositionPad" class="pad" role="application" aria-label="Mini-carte de positionnement"><span id="ownPositionPoint" class="pad-point" role="button" aria-label="Own ship draggable"></span></div>
@@ -1960,6 +1981,7 @@ html,body{height:100%;min-height:0;overflow:hidden}
     <div class="row" style="margin-top:6px">
       <button id="rings" class="active">Anneaux ON</button>
       <button id="headingLine" class="active">Ligne de foi ON</button>
+
     </div>
     <label>Graduation de cap <button id="headingTicks" class="active">ON / OFF</button></label>
   </div>
@@ -1968,22 +1990,25 @@ html,body{height:100%;min-height:0;overflow:hidden}
     <h3>ALARMES & LIMITES ARPA</h3>
     <div class="mini">
       <label>Seuil CPA (NM)<input id="cpaLimit" type="number" min="0" max="10" step=".1" value="1.5"></label>
-      <label>Seuil TCPA (min)<input id="tcpaLimit" type="number" min="0" max="120" value="30"></label>
+      <label>Seuil TCPA (min)<input id="tcpaLimit" type="number" min="0" max="120" value="30.0"></label>
     </div>
     <div class="row" style="margin-top:6px">
       <button id="alarmEnable" class="active">Alarmes ON</button>
       <button id="guardEnable">Zone de garde OFF</button>
     </div>
     <div class="help">Alarme + anneau : une cible est signalée dès qu’elle entre dans ce rayon autour du navire.</div>
-    <label>Rayon de garde (NM)<input id="guardRadius" type="number" min=".1" max="24" step=".1" value="2"></label>
+    <label>Rayon de garde (NM)<input id="guardRadius" type="number" min=".1" max="24" step=".1" value="2.0"></label>
   </div>
 
 </aside>
 
-<!-- COLONNE CENTRALE : écran radar + barre de conduite, deux modules fixes en colonne -->
+<!-- Zone centrale de visualisation : le radar et les commandes de conduite restent liés au même écran de simulation. -->
 <div id="middleDock" class="middle-dock">
 <div class="radarbox">
-  <canvas id="radar"></canvas><button type="button" id="radarZoomReset" aria-label="Reset zoom (1x)" title="Reset zoom · Réinitialiser le zoom">1×</button>
+  <!-- Canevas radar : surface de visualisation et d’interaction principale avec les échos et les relèvements. -->
+<canvas id="radar" aria-label="Écran radar interactif — échos, relèvements et mesures"></canvas><button type="button" id="radarZoomReset" aria-label="Reset zoom (1x)" title="Reset zoom · Réinitialiser le zoom">1×</button>
+  <!-- Menu contextuel de démarrage : ses choix règlent le lancement de la simulation sans quitter l’écran radar. -->
+<div id="simulationStartMenu" class="sim-start-menu hidden" role="menu" aria-label="Options de démarrage de la simulation"><button id="setSimulationStartMenuItem" type="button" role="menuitem">Définir le départ de la simulation</button></div>
 
 <div id="bandPpiLabel" class="band-ppi-label" title="Bande radar">X-BAND</div>
 </div>
@@ -1992,24 +2017,24 @@ html,body{height:100%;min-height:0;overflow:hidden}
 <div id="helmBar" class="helm-bar panel-collapsible" aria-label="Conduite du navire">
   <div class="helm-header">
     <h3 role="button" tabindex="0" aria-expanded="true">CONDUITE DU NAVIRE · <span id="ownTypeLive" style="font-size:12px;color:var(--muted);font-weight:normal"></span></h3>
-    <div class="helm-live" aria-live="polite"><span>CAP <b id="capLive">35°</b></span><span>VITESSE <b id="speedLive">12.0 kn</b></span></div>
+    <div class="helm-live" aria-live="polite"><span>CAP <b id="capLive">35.0°</b></span><span>VITESSE <b id="speedLive">12.0 kn</b></span></div>
     <div class="helm-setpoints"><label>CAP °<input id="ownCourse" type="text" inputmode="decimal" min="0" max="359" value="35" autocomplete="off"></label><label>VITESSE kn<input id="ownSpeed" type="text" inputmode="decimal" min="0" max="40" step=".5" value="12" autocomplete="off"></label></div>
   </div>
   <div class="helm-controls" aria-label="Commandes de cap et de vitesse">
-    <div class="helm-group helm-course-neg"><button data-turn="-10" type="button">−10°</button><button data-turn="-1" type="button">−1°</button></div>
+    <div class="helm-group helm-course-neg"><button data-turn="-10" type="button">−10.0°</button><button data-turn="-1" type="button">−1.0°</button></div>
     <div class="helm-group helm-speed"><button data-speed="-.5" type="button">−0.5 kn</button><button data-speed=".5" type="button">+0.5 kn</button></div>
-    <div class="helm-group helm-course-pos"><button data-turn="1" type="button">+1°</button><button data-turn="10" type="button">+10°</button></div>
+    <div class="helm-group helm-course-pos"><button data-turn="1" type="button">+1.0°</button><button data-turn="10" type="button">+10.0°</button></div>
   </div>
 </div>
 </div>
 
-<!-- COLONNE DROITE : COMMANDES, CONDUITE NAVIRE ET PARAMÈTRES -->
+<!-- Panneau de commandes : regroupe l’état du scénario, les réglages radar et les commandes du navire. -->
 <aside class="controls" id="rightDock" aria-label="Modules de commandes">
   <div class="panel">
     <h3>SCÉNARIO ACTIF</h3>
     <div class="clock" id="clock">00:00</div>
-    <div class="readout"><span id="scenario">Veille côtière</span><span>VITESSE ×<b id="rateVal">1</b></span></div>
-    <div class="row" style="margin-top:9px"><button id="pause" class="play primary">▶ PLAY</button><button id="reset">↻ RESET</button></div>
+    <div class="readout"><span id="scenario">Veille côtière</span><span>VITESSE ×<b id="rateVal">1.0</b></span></div>
+    <div class="row" style="margin-top:9px"><button id="pause" class="play primary" aria-label="Démarrer ou mettre en pause la simulation">▶ PLAY</button><button id="reset" aria-label="Réinitialiser la simulation">↻ RESET</button></div>
     <div class="grid" style="margin-top:6px"><button data-rate="0.5">×0.5</button><button data-rate="1" class="active">×1</button><button data-rate="2">×2</button><button data-rate="4">×4</button><button data-rate="8">×8</button></div>
   </div>
 
@@ -2018,7 +2043,7 @@ html,body{height:100%;min-height:0;overflow:hidden}
     <div class="grid" id="ranges"></div>
     <div class="row" style="margin-top:7px"><button data-orient="north" class="active">N-UP</button><button data-orient="course">C-UP</button><button data-orient="head">H-UP</button></div>
     <div class="row" style="margin-top:6px"><button data-vec="rel" class="active">Vect. relatifs</button><button data-vec="true">Vect. vrais</button></div>
-    <label>GAIN <span id="gainVal">72</span>%</label><input id="gain" type="range" min="0" max="100" value="72">
+    <label>GAIN <span id="gainVal">72.0</span>%</label><input id="gain" type="range" min="0" max="100" value="72.0">
   </div>
 
   <div class="radar-utility-stack">
@@ -2027,18 +2052,18 @@ html,body{height:100%;min-height:0;overflow:hidden}
     <details open><summary>TRACES / VECTEURS</summary><div class="body">
       <label>Traces <select id="trailLen"><option value="0">Désactivées</option><option value="60">1 min</option><option value="180">3 min</option><option value="360">6 min</option></select></label>
       <div class="row"><button type="button" data-trailmode="rel" class="active">Trace relative</button><button type="button" data-trailmode="true">Trace vraie</button></div><button type="button" id="clearTrails" style="width:100%;margin-top:6px">⌫ Effacer les traces</button>
-      <label>Durée des vecteurs <select id="vectorDuration"><option>3</option><option>6</option><option>12</option><option>15</option><option>30</option></select> min</label>
+      <label>Durée des vecteurs <select id="vectorDuration"><option>3.0</option><option>6.0</option><option>12.0</option><option>15.0</option><option>30.0</option></select> min</label>
       <label>Historique de positions <select id="historyStep"><option value="0">Aucun</option><option value="15">15 s</option><option value="60">1 min</option></select></label>
     </div></details>
     <details open><summary>TRAITEMENT ÉCHO</summary><div class="body">
-      <label>Anti-clutter mer <input id="sea" type="range" min="0" max="100" value="25"><b id="seaVal">25</b></label>
-      <label>Anti-clutter pluie <input id="rain" type="range" min="0" max="100" value="0"><b id="rainVal">0</b></label>
-      <label>Contraste <input id="contrast" type="range" min="50" max="150" value="100"><b id="contrastVal">100</b></label>
-      <label>Brillance <input id="brightness" type="range" min="30" max="150" value="100"><b id="brightnessVal">100</b></label>
+      <label>Anti-clutter mer <input id="sea" type="range" min="0" max="100" value="25.0"><b id="seaVal">25.0</b></label>
+      <label>Anti-clutter pluie <input id="rain" type="range" min="0" max="100" value="0.0"><b id="rainVal">0.0</b></label>
+      <label>Contraste <input id="contrast" type="range" min="50" max="150" value="100.0"><b id="contrastVal">100.0</b></label>
+      <label>Brillance <input id="brightness" type="range" min="30" max="150" value="100.0"><b id="brightnessVal">100.0</b></label>
     </div></details>
   </div>
 
-  <div class="panel"><h3>SCÉNARIOS</h3><button id="loadExercise" class="primary" style="width:100%;margin-bottom:7px" type="button">↥ Charger exercice</button><input id="exerciseFileDirect" type="file" accept=".json,application/json" style="display:none"><div class="grid2" id="scens"><div id="exerciseList" style="display:contents"></div></div><div class="small" style="margin-top:7px">Format partagé avec generateur.html · chargement à l’arrêt</div></div>
+  <div class="panel"><h3>SCÉNARIOS</h3><button id="loadExercise" class="primary" style="width:100%;margin-bottom:7px" type="button" aria-label="Charger un exercice radar">↥ Charger exercice</button><input id="exerciseFileDirect" type="file" accept=".json,application/json" style="display:none"><div class="grid2" id="scens"><div id="exerciseList" style="display:contents"></div></div><div class="small" style="margin-top:7px">Format partagé avec generateur.html · chargement à l’arrêt</div></div>
 </div>
 </aside>
 </div>
@@ -2046,13 +2071,13 @@ html,body{height:100%;min-height:0;overflow:hidden}
 
 </section>
 
-  <!-- Tableau CPA/TCPA à la demande, hors des colonnes dockables. -->
+  
 <!-- Tableau CPA/TCPA flottant, affiché uniquement à la demande. Le bouton est intégré à l’en-tête pour rester dans le flux et ne recouvrir aucun module. -->
 <div id="arpaTable" class="panel arpa-table-panel arpa-fixed-bottom" aria-label="Tableau CPA et TCPA" aria-hidden="true">
   <div class="arpa-resize-handle" id="arpaResizeHandle" role="separator" aria-label="Redimensionner la hauteur du tableau CPA/TCPA" aria-orientation="horizontal" tabindex="0"></div>
   <header class="arpa-fixed-heading">
     <h3>CPA / TCPA — SUIVI DES CIBLES</h3>
-    <div class="legend"><span>● contact radar</span><span>△ pêche</span><span>⊘ mouillage</span><span>⚠ CPA sous seuil / TCPA dans seuil</span></div>
+    <div class="legend"><span>● contact radar</span><span>△ pêche</span><span>⊘ mouillage</span><span>Alerte CPA sous seuil / TCPA dans seuil</span></div>
   </header>
   <div class="arpa-table-body">
     <table><thead><tr><th>CIBLE</th><th>TYPE</th><th>RELÈV. °</th><th>DIST. NM</th><th>CAP °</th><th>VIT. kn</th><th>CPA NM</th><th>TCPA</th><th>ÉTAT</th></tr></thead><tbody id="tbody"></tbody></table>
@@ -2060,6 +2085,7 @@ html,body{height:100%;min-height:0;overflow:hidden}
 </div>
 
 <div class="footer">SIMULATEUR HORS LIGNE · données locales uniquement</div></div><div id="collisionOverlay" class="collision-overlay" role="alertdialog" aria-modal="true" aria-labelledby="collisionTitle"><div class="collision-card"><h2 id="collisionTitle">COLLISION</h2><p id="collisionMessage">Collision détectée</p><button id="collisionReset" type="button">↻ Recommencer</button></div></div><div id="toast" class="toast"></div>
+<!-- Fenêtre flottante de chargement : la boîte de dialogue est libellée par son titre, l’arrière-plan restant masqué tant qu’elle est ouverte. -->
 <div id="exerciseModal" class="exercise-overlay" aria-hidden="true" role="presentation">
 <div class="exercise-modal" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" tabindex="-1">
 <div class="exercise-modal-header"><div><h2 id="exerciseModalTitle">Charger un exercice</h2><div class="small">Exercices intégrés + banque de cas réels reconstitués (BEA MER / MAIB / DMAIB / BSU) + sauvegardes locales. Citation au survol.</div></div><button id="closeExerciseModal" class="exercise-modal-close" type="button" aria-label="Fermer">×</button></div>
@@ -2126,6 +2152,13 @@ const OWN_SHIP_PRESETS={
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
 function ownShipPreset(id){return OWN_SHIP_PRESETS[id]||OWN_SHIP_PRESETS.cargo}
+/* Renvoie les performances propres en priorisant les champs custom importés; les scénarios anciens utilisent le preset historique. */
+function vesselPerformance(v){const p=ownShipPreset(v?.shipType||'cargo'),c=v?.custom||{};const legacyMax=Number.isFinite(+c.speed)&&c.speed!==''?Math.max(0,+c.speed):p.maxSpeed;const minSpeed=Math.max(0,Number.isFinite(+c.speedMin)?+c.speedMin:0),maxSpeed=Math.max(minSpeed,Number.isFinite(+c.speedMax)?+c.speedMax:legacyMax);return {...p,minSpeed,maxSpeed,turnRate:Number(c.turnRate)>0?Number(c.turnRate):p.turnRate}}
+function resolveOwnCustomType(v=S.own,types=S.customShipTypes){return (Array.isArray(types)?types:[]).find(t=>t&&t.id===v?.customTypeId)||v?.custom||{}}
+function ownSpeedBounds(v=S.own){const p=ownShipPreset(v?.shipType||'cargo'),c=resolveOwnCustomType(v);const hasSpeed=Number.isFinite(+c.speed)&&c.speed!=='';const legacy=hasSpeed?Math.max(0,+c.speed):p.maxSpeed,hasBounds=Number.isFinite(+c.speedMin)||Number.isFinite(+c.speedMax);if(hasSpeed&&!hasBounds)return[legacy,legacy];const min=Math.max(0,Number.isFinite(+c.speedMin)?+c.speedMin:0),max=Math.max(min,Number.isFinite(+c.speedMax)?+c.speedMax:legacy);return[min,max]}
+function clampOwnSpeed(value,v=S.own){if(v?.condition==='anchor')return 0;const[lo,hi]=ownSpeedBounds(v);return Math.max(lo,Math.min(hi,Number.isFinite(+value)?+value:lo))}
+function setOwnCommandSpeed(value,state=S){state.own._cmdS=clampOwnSpeed(value,state.own);return state.own._cmdS}
+function syncOwnSpeedControl(input,state=S){const [min,max]=ownSpeedBounds(state.own);input.min=min;input.max=max;state.own.s=clampOwnSpeed(state.own.s,state.own);state.own._cmdS=clampOwnSpeed(state.own._cmdS??state.own.s,state.own);return input}
 /**
  * Rôle : fonction ownShipTypeName; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -2605,8 +2638,15 @@ function targetInAnyRainZone(state,a){
  * @param {*} skipStart Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function normalizeExercise(x,skipStart=false){if(!x||typeof x!=='object'||!x.own)throw Error('Format JSON incompatible');let ships=Array.isArray(x.ships)?x.ships:(Array.isArray(x.targets)?x.targets.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:a.x,y:a.y,c:a.c,s:a.s,name:a.name,type:a.type,shipType:a.shipType})):null);if(!ships)throw Error('Format JSON incompatible');let out={version:'radar-exercice-1',name:String(x.name||'Exercice'),own:{x:+(x.own.x||0),y:+(x.own.y||0),c:norm(+(x.own.c||0)),s:Math.min(ownShipPreset(x.own.shipType).maxSpeed,Math.max(0,+(x.own.s||0))),type:['normal','fish','nuc','anchor','sailboat'].includes(x.own.type)?x.own.type:'normal',shipType:canonicalShipType(x.own.shipType||x.own.type),condition:canonicalCondition(x.own.condition,x.own.type)},/* V96: per-target ghostEcho preserved (was lost in normalization). */
-ships:ships.map((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:+a.x||0,y:+a.y||0,c:norm(+a.c||0),s:(a.condition==='anchor'||a.type==='anchor')?0:Math.min(ownShipPreset(a.shipType||'cargo').maxSpeed,Math.max(0,+a.s||0)),shipType:OWN_SHIP_PRESETS[a.shipType]?a.shipType:'cargo',name:String(a.name||'C-'+String(i+1).padStart(2,'0')),type:['normal','fish','nuc','anchor','sailboat'].includes(a.type)?a.type:'normal',condition:canonicalCondition(a.condition,a.type),ghostEcho:!!a.ghostEcho,maneuvers:Array.isArray(a.maneuvers)?a.maneuvers.map(m/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} m Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({cap:m?.cap==null?null:norm(+m.cap),vitesse:m?.vitesse==null?null:Math.max(0,+m.vitesse),x:+(m?.x??0)||0,y:+(m?.y??m?.lat??0)||0,lat:+(m?.lat??m?.y??0)||0})).filter(m/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} m Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Number.isFinite(m.x)&&Number.isFinite(m.y)):[]})),coast:normalizeCoasts(x),dsts:Array.isArray(x.dsts)?x.dsts.map(normalizeDST).filter(Boolean):[],rainZones:normalizeRainZones(x),scale:+x.scale||6,vec:x.vec||'rel',band:x.band==='S'?'S':'X',echoDegradation:(()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{const d=x.echoDegradation||{};const n=k/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} k Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Math.max(0,Math.min(100,Number.isFinite(+d[k])?+d[k]:0));const ss=Number.isFinite(+d.seaState)?Math.max(0,Math.min(9,Math.round(+d.seaState))):0;return {sea:n('sea'),rain:n('rain'),noise:n('noise'),weak:n('weak'),flicker:n('flicker'),rainClouds:!!d.rainClouds,ghostEchoes:!!d.ghostEchoes,seaState:ss}})()};if(!skipStart&&x.simulationStart&&x.simulationStart.own)out.simulationStart=normalizeExercise(x.simulationStart,true);return out;}
+/* Normalise le passage exporté par le générateur; l'absence du champ reste valide pour les anciens exercices. */
+function normalizePassagePlanning(p){
+  if(!p||typeof p!=='object')return null;
+  const point=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y)?{x:+q.x,y:+q.y}:null;
+  const depart=point(p.depart),arrivee=point(p.arrivee),points=Array.isArray(p.points)?p.points.map(point).filter(Boolean):[];
+  return depart||arrivee||points.length?{depart,points,arrivee,xtd:Number.isFinite(+p.xtd)?Math.max(0,Math.min(5,+p.xtd)):.5}:null;
+}
+function normalizeExercise(x,skipStart=false){if(!x||typeof x!=='object'||!x.own)throw Error('Format JSON incompatible');let ships=Array.isArray(x.ships)?x.ships:(Array.isArray(x.targets)?x.targets.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:a.x,y:a.y,c:a.c,s:a.s,name:a.name,type:a.type,shipType:a.shipType})):null);if(!ships)throw Error('Format JSON incompatible');let customShipTypes=Array.isArray(x.customShipTypes)?x.customShipTypes.filter(t=>t&&t.id).map(t=>({id:String(t.id),name:String(t.name||'Navire'),speed:Math.max(0,+t.speed||0),speedMin:Math.max(0,(!Number.isFinite(+t.speedMin)&&!Number.isFinite(+t.speedMax)&&Number.isFinite(+t.speed)&&t.speed!=='')?+t.speed:(Number.isFinite(+t.speedMin)?+t.speedMin:0)),speedMax:Math.max(Math.max(0,(!Number.isFinite(+t.speedMin)&&!Number.isFinite(+t.speedMax)&&Number.isFinite(+t.speed)&&t.speed!=='')?+t.speed:(Number.isFinite(+t.speedMin)?+t.speedMin:0)),Number.isFinite(+t.speedMax)?+t.speedMax:(Number.isFinite(+t.speed)?Math.max(0,+t.speed):12)),turnRate:Math.max(.1,+t.turnRate||3),length:Math.max(1,+t.length||1),beam:Math.max(1,+t.beam||1),echo:Math.max(.01,+t.echo||.08),color:/^#[0-9a-f]{6}$/i.test(t.color||'')?t.color:'#49d6b3'})):[];const resolveCustom=v=>{const t=customShipTypes.find(q=>q.id===v?.customTypeId);if(t)return {name:t.name,speed:t.speed,speedMin:t.speedMin,speedMax:t.speedMax,turnRate:t.turnRate,length:t.length,width:t.beam,echoSize:t.echo,color:t.color};if(v?.custom&&typeof v.custom==='object')return {...v.custom};return undefined};const normalizedSpeed=(v,custom,fallback)=>{const raw=custom||{},hasSpeed=Number.isFinite(+raw.speed)&&raw.speed!=='',legacy=hasSpeed?Math.max(0,+raw.speed):fallback,hasBounds=Number.isFinite(+raw.speedMin)||Number.isFinite(+raw.speedMax),lo=hasSpeed&&!hasBounds?legacy:Math.max(0,Number.isFinite(+raw.speedMin)?+raw.speedMin:0),hi=hasSpeed&&!hasBounds?legacy:Math.max(lo,Number.isFinite(+raw.speedMax)?+raw.speedMax:legacy);return Math.max(lo,Math.min(hi,Number.isFinite(+v)?+v:lo))};let out={version:'radar-exercice-1',name:String(x.name||'Exercice'),customShipTypes,own:{x:+(x.own.x||0),y:+(x.own.y||0),c:norm(+(x.own.c||0)),s:normalizedSpeed(x.own.s,resolveCustom(x.own),ownShipPreset(x.own.shipType).maxSpeed),custom:resolveCustom(x.own),customTypeId:x.own.customTypeId||undefined,type:['normal','fish','nuc','anchor','sailboat'].includes(x.own.type)?x.own.type:'normal',shipType:canonicalShipType(x.own.shipType||x.own.type),condition:canonicalCondition(x.own.condition,x.own.type)},/* V96: per-target ghostEcho preserved (was lost in normalization). */
+ships:ships.map((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:+a.x||0,y:+a.y||0,c:norm(+a.c||0),s:(a.condition==='anchor'||a.type==='anchor')?0:normalizedSpeed(a.s,resolveCustom(a),ownShipPreset(a.shipType||'cargo').maxSpeed),shipType:OWN_SHIP_PRESETS[a.shipType]?a.shipType:'cargo',name:String(a.name||'C-'+String(i+1).padStart(2,'0')),type:['normal','fish','nuc','anchor','sailboat'].includes(a.type)?a.type:'normal',condition:canonicalCondition(a.condition,a.type),ghostEcho:!!a.ghostEcho,custom:resolveCustom(a),customTypeId:a.customTypeId||undefined,maneuvers:Array.isArray(a.maneuvers)?a.maneuvers.map(m/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} m Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({cap:m?.cap==null?null:norm(+m.cap),vitesse:m?.vitesse==null?null:Math.max(0,+m.vitesse),x:+(m?.x??0)||0,y:+(m?.y??m?.lat??0)||0,lat:+(m?.lat??m?.y??0)||0})).filter(m/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} m Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Number.isFinite(m.x)&&Number.isFinite(m.y)):[]})),coast:normalizeCoasts(x),dsts:Array.isArray(x.dsts)?x.dsts.map(normalizeDST).filter(Boolean):[],rainZones:normalizeRainZones(x),passage:normalizePassagePlanning(x.passage),scale:+x.scale||6,vec:x.vec||'rel',band:x.band==='S'?'S':'X',echoDegradation:(()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{const d=x.echoDegradation||{};const n=k/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} k Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Math.max(0,Math.min(100,Number.isFinite(+d[k])?+d[k]:0));const ss=Number.isFinite(+d.seaState)?Math.max(0,Math.min(9,Math.round(+d.seaState))):0;return {sea:n('sea'),rain:n('rain'),noise:n('noise'),weak:n('weak'),flicker:n('flicker'),rainClouds:!!d.rainClouds,ghostEchoes:!!d.ghostEchoes,seaState:ss}})()};if(!skipStart&&x.simulationStart&&x.simulationStart.own)out.simulationStart=normalizeExercise({...x.simulationStart,customShipTypes:x.customShipTypes||x.simulationStart.customShipTypes},true);return out;}
 /* Snapshot propre à l'exercice actif. Il ne contient volontairement aucune préférence
    d'affichage (range, orientation, vecteurs, modules, langue, EBL/VRM, etc.). */
 /**
@@ -2615,14 +2655,14 @@ ships:ships.map((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le
  * Aucun paramètre.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function captureExerciseSnapshot(){return {own:clone(S.own),targets:clone(S.targets),coast:clone(S.coast),dsts:clone(S.dsts||[]),rainZones:clone(S.rainZones||[]),time:0,cUpHeading:S.own.c,trailSample:0,trailSeq:0,trails:[],history:[],selected:null,lastAlarm:false,collision:null,dstAlert:false,ownPosition:{x:+S.settings.offsetX||0,y:+S.settings.offsetY||0}}}
+function captureExerciseSnapshot(){return {own:clone(S.own),targets:clone(S.targets),coast:clone(S.coast),dsts:clone(S.dsts||[]),rainZones:clone(S.rainZones||[]),passage:clone(S.passage||null),simulationStartFlag:clone(S.simulationStartFlag),time:0,cUpHeading:S.own.c,trailSample:0,trailSeq:0,trails:[],history:[],selected:null,lastAlarm:false,collision:null,dstAlert:false,ownPosition:{x:+S.settings.offsetX||0,y:+S.settings.offsetY||0}}}
 /**
  * Rôle : fonction restoreExerciseSnapshot; voir le contexte de définition pour l’opération précise.
  * Paramètres :
  * Aucun paramètre.
  * Appelant : gestionnaire d’interface (propriété on*).
  */
-function restoreExerciseSnapshot(){if(!S.initial)return;const i=S.initial;S.own=clone(i.own);S.targets=clone(i.targets);S.coast=clone(i.coast);S.dsts=clone(i.dsts||[]);S.rainZones=clone(i.rainZones||[]);S.time=0;S.cUpHeading=i.cUpHeading??S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.selected=null;S.lastAlarm=false;S.collision=null;S.dstAlert=false;S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});/* Le drapeau own ship fait partie du point de départ, pas des préférences visuelles. */if(i.ownPosition){S.settings.offsetX=i.ownPosition.x;S.settings.offsetY=i.ownPosition.y;$('#offsetX').value=Number(S.settings.offsetX).toFixed(1);$('#offsetY').value=Number(S.settings.offsetY).toFixed(1);}/* V96: anti-clutter mer/pluie forcés à 0 au Reset. */
+function restoreExerciseSnapshot(){if(!S.initial)return;const i=S.initial;S.own=clone(i.own);S.targets=clone(i.targets);S.coast=clone(i.coast);S.dsts=clone(i.dsts||[]);S.rainZones=clone(i.rainZones||[]);S.passage=clone(i.passage||null);S.simulationStartFlag=clone(i.simulationStartFlag||null);S.time=0;S.cUpHeading=i.cUpHeading??S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.selected=null;S.lastAlarm=false;S.collision=null;S.dstAlert=false;S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});/* Le drapeau own ship fait partie du point de départ, pas des préférences visuelles. */if(i.ownPosition){S.settings.offsetX=i.ownPosition.x;S.settings.offsetY=i.ownPosition.y;$('#offsetX').value=Number(S.settings.offsetX).toFixed(1);$('#offsetY').value=Number(S.settings.offsetY).toFixed(1);}/* V96: anti-clutter mer/pluie forcés à 0 au Reset. */
 resetAntiClutter();closeCollision();S._sweepEpoch=null;S._coastCache=null;S.paused=true;$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='VEILLE';render()}
 /* resolveStartScene(ex) — filet de sécurité au chargement d'un exercice.
    Certains exercices générés portent un bloc "simulationStart" destiné à représenter
@@ -2671,6 +2711,7 @@ function resolveStartScene(ex){
     if(Array.isArray(ex.dsts)&&ex.dsts.length) repaired.dsts=ex.dsts;
   }
   if(!repaired.echoDegradation&&ex.echoDegradation) repaired.echoDegradation=ex.echoDegradation;
+  if(!repaired.passage&&ex.passage) repaired.passage=ex.passage;
   if(!repaired.band&&ex.band) repaired.band=ex.band;
   console.warn('simulationStart sans navires : repli sur ex.ships');
   ex.simulationStart=repaired;
@@ -2688,8 +2729,8 @@ function resolveStartScene(ex){
 function resetAntiClutter(){
   S.settings.sea=0;
   S.settings.rain=0;
-  let _seaInput=$('#sea');if(_seaInput){_seaInput.value=0;let _sv=$('#seaVal');if(_sv)_sv.textContent='0';}
-  let _rainInput=$('#rain');if(_rainInput){_rainInput.value=0;let _rv=$('#rainVal');if(_rv)_rv.textContent='0';}
+  let _seaInput=$('#sea');if(_seaInput){_seaInput.value=0;let _sv=$('#seaVal');if(_sv)_sv.textContent='0.0';}
+  let _rainInput=$('#rain');if(_rainInput){_rainInput.value=0;let _rv=$('#rainVal');if(_rv)_rv.textContent='0.0';}
   saveSettings();
 }
 /**
@@ -2698,9 +2739,11 @@ function resetAntiClutter(){
  * @param {*} x Paramètre transmis par l’appelant.
  * Appelant : gestionnaire d’interface (propriété on*).
  */
-function loadExercise(x){let b=normalizeExercise(resolveStartScene(x));let start=b.simulationStart||b;S.idx=-1;S.own=clone(start.own);S.own.shipType=OWN_SHIP_PRESETS[S.own.shipType]?S.own.shipType:'cargo';S.own._cmdC=S.own.c;S.own._cmdS=S.own.s;S.targets=clone(start.ships);S.coast=clone(start.coast);S.dsts=clone(start.dsts||[]);S.rainZones=clone(start.rainZones||[]);S.scale=start.scale;S.vec=start.vec||S.vec;S.band=b.band==='S'?'S':'X';if(window.setRadarBand)window.setRadarBand(S.band);S.echoDegradation=start.echoDegradation||{sea:0,rain:0,noise:0,weak:0,flicker:0,rainClouds:false,ghostEchoes:false,seaState:0};resetAntiClutter();S.rate=1;S.time=0;S.paused=true;S.cUpHeading=S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});S.selected=null;S.lastAlarm=false;S.collision=null;S.initial=captureExerciseSnapshot();S._sweepEpoch=null;S._coastCache=null;closeCollision();$('#scenario').textContent=b.name;$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='VEILLE';render();toast('Exercice chargé · simulation à l’arrêt')}
+function loadExercise(x){let b=normalizeExercise(resolveStartScene(x));let start=b.simulationStart||b;S.simulationStartFlag=null;S.idx=-1;S.customShipTypes=clone(b.customShipTypes||[]);S.own=clone(start.own);S.own.isOwn=true;S.own.id='own';S.own.shipType=OWN_SHIP_PRESETS[S.own.shipType]?S.own.shipType:'cargo';S.own.s=clampOwnSpeed(S.own.s,S.own);S.own._cmdC=S.own.c;S.own._cmdS=clampOwnSpeed(S.own.s,S.own);S.targets=clone(start.ships);S.coast=clone(start.coast);S.dsts=clone(start.dsts||[]);S.rainZones=clone(start.rainZones||[]);S.passage=clone(start.passage||null);S.scale=start.scale;S.vec=start.vec||S.vec;S.band=b.band==='S'?'S':'X';if(window.setRadarBand)window.setRadarBand(S.band);S.echoDegradation=start.echoDegradation||{sea:0,rain:0,noise:0,weak:0,flicker:0,rainClouds:false,ghostEchoes:false,seaState:0};resetAntiClutter();S.rate=1;S.time=0;S.paused=true;S.cUpHeading=S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});S.selected=null;S.lastAlarm=false;S.collision=null;S.initial=captureExerciseSnapshot();S._sweepEpoch=null;S._coastCache=null;closeCollision();$('#scenario').textContent=b.name;$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='VEILLE';render();toast('Exercice chargé · simulation à l’arrêt')}
 
-let S={idx:0,own:{x:0,y:0,c:35,s:12,shipType:'cargo'},targets:[],time:0,scale:6,orient:'north',vec:'rel',rate:1,paused:true,gain:72,cUpHeading:35,trailSample:0,settings:{trailLen:60,trailMode:'rel',vectorDuration:6,historyStep:30,sea:25,rain:0,contrast:100,brightness:100,pulseWidth:'MP',rainClouds:false,gainGhosts:false,vrm:0,ebl:0,vrmOn:false,eblOn:false,offsetX:0,offsetY:0,rings:true,headingLine:true,headingTicks:true,cpaLimit:1.5,tcpaLimit:30,alarm:true,guard:false,guardRadius:2},trails:[],trailSeq:0,history:[],selected:null,lastAlarm:false,collision:null,initial:null,coast:[],dsts:[],rainZones:[],dstAlert:false,band:'X',echoDegradation:{sea:0,rain:0,noise:0,weak:0,flicker:0,rainClouds:false,ghostEchoes:false,seaState:0}};
+/* Seuil de risque RIPAM : CPA prédit strictement inférieur à 0,5 NM. */
+const COLREG_CPA_NM = 0.5;
+let S={idx:0,own:{x:0,y:0,c:35,s:12,shipType:'cargo'},customShipTypes:[],targets:[],time:0,scale:6,orient:'north',vec:'rel',rate:1,paused:true,gain:72,cUpHeading:35,trailSample:0,settings:{trailLen:60,trailMode:'rel',vectorDuration:6,historyStep:30,sea:25,rain:0,contrast:100,brightness:100,pulseWidth:'MP',rainClouds:false,gainGhosts:false,vrm:0,ebl:0,vrmOn:false,eblOn:false,offsetX:0,offsetY:0,rings:true,headingLine:true,headingTicks:true,indexLines:false,indexLineSpacing:1,indexLineAngle:0,colreg:true,cpaLimit:1.5,tcpaLimit:30,alarm:true,guard:false,guardRadius:2},trails:[],trailSeq:0,history:[],selected:null,lastAlarm:false,collision:null,initial:null,simulationStartFlag:null,coast:[],dsts:[],rainZones:[],passage:null,dstAlert:false,band:'X',echoDegradation:{sea:0,rain:0,noise:0,weak:0,flicker:0,rainClouds:false,ghostEchoes:false,seaState:0}};
 /**
  * Rôle : fonction clone; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -2803,7 +2846,7 @@ let savedSettings=null;try{savedSettings=localStorage.getItem('radar-settings')}
  * Aucun paramètre.
  * Appelant : gestionnaire d’interface (propriété on*).
  */
-function syncMeasureToggles(){[['vrmToggle','vrmOn','VRM'],['eblToggle','eblOn','EBL']].forEach(([id,key,label])/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * @param {*} key Paramètre transmis par l’appelant.  * @param {*} label Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let e=$('#'+id);if(!e)return;e.classList.toggle('is-on',!!S.settings[key]);e.classList.toggle('is-off',!S.settings[key]);e.setAttribute('aria-pressed',String(!!S.settings[key]));e.textContent=label+' '+(S.settings[key]?'ON':'OFF')})}
+function syncMeasureToggles(){[['vrmToggle','vrmOn','VRM'],['eblToggle','eblOn','EBL'],['indexLinesToggle','indexLines','Index']].forEach(([id,key,label])/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * @param {*} key Paramètre transmis par l’appelant.  * @param {*} label Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let e=$('#'+id);if(!e)return;e.classList.toggle('is-on',!!S.settings[key]);e.classList.toggle('is-off',!S.settings[key]);e.setAttribute('aria-pressed',String(!!S.settings[key]));e.textContent=label+' '+(S.settings[key]?'ON':'OFF')})}
 /**
  * Rôle : fonction saveSettings; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -2924,7 +2967,7 @@ function dstAlertCheck(){if(!S.dsts?.length){S.dstAlert=false;return;}const d=S.
  * Aucun paramètre.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function alarmCheck(){dstAlertCheck();let cpaHit=S.targets.some(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>dangerous(motion(a))),guardHit=S.settings.guard&&S.targets.some(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Math.hypot(a.x-S.own.x,a.y-S.own.y)<=+S.settings.guardRadius);let hit=cpaHit||guardHit;if(hit&&!S.lastAlarm&&S.settings.alarm){toast(guardHit?'⚠ ALARME ZONE DE GARDE':'⚠ ALARME CPA/TCPA');try{let c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.frequency.value=720;g.gain.value=.08;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.35)}catch(e){}}S.lastAlarm=hit}
+function alarmCheck(){dstAlertCheck();let cpaHit=S.targets.some(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>dangerous(motion(a))),guardHit=S.settings.guard&&S.targets.some(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Math.hypot(a.x-S.own.x,a.y-S.own.y)<=+S.settings.guardRadius);let hit=cpaHit||guardHit;if(hit&&!S.lastAlarm&&S.settings.alarm){toast(guardHit?'Alerte ALARME ZONE DE GARDE':'Alerte ALARME CPA/TCPA');try{let c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.frequency.value=720;g.gain.value=.08;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.35)}catch(e){}}S.lastAlarm=hit}
 /**
  * Rôle : fonction bindSetting; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -2933,16 +2976,16 @@ function alarmCheck(){dstAlertCheck();let cpaHit=S.targets.some(a/**  * Rôle : 
  * @param {*} type Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function bindSetting(id,key,type='value'){let e=$('#'+id);if(!e)return; e.value=S.settings[key];e.oninput=e.onchange=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.settings[key]=type==='number'?+e.value:e.value;saveSettings();render()}}
+function bindSetting(id,key,type='value'){let e=$('#'+id);if(!e)return; e.value=type==='number'?Number(S.settings[key]).toFixed(1):S.settings[key];e.oninput=e.onchange=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.settings[key]=type==='number'?+e.value:e.value;saveSettings();render()}}
 /**
  * Rôle : fonction loadScenario; voir le contexte de définition pour l’opération précise.
  * Paramètres :
  * @param {*} i Paramètre transmis par l’appelant.
  * Appelant : gestionnaire d’interface (propriété on*).
  */
-function loadScenario(i){let b=scenarios[i];S.idx=i;S.own={x:b.own.x,y:b.own.y,c:b.own.c,s:b.own.s,shipType:'cargo',_cmdC:b.own.c,_cmdS:b.own.s};S.targets=b.t.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:a[0],y:a[1],c:a[2],s:a[3],name:a[4],type:a[5]}));// Built-in scenarios have no coast/dsts: reset both so a coast/dst loaded
+function loadScenario(i){let b=scenarios[i];S.simulationStartFlag=null;S.idx=i;S.own={x:b.own.x,y:b.own.y,c:b.own.c,s:b.own.s,shipType:'cargo',isOwn:true,id:'own',_cmdC:b.own.c,_cmdS:b.own.s};S.own.s=clampOwnSpeed(S.own.s,S.own);S.own._cmdS=S.own.s;S.targets=b.t.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:a[0],y:a[1],c:a[2],s:a[3],name:a[4],type:a[5]}));// Built-in scenarios have no coast/dsts: reset both so a coast/dst loaded
   // by a previous BANK or generator exercise never bleeds into this scenario.
-  S.coast=[];S.dsts=[];S.time=0;S.paused=true;S.cUpHeading=S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});S.selected=null;S.lastAlarm=false;S.collision=null;S.initial=captureExerciseSnapshot();S._sweepEpoch=null;S._coastCache=null;closeCollision();render()}
+  S.coast=[];S.dsts=[];S.rainZones=[];S.passage=null;S.time=0;S.paused=true;S.cUpHeading=S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});S.selected=null;S.lastAlarm=false;S.collision=null;S.initial=captureExerciseSnapshot();S._sweepEpoch=null;S._coastCache=null;closeCollision();render()}
 /**
  * Rôle : fonction conditionLabel; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -3292,7 +3335,7 @@ function dstRouteUpdate(a,dt){
     const exited=flow>0?z.along>z.g.L+.04:z.along<-.04;
     if(exited){delete a._dstIndex;delete a._dstLane;delete a._dstFlow;delete a._dstDesired;return false;}
     const desired=dstLaneHeading(a,active,z),diff=((desired-a.c+540)%360)-180;
-    const tp=ownShipPreset(a.shipType||'cargo'); const maxTurn=tp.turnRate*conditionMultiplier(a)*dt;
+    const tp=vesselPerformance(a); const maxTurn=tp.turnRate*conditionMultiplier(a)*dt;
     a.c=norm(a.c+Math.max(-maxTurn,Math.min(maxTurn,diff)));
     a._dstDesired=desired; return true;
   }
@@ -3319,9 +3362,9 @@ function routeUpdate(a,dt){
   if(m&&Math.hypot((+m.x||0)-a.x,(+m.y||0)-a.y)<=.06){a._wp=wi+1;wi++;m=route[wi];}
   if(!m)return;
   const desired=norm(Math.atan2((+m.x||0)-a.x,(+m.y||0)-a.y)/D);
-  const diff=((desired-a.c+540)%360)-180; const tp=ownShipPreset(a.shipType||'cargo'); const maxTurn=tp.turnRate*conditionMultiplier(a)*dt;
+  const diff=((desired-a.c+540)%360)-180; const tp=vesselPerformance(a); const maxTurn=tp.turnRate*conditionMultiplier(a)*dt;
   a.c=norm(a.c+Math.max(-maxTurn,Math.min(maxTurn,diff)));
-  const targetSpeed=Math.min(tp.maxSpeed,m.vitesse==null?a.s:Math.max(0,+m.vitesse||0)), accel=(targetSpeed>=a.s?tp.accel:tp.decel)*dt;
+  const targetSpeed=Math.max(tp.minSpeed,Math.min(tp.maxSpeed,m.vitesse==null?a.s:Math.max(0,+m.vitesse||0))), accel=(targetSpeed>=a.s?tp.accel:tp.decel)*dt;
   a.s+=Math.max(-accel,Math.min(accel,targetSpeed-a.s));
   a._routeTarget=wi;
 }
@@ -3332,7 +3375,82 @@ function routeUpdate(a,dt){
  * @param {*} state Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function step(dt,state=S){let ox=state.own.x,oy=state.own.y;let prevTargets=new Map((state.targets||[]).map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>[a,{x:a.x,y:a.y,ox,oy}]));let op=ownShipPreset(state.own.shipType);state.own._cmdC=Number.isFinite(+state.own._cmdC)?+state.own._cmdC:state.own.c;state.own._cmdS=Number.isFinite(+state.own._cmdS)?+state.own._cmdS:state.own.s;let cd=((state.own._cmdC-state.own.c+540)%360)-180;let turn=Math.min(Math.abs(cd),op.turnRate*dt,op.maxClickTurn);state.own.c=norm(state.own.c+Math.sign(cd)*turn);let targetS=state.own.condition==='anchor'?0:Math.max(0,Math.min(op.maxSpeed,state.own._cmdS));let sr=targetS>=state.own.s?op.accel:op.decel;state.own.s+=Math.max(-sr*dt,Math.min(sr*dt,targetS-state.own.s));let ov=vel(state.own.c,state.own.s);state.own.x+=ov[0]*dt/3600;state.own.y+=ov[1]*dt/3600;state.targets?.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{routeUpdate(a,dt);const tp=ownShipPreset(a.shipType||'cargo');if(a.condition==='anchor'){a.s=0;return;}a.s=Math.min(tp.maxSpeed,Math.max(0,a.s));if(a.type==='anchor')return;if(a.condition==='nuc')a.c=norm(a.c+(Math.random()-.5)*10*Math.sqrt(Math.max(dt,0)));let v=vel(a.c,a.s);a.x+=v[0]*dt/3600;a.y+=v[1]*dt/3600});let oldTime=state.time;state.time+=dt;let st=state.settings;if(st.trailLen>0){let sample=state.trailSample||0;while(state.time-sample>=TRAIL_INTERVAL){sample+=TRAIL_INTERVAL;state.trailSeq=(state.trailSeq||0)+1;state.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=a._trail||[];if(Number.isFinite(a.x)&&Number.isFinite(a.y)&&Number.isFinite(state.own.x)&&Number.isFinite(state.own.y))a._trail.push({x:a.x,y:a.y,ownX:state.own.x,ownY:state.own.y,t:sample,seq:state.trailSeq});a._trail=a._trail.filter(p/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} p Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let q=trailSampleValues(p);return validTrailSample(p)&&state.time-q.t<=st.trailLen})})}state.trailSample=sample}else{state.targets?.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>a._trail=[]);state.trailSample=state.time}if(st.historyStep>0&&Math.floor(state.time/st.historyStep)!==Math.floor(oldTime/st.historyStep)){state.history.push({t:state.time,targets:state.targets.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>[a.x,a.y])});if(state.history.length>360)state.history.splice(0,state.history.length-360);}collisionCheck({x:ox,y:oy},prevTargets);alarmCheck();
+/* RIPAM : positions en NM, vitesses en kn et temps en heures. Le risque est
+ * déclenché uniquement si le CPA prédit est strictement inférieur à 0,5 NM.
+ * Le navire OWN est exclu de toute paire d'évitement; seules les cibles sont traitées. */
+function decideColreg(a,b,randomFn=Math.random){
+  const bearing=(from,to)=>((Math.atan2(to.x-from.x,to.y-from.y)/D)%360+360)%360;
+  const rel=(angle,heading)=>((angle-heading+540)%360)-180;
+  const ab=bearing(a,b),ba=bearing(b,a),ra=rel(ab,a.c),rb=rel(ba,b.c);
+  const va=[Math.sin(a.c*D)*a.s,Math.cos(a.c*D)*a.s],vb=[Math.sin(b.c*D)*b.s,Math.cos(b.c*D)*b.s];
+  const rx=vb[0]-va[0],ry=vb[1]-va[1],px=b.x-a.x,py=b.y-a.y,v2=rx*rx+ry*ry;
+  const tc=v2?-(px*rx+py*ry)/v2:Infinity,cpa=tc>=0?Math.hypot(px+rx*tc,py+ry*tc):Math.hypot(px,py);
+  const tcpaMinutes=tc*60;
+  const result=(role,maneuver,side)=>({role,maneuver,side,cpa,tcpaMinutes,relativeOwn:ra,relativeOther:rb});
+  if(!(cpa<COLREG_CPA_NM))return result('none','none',0);
+  if(Math.abs(ra)<=12.5&&Math.abs(rb)<=12.5)return result('both','head-on',1);
+  const courseDiff=Math.abs(((a.c-b.c+540)%360)-180);
+  // Dans le secteur arrière de 135°, le navire le plus rapide est le rattrapant.
+  const aSeesBBehind=Math.abs(ra)>=112.5,bSeesABehind=Math.abs(rb)>=112.5;
+  if(bSeesABehind&&courseDiff<=67.5&&a.s>b.s+.1)return result('give-way','overtaking',randomFn()<.5?-1:1);
+  if(aSeesBBehind&&courseDiff<=67.5&&b.s>a.s+.1)return result('stand-on','overtaking',0);
+  // Croisement : celui qui a l'autre sur tribord (relèvement relatif positif) cède.
+  if(ra>0&&ra<112.5)return result('give-way','crossing',1);
+  return result('stand-on','crossing',0);
+}
+function isOwnVessel(v,state){return !!v&&(v===state?.own||v.isOwn===true||v.id==='own'||v.id==='OWN')}
+function applyColregAvoidance(v,other,dt,state,opts={}){
+  // OWN ne participe jamais aux rencontres : ni acteur, ni autre navire d'une paire.
+  if(isOwnVessel(v,state)||isOwnVessel(other,state)||state.settings?.colreg===false||!(dt>0))return false;
+  const encounterKey=String(opts.encounterKey??other.id??other.name??'reference');
+  const old=v._colreg||null;
+  const randomFn=old?.active&&old.encounterKey===encounterKey?()=>old.side<0?0:1:(opts.randomFn||Math.random);
+  const d=opts.decision||decideColreg(v,other,randomFn);
+  // Une manœuvre engagée est maintenue jusqu'au passage (TCPA <= 0), sans seuil de distance.
+  if(old?.active&&old.encounterKey===encounterKey&&d.tcpaMinutes>0){
+    const diff=((old.heading-v.c+540)%360)-180,rate=Math.max(.1,vesselPerformance(v).turnRate*2);
+    v.c=norm(v.c+Math.sign(diff)*Math.min(Math.abs(diff),rate*dt));v._colregCPA=d.cpa;return true;
+  }
+  if(old?.encounterKey===encounterKey)v._colreg=null;
+  if(d.role==='none')return false;
+  const offset=d.maneuver==='overtaking'?42:d.maneuver==='head-on'?18:d.maneuver==='crossing'&&d.role==='give-way'?28:0;
+  if(!offset)return false;
+  const desired=norm(v.c+d.side*offset),diff=((desired-v.c+540)%360)-180,rate=Math.max(.1,vesselPerformance(v).turnRate*2);
+  v._colreg={active:true,encounterKey,side:d.side,offset,heading:desired,maneuver:d.maneuver};
+  v.c=norm(v.c+Math.sign(diff)*Math.min(Math.abs(diff),rate*dt));v._colregCPA=d.cpa;return true;
+}
+function step(dt,state=S){
+  /* OWN conserve exclusivement son cap/vitesse commandés par l’élève; aucune décision COLREG ne lui est appliquée. */
+  let ox=state.own.x,oy=state.own.y;
+  let prevTargets=new Map((state.targets||[]).map(a=>[a,{x:a.x,y:a.y,ox,oy}]));
+  let op=vesselPerformance(state.own);
+  state.own._cmdC=Number.isFinite(+state.own._cmdC)?+state.own._cmdC:state.own.c;
+  state.own._cmdS=clampOwnSpeed(Number.isFinite(+state.own._cmdS)?+state.own._cmdS:state.own.s,state.own);
+  state.own.s=clampOwnSpeed(state.own.s,state.own);
+  let cd=((norm(state.own._cmdC)-state.own.c+540)%360)-180;
+  let turn=Math.min(Math.abs(cd),op.turnRate*dt,op.maxClickTurn);
+  state.own.c=norm(state.own.c+Math.sign(cd)*turn);
+  let targetS=state.own.condition==='anchor'?0:clampOwnSpeed(state.own._cmdS,state.own);
+  let sr=targetS>=state.own.s?op.accel:op.decel;
+  state.own.s=clampOwnSpeed(state.own.s+Math.max(-sr*dt,Math.min(sr*dt,targetS-state.own.s)),state.own);
+  const targets=(state.targets||[]).filter(a=>!isOwnVessel(a,state));
+  let ov=vel(state.own.c,state.own.s);state.own.x+=ov[0]*dt/3600;state.own.y+=ov[1]*dt/3600;
+  targets.forEach(a=>routeUpdate(a,dt));
+  /* Les règles RIPAM ne sont évaluées qu'entre cibles; OWN n'entre dans aucune paire. */
+  for(let i=0;i<targets.length;i++)for(let j=i+1;j<targets.length;j++){
+    const a=targets[i],b=targets[j],keyA='target:'+String(b.id??b.name??j),keyB='target:'+String(a.id??a.name??i);
+    /* Décisions calculées avant les virages : les deux navires réagissent à la même géométrie de rencontre. */
+    const decisionA=decideColreg(a,b,Math.random),decisionB=decideColreg(b,a,Math.random);
+    applyColregAvoidance(a,b,dt,state,{encounterKey:keyA,decision:decisionA});
+    applyColregAvoidance(b,a,dt,state,{encounterKey:keyB,decision:decisionB});
+  }
+  targets.forEach(a=>{
+    const tp=vesselPerformance(a);if(a.condition==='anchor'){a.s=0;return;}
+    a.s=Math.max(tp.minSpeed,Math.min(tp.maxSpeed,Math.max(0,a.s)));if(a.type==='anchor')return;
+    if(a.condition==='nuc')a.c=norm(a.c+(Math.random()-.5)*10*Math.sqrt(Math.max(dt,0)));
+    let v=vel(a.c,a.s);a.x+=v[0]*dt/3600;a.y+=v[1]*dt/3600;
+  });
+  let oldTime=state.time;state.time+=dt;let st=state.settings;if(st.trailLen>0){let sample=state.trailSample||0;while(state.time-sample>=TRAIL_INTERVAL){sample+=TRAIL_INTERVAL;state.trailSeq=(state.trailSeq||0)+1;state.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=a._trail||[];if(Number.isFinite(a.x)&&Number.isFinite(a.y)&&Number.isFinite(state.own.x)&&Number.isFinite(state.own.y))a._trail.push({x:a.x,y:a.y,ownX:state.own.x,ownY:state.own.y,t:sample,seq:state.trailSeq});a._trail=a._trail.filter(p/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} p Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let q=trailSampleValues(p);return validTrailSample(p)&&state.time-q.t<=st.trailLen})})}state.trailSample=sample}else{state.targets?.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>a._trail=[]);state.trailSample=state.time}if(st.historyStep>0&&Math.floor(state.time/st.historyStep)!==Math.floor(oldTime/st.historyStep)){state.history.push({t:state.time,targets:state.targets.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>[a.x,a.y])});if(state.history.length>360)state.history.splice(0,state.history.length-360);}collisionCheck({x:ox,y:oy},prevTargets);alarmCheck();
   /* Lot 2: sweep refresh tick. Once every profile.refreshSec simulated seconds,
      mark every in-range target (passing effective range + detection) with the
      current sweep epoch. This drives the echo afterglow in echoStyle. The
@@ -3518,9 +3636,11 @@ function applyRadarDisplayTransform(x, d){
  * @param {*} editor Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
+/* Dessine le petit drapeau jaune mémorisé au point de départ OWN sur le PPI. */
+function drawSimulationStartFlag(ctx,state,cx,cy,R){const p=state.simulationStartFlag;if(!p||!Number.isFinite(+p.x)||!Number.isFinite(+p.y))return;const [px,py]=screenPoint(+p.x-state.own.x,+p.y-state.own.y,state,cx,cy,R);ctx.save();ctx.lineWidth=2.5;ctx.strokeStyle='#ffd34e';ctx.fillStyle='#ffd34e';ctx.beginPath();ctx.moveTo(px,py+9);ctx.lineTo(px,py-11);ctx.stroke();ctx.beginPath();ctx.moveTo(px,py-11);ctx.lineTo(px+13,py-7);ctx.lineTo(px,py-2);ctx.closePath();ctx.fill();ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText('D',px+5,py+14);ctx.restore()}
 function drawRadar(canvas,state=S,editor=false){let r=canvas.getBoundingClientRect(),d=window.devicePixelRatio||1,w=Math.max(1,r.width),h=Math.max(1,r.height);canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);let brightness=Math.max(.3,Math.min(1.5,(+state.settings.brightness||100)/100)),contrast=Math.max(.5,Math.min(1.5,(+state.settings.contrast||100)/100));canvas.style.filter=`brightness(${brightness}) contrast(${contrast})`;let x=canvas.getContext('2d');/* v15: compose the pinch / pan view transform on top of the device-pixel scale. Identity view keeps the original 1:1 device-pixel mapping. */applyRadarDisplayTransform(x, d);let cx=w/2,cy=h/2,R=Math.max(1,Math.min(w,h)/2-24);canvas.__radarMetrics={cx,cy,R,w,h,d,zoom:radarView.zoom,tx:radarView.tx,ty:radarView.ty};/* Keep the "world centre" invariant: even after zoom, we keep drawing the world centre at canvas centre cx,cy. */ x.fillStyle=THEME.bg;x.fillRect(0,0,w,h);let g=x.createRadialGradient(cx,cy,0,cx,cy,R);g.addColorStop(0,THEME.gradInner);g.addColorStop(1,THEME.gradOuter);x.fillStyle=g;x.beginPath();x.arc(cx,cy,R,0,7);x.fill();x.strokeStyle=THEME.border;x.lineWidth=1;x.stroke();/* v47: all PPI content is clipped to the circular radar */x.save();x.beginPath();x.arc(cx,cy,R,0,Math.PI*2);x.clip();drawClutter(x,cx,cy,R,state);x.strokeStyle=THEME.radarGrid;let [ox,oy]=ownOffset(state),ownCx=cx+ox/state.scale*R,ownCy=cy-oy/state.scale*R;if(state.settings?.vrmOn&&state.settings?.vrm>0){x.strokeStyle=THEME.vrm;x.setLineDash([2,4]);x.beginPath();x.arc(ownCx,ownCy,R*state.settings.vrm/state.scale,0,7);x.stroke();x.setLineDash([])}if(state.settings?.guard&&state.settings?.guardRadius>0){x.save();x.strokeStyle=THEME.dangerEcho;x.lineWidth=2;x.setLineDash([6,4]);x.beginPath();x.arc(ownCx,ownCy,R*state.settings.guardRadius/state.scale,0,7);x.stroke();x.setLineDash([]);x.fillStyle=THEME.dangerEcho;x.font='bold 10px monospace';x.textAlign='center';x.fillText((window.radarCanvasText?window.radarCanvasText('guard',Number(state.settings.guardRadius).toFixed(1)):'GARDE '+Number(state.settings.guardRadius).toFixed(1)+' NM'),ownCx,ownCy-R*state.settings.guardRadius/state.scale-5);x.restore()}if(state.settings?.eblOn){let ebl=wrapEbl(state.settings.ebl);let ea=rad(ebl-orientHeading(state));let [ex,ey]=rayCircleBoundary(ownCx,ownCy,Math.sin(ea),-Math.cos(ea),cx,cy,R),[ebx,eby]=rayCircleBoundary(ownCx,ownCy,-Math.sin(ea),Math.cos(ea),cx,cy,R);x.save();x.strokeStyle=THEME.ebl;x.fillStyle=THEME.ebl;x.lineWidth=2;x.setLineDash([7,4]);x.beginPath();x.moveTo(ownCx,ownCy);x.lineTo(ex,ey);x.stroke();x.setLineDash([]);x.beginPath();x.arc(ex,ey,3,0,7);x.fill();x.font='bold 10px monospace';x.textAlign='center';x.textBaseline='middle';
 /* v57 — EBL rayon depuis le centre/own ship jusqu'au bord ; libellé au bord, orienté vers l'intérieur. */
-const eblLabel='EBL '+Number(ebl).toFixed(1)+'°';const eblInX=-Math.sin(ea),eblInY=Math.cos(ea);const eblLabelX=ex+eblInX*10,eblLabelY=ey+eblInY*10;const eblTextW=x.measureText(eblLabel).width;x.save();x.translate(eblLabelX,eblLabelY);let eblTextAngle=ea;if(Math.cos(eblTextAngle)<0)eblTextAngle+=Math.PI;x.rotate(eblTextAngle);x.fillStyle=THEME.bg+'dd';x.fillRect(-eblTextW/2-3,-7,eblTextW+6,14);x.fillStyle=THEME.ebl;x.fillText(eblLabel,0,0);x.restore();x.restore()}if(state.settings?.headingLine!==false){/* Ligne de foi : rayon uniquement depuis le own ship vers l'avant. */let ha=rad(state.own.c-orientHeading(state)),[hfx,hfy]=rayCircleBoundary(ownCx,ownCy,Math.sin(ha),-Math.cos(ha),cx,cy,R);x.strokeStyle=THEME.heading;x.beginPath();x.moveTo(ownCx,ownCy);x.lineTo(hfx,hfy);x.stroke()}if(state.settings?.rings!==false){x.strokeStyle=THEME.rings;[.25,.5,.75,1].forEach(f/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} f Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{x.setLineDash([3,6]);x.beginPath();x.arc(cx,cy,R*f,0,7);x.stroke()});x.setLineDash([]);x.fillStyle=THEME.text;x.font='10px monospace';x.textAlign='left';[.25,.5,.75,1].forEach(f/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} f Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>x.fillText((state.scale*f).toFixed(1)+' NM',cx+5,cy-R*f+12));}x.strokeStyle=THEME.rings;x.beginPath();x.moveTo(cx-R,cy);x.lineTo(cx+R,cy);x.moveTo(cx,cy-R);x.lineTo(cx,cy+R);x.stroke();x.fillStyle=THEME.text;x.font='11px monospace';x.textAlign='center';let oh=orientHeading(state),card=['N','E','S','W'];card.forEach((q,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} q Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let z=transform(Math.sin(i*Math.PI/2)*R,Math.cos(i*Math.PI/2)*R,state.own,state.orient);x.fillText(q,cx+z[0],cy-z[1]+(i===0?-6:14))});/* Heading graduation: draw true-bearing ticks on the PPI edge. */if(state.settings?.headingTicks!==false){x.save();x.strokeStyle=THEME.text;x.fillStyle=THEME.text;x.lineWidth=1;x.font='9px monospace';for(let deg=0;deg<360;deg+=10){let a=rad(deg),len=deg%30===0?10:deg%10===0?6:4;let p0=transform(Math.sin(a)*(R-len),Math.cos(a)*(R-len),state.own,state.orient),p1=transform(Math.sin(a)*(R-1),Math.cos(a)*(R-1),state.own,state.orient);x.beginPath();x.moveTo(cx+p0[0],cy-p0[1]);x.lineTo(cx+p1[0],cy-p1[1]);x.stroke();if(deg%30===0){let lp=transform(Math.sin(a)*(R-15),Math.cos(a)*(R-15),state.own,state.orient);x.fillText(String(deg).padStart(3,'0'),cx+lp[0],cy-lp[1]+3)}}x.restore()}x.strokeStyle=THEME.dangerEcho;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx-R,cy);x.stroke();x.strokeStyle=THEME.own;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+R,cy);x.stroke();
+const eblLabel='EBL '+Number(ebl).toFixed(1)+'°';const eblInX=-Math.sin(ea),eblInY=Math.cos(ea);const eblLabelX=ex+eblInX*10,eblLabelY=ey+eblInY*10;const eblTextW=x.measureText(eblLabel).width;x.save();x.translate(eblLabelX,eblLabelY);let eblTextAngle=ea;if(Math.cos(eblTextAngle)<0)eblTextAngle+=Math.PI;x.rotate(eblTextAngle);x.fillStyle=THEME.bg+'dd';x.fillRect(-eblTextW/2-3,-7,eblTextW+6,14);x.fillStyle=THEME.ebl;x.fillText(eblLabel,0,0);x.restore();x.restore()}drawSimulationStartFlag(x,state,cx,cy,R);if(state.settings?.headingLine!==false){/* Ligne de foi : rayon uniquement depuis le own ship vers l'avant. */let ha=rad(state.own.c-orientHeading(state)),[hfx,hfy]=rayCircleBoundary(ownCx,ownCy,Math.sin(ha),-Math.cos(ha),cx,cy,R);x.strokeStyle=THEME.heading;x.beginPath();x.moveTo(ownCx,ownCy);x.lineTo(hfx,hfy);x.stroke()}/* Parallèle index unique : droite infinie décalée perpendiculairement depuis OWN, limitée au cercle radar. */if(state.settings?.indexLines){const spacing=Math.max(.1,Number(state.settings.indexLineSpacing)||1),angle=((Number(state.settings.indexLineAngle)||0)%360+360)%360,ha=rad(angle-orientHeading(state)),ux=Math.sin(ha),uy=-Math.cos(ha),px=uy,py=-ux,ax=ownCx+px*spacing*R/state.scale,ay=ownCy+py*spacing*R/state.scale,[sx1,sy1]=rayCircleBoundary(ax,ay,ux,uy,cx,cy,R),[sx2,sy2]=rayCircleBoundary(ax,ay,-ux,-uy,cx,cy,R);x.save();x.strokeStyle='#f2c66d';x.fillStyle='#f2c66d';x.lineWidth=1.5;x.setLineDash([8,5]);x.beginPath();x.moveTo(sx1,sy1);x.lineTo(sx2,sy2);x.stroke();x.setLineDash([]);let hx=ax+ux*Math.min(R*.28,Math.max(10,Math.hypot(sx1-ax,sy1-ay)*.55)),hy=ay+uy*Math.min(R*.28,Math.max(10,Math.hypot(sx1-ax,sy1-ay)*.55));x.font='bold 10px monospace';x.textAlign='center';x.textBaseline='middle';x.fillText(Number(angle).toFixed(1)+'°',hx,hy);x.fillText('IDX · '+spacing.toFixed(1)+' NM depuis OWN',cx-R+9,cy-R+18);x.restore();const lab=document.getElementById('indexLinesValues');if(lab)lab.textContent='Angle '+angle.toFixed(1)+'° · espacement '+spacing.toFixed(1)+' NM depuis OWN'}if(state.settings?.rings!==false){x.strokeStyle=THEME.rings;[.25,.5,.75,1].forEach(f/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} f Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{x.setLineDash([3,6]);x.beginPath();x.arc(cx,cy,R*f,0,7);x.stroke()});x.setLineDash([]);x.fillStyle=THEME.text;x.font='10px monospace';x.textAlign='left';[.25,.5,.75,1].forEach(f/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} f Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>x.fillText((state.scale*f).toFixed(1)+' NM',cx+5,cy-R*f+12));}x.strokeStyle=THEME.rings;x.beginPath();x.moveTo(cx-R,cy);x.lineTo(cx+R,cy);x.moveTo(cx,cy-R);x.lineTo(cx,cy+R);x.stroke();x.fillStyle=THEME.text;x.font='11px monospace';x.textAlign='center';let oh=orientHeading(state),card=['N','E','S','W'];card.forEach((q,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} q Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let z=transform(Math.sin(i*Math.PI/2)*R,Math.cos(i*Math.PI/2)*R,state.own,state.orient);x.fillText(q,cx+z[0],cy-z[1]+(i===0?-6:14))});/* Heading graduation: draw true-bearing ticks on the PPI edge. */if(state.settings?.headingTicks!==false){x.save();x.strokeStyle=THEME.text;x.fillStyle=THEME.text;x.lineWidth=1;x.font='9px monospace';for(let deg=0;deg<360;deg+=10){let a=rad(deg),len=deg%30===0?10:deg%10===0?6:4;let p0=transform(Math.sin(a)*(R-len),Math.cos(a)*(R-len),state.own,state.orient),p1=transform(Math.sin(a)*(R-1),Math.cos(a)*(R-1),state.own,state.orient);x.beginPath();x.moveTo(cx+p0[0],cy-p0[1]);x.lineTo(cx+p1[0],cy-p1[1]);x.stroke();if(deg%30===0){let lp=transform(Math.sin(a)*(R-15),Math.cos(a)*(R-15),state.own,state.orient);x.fillText(Number(deg).toFixed(1).padStart(5,'0'),cx+lp[0],cy-lp[1]+3)}}x.restore()}x.strokeStyle=THEME.dangerEcho;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx-R,cy);x.stroke();x.strokeStyle=THEME.own;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+R,cy);x.stroke();
 let dsts=Array.isArray(state.dsts)?state.dsts.filter(d/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} d Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>d&&[d.x,d.y,d.x2,d.y2,d.width].every(Number.isFinite)):[];dsts.forEach(d/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} d Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{const g=dstGeom(d),pts=[{x:d.x+g.nx*d.width/2,y:d.y+g.ny*d.width/2},{x:d.x2+g.nx*d.width/2,y:d.y2+g.ny*d.width/2},{x:d.x2-g.nx*d.width/2,y:d.y2-g.ny*d.width/2},{x:d.x-g.nx*d.width/2,y:d.y-g.ny*d.width/2}].map(p/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} p Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>screenPoint(p.x-state.own.x,p.y-state.own.y,state,cx,cy,R));x.save();x.fillStyle=THEME.radarGrid+'28';x.strokeStyle=THEME.radarGrid+'aa';x.lineWidth=1.2;x.beginPath();pts.forEach((p,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} p Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();x.fill();x.stroke();x.setLineDash([5,5]);let a=screenPoint(d.x-state.own.x,d.y-state.own.y,state,cx,cy,R),b=screenPoint(d.x2-state.own.x,d.y2-state.own.y,state,cx,cy,R);x.strokeStyle=THEME.amber||THEME.rings;x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();x.setLineDash([]);x.strokeStyle=(THEME.amber||THEME.rings)+'66';x.lineWidth=Math.max(3,Math.min(10,d.width/state.scale*R*.10));x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();x.fillStyle=THEME.text;x.font='bold 10px monospace';[.25,.6,.85].forEach(t/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} t Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let q=screenPoint(d.x+g.ux*g.L*t+g.nx*d.width*.25-state.own.x,d.y+g.uy*g.L*t+g.ny*d.width*.25-state.own.y,state,cx,cy,R);x.fillText('◀',q[0],q[1]);q=screenPoint(d.x+g.ux*g.L*t-g.nx*d.width*.25-state.own.x,d.y+g.uy*g.L*t-g.ny*d.width*.25-state.own.y,state,cx,cy,R);x.fillText('▶',q[0],q[1]);});x.restore()});/* drawCoast (v69-realism): paints land echoes with a polar-cell (range x azimuth) blockiness
    that mimics marine radar CRT pixels. We rasterize each polygon into quantized cells,
    add slight beam-spread / stretch in azimuth, intensity variation per cell, and a
@@ -3742,6 +3862,8 @@ function drawCoastShadow(x,state,cx,cy,R){
 /* V96: échos fantômes — déclenchés par cible (target.ghostEcho) ET gain > 75 %. 25 échos alignés sur la même radiale que la cible, à des distances croissantes (multiples de la portée), intensité décroissante. Non cliquables / non acquérables par ARPA — on les rend ici sans modifier S.targets. / Per-target ghost echoes enabled by checkbox on each vessel + gain>75%; 25 echoes along same bearing, fainter with each step. Plain radar video only (not in S.targets). */
 if(state.gain>75){const gainExcess=Math.max(0,state.gain-75)/25;/* 0..1, scales alpha */state.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{if(!a.ghostEcho)return;/* V96 fix: use the canonical screenPoint(dx,dy,state,cx,cy,R) helper (returns [x,y]); previous code called non-existent screenX/screenY and threw TypeError, blanking the radar above 75% gain. */const [px,py]=screenPoint(a.x-state.own.x,a.y-state.own.y,state,cx,cy,R);const dx=px-cx,dy=py-cy;const targetDist=Math.hypot(dx,dy)||1;const baseAlpha=Math.min(1,.45+gainExcess*.35);for(let i=1;i<=25;i++){const stepPx=targetDist*i*1.1;const gx=cx+dx/targetDist*stepPx;const gy=cy+dy/targetDist*stepPx;if(Math.hypot(gx-cx,gy-cy)>R)break;const alpha=Math.max(.05,baseAlpha*(1-i/25));const size=Math.max(1.5,4-i*.13);x.save();x.globalAlpha=alpha;x.fillStyle=THEME.echo;x.beginPath();x.arc(gx,gy,size,0,7);x.fill();x.restore();}});}let coast=state.coast||[];if(coast.length){drawCoastShadow(x,state,cx,cy,R);drawCoast(x,state,cx,cy,R);}
 let rainZones=state.rainZones||[];if(rainZones.length){drawRainZones(x,state,cx,cy,R);}
+/* Itinéraire strictement indicatif : aucune interaction avec la dynamique/les alarmes. */
+drawPassagePlanning(x,state,cx,cy,R);
 /**
  * Rôle : fonction drawRainZones; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -3752,6 +3874,20 @@ let rainZones=state.rainZones||[];if(rainZones.length){drawRainZones(x,state,cx,
  * @param {*} R Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
+/* Dessine la route indicative et deux fanions distincts sur le PPI; ne modifie jamais own ni les alarmes. */
+function drawPassagePlanning(x,state,cx,cy,R){
+  const p=state&&state.passage;if(!p||typeof p!=='object')return;
+  const valid=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y);
+  const seq=[p.depart,...(Array.isArray(p.points)?p.points:[]),p.arrivee].filter(valid);
+  if(seq.length<2)return;
+  /* Couloir XTD indicatif uniquement : aucune contrainte de navigation ni alarme. */
+  const half=Number.isFinite(+p.xtd)?Math.max(0,+p.xtd):.5;if(half>0){const sides=sgn=>seq.map((q,i)=>{const a=seq[Math.max(0,i-1)],b=seq[Math.min(seq.length-1,i+1)],dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy)||1;return{x:q.x+sgn*(-dy/l)*half,y:q.y+sgn*(dx/l)*half}}),left=sides(1).map(q=>screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R)),right=sides(-1).map(q=>screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R));x.save();x.fillStyle='rgba(43,190,112,.20)';x.beginPath();left.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));right.slice().reverse().forEach(q=>x.lineTo(q[0],q[1]));x.closePath();x.fill();x.strokeStyle='rgba(244,66,82,.95)';x.lineWidth=1.5;x.setLineDash([6,5]);for(const edge of [left,right]){x.beginPath();edge.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));x.stroke()}x.restore()}
+  x.save();x.strokeStyle='#9fe7ff';x.lineWidth=2;x.setLineDash([7,5]);x.beginPath();
+  seq.forEach((q,i)=>{const z=screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R);i?x.lineTo(z[0],z[1]):x.moveTo(z[0],z[1])});x.stroke();x.setLineDash([]);
+  /* Nœuds de route dessinés en cercles neutres : seul le départ OWN porte un fanion. */
+  const node=q=>{if(!valid(q))return;const z=screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R);x.beginPath();x.arc(z[0],z[1],4,0,Math.PI*2);x.fillStyle='#9fe7ff';x.fill();x.strokeStyle='#10212a';x.lineWidth=1.5;x.stroke()};
+  node(p.depart);(Array.isArray(p.points)?p.points:[]).forEach(node);node(p.arrivee);x.restore();
+}
 function drawRainZones(x,state,cx,cy,R){
   const list=Array.isArray(state.rainZones)?state.rainZones:[];
   if(!list.length)return;
@@ -3818,7 +3954,7 @@ function drawRainZones(x,state,cx,cy,R){
   }
 });(state.targets||state.ships||[]).forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{if(targetInAnyRainZone(state,a))return;const de=degradedEcho(a,state);const intermittentLoss=(!editor && de.loss>0 && de.flick>0 && Math.sin((state.time||0)*1.7+a.x*4.3+a.y*2.1)>0.25 && de.loss>0.35);if(!editor&&(!echoDetection(a,state)||de.loss>0.92||intermittentLoss))return;let m=editor?{...a,range:Math.hypot(a.x-state.own.x,a.y-state.own.y),brg:0}:motion(a,state.own);if(m.range>effectiveMaxRange(state)*1.05)return;let q=transform(a.x-state.own.x,a.y-state.own.y,state.own,state.orient,state),pt=screenPoint(a.x-state.own.x,a.y-state.own.y,state,cx,cy,R),px=pt[0],py=pt[1],col=targetColor(a,state).color;if(!editor){const sea=seaClutterParameters(state);if(sea.intensity>0)drawSeaClutterCloud(x,px,py,R,state,sea);}/* v70-rateAwareSweep: pin the echo's sweep epoch to the current rate-scaled
      epoch so that at rate=8 the afterglow stays attached to the moving target
-     instead of lagging behind (echo/target desync). */a._sweepEpoch=currentSweepEpoch(state);let es=editor?{alpha:Math.max(.25,1-degradedEcho(a,state).loss),size:5,glow:0,radialResNM:0.04,azimuthResNM:0.06,shipLenNM:0.04,band:'X',pulseWidth:'MP'}:echoStyle(a,state);if(!editor){const de=degradedEcho(a,state);es.alpha*=Math.max(.18,1-de.loss*.72);es.glow=Math.max(0,es.glow-de.clutter*3)}x.strokeStyle=col;x.fillStyle=col;x.globalAlpha=es.alpha;x.shadowColor=col;x.shadowBlur=es.glow;x.lineWidth=(state.selected!=null && a===state.targets[state.selected])?3:2;x.beginPath();/* Convert physical echo sizes from NM to screen pixels using the current
+     instead of lagging behind (echo/target desync). */a._sweepEpoch=currentSweepEpoch(state);let es=editor?{alpha:Math.max(.25,1-degradedEcho(a,state).loss),size:5,glow:0,radialResNM:0.04,azimuthResNM:0.06,shipLenNM:0.04,band:'X',pulseWidth:'MP'}:echoStyle(a,state);if(!editor){const de=degradedEcho(a,state);es.alpha*=Math.max(.18,1-de.loss*.72);es.glow=Math.max(0,es.glow-de.clutter*3)}/* Dimensions personnalisées (m) converties en NM; echoSize (NM) indique une taille d'écho explicite. */if(a.custom){const c=a.custom;if(Number(c.echoSize)>0){es.radialResNM=Number(c.echoSize);es.azimuthResNM=Number(c.echoSize)}else if(Number(c.length)>0){es.shipLenNM=Number(c.length)/1852;es.radialResNM=Math.max(es.radialResNM,es.shipLenNM)}if(Number(c.width)>0)es.azimuthResNM=Math.max(es.azimuthResNM,Number(c.width)/1852);if(/^#[0-9a-f]{6}$/i.test(c.color||''))col=c.color}x.strokeStyle=col;x.fillStyle=col;x.globalAlpha=es.alpha;x.shadowColor=col;x.shadowBlur=es.glow;x.lineWidth=(state.selected!=null && a===state.targets[state.selected])?3:2;x.beginPath();/* Convert physical echo sizes from NM to screen pixels using the current
      scale:  pxPerNm = R / state.scale .  The echo is rendered as an ellipse
      aligned to the OWN->target radial: rx = radialResNM * pxPerNm,
      ry = azimuthResNM * pxPerNm (clamped so far targets don't disappear). */
@@ -3872,7 +4008,7 @@ x.strokeStyle=THEME.border;x.globalAlpha=.38;x.lineWidth=1;x.beginPath();x.moveT
  * @param {*} v Paramètre transmis par l’appelant.
  * Appelant : aucun appel statique repéré; voir verdict dans le rapport.
  */
-function formatTcpa(v){if(!isFinite(v))return '—';if(v<0)return 'passé';let sec=Math.round(v*60);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
+function formatTcpa(v){if(!isFinite(v))return '—';if(v<0)return 'passé';return Number(v).toFixed(1)}
 /**
  * Rôle : fonction updateArpaTableMetrics; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -3904,7 +4040,7 @@ function renderArpaTable(){let rows=S.targets.map((a,i)/**  * Rôle : fonction c
  * Aucun paramètre.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function render(){if($('#sim').classList.contains('hidden'))return;$('#clock').textContent=String(Math.floor(S.time/60)).padStart(2,'0')+':'+String(Math.floor(S.time%60)).padStart(2,'0');const scenarioName=S.idx>=0&&scenarios[S.idx]?scenarios[S.idx].name:($('#scenario').textContent||'Exercice');$('#scenario').textContent=scenarioName;$('#rateVal').textContent=S.rate;const radarBadge=$('#radarBadge');if(radarBadge)radarBadge.textContent=(S.orient==='north'?'N-UP':S.orient==='course'?'C-UP':'H-UP')+' · '+Number(S.scale).toFixed(1)+' NM';$('#gainVal').textContent=S.gain;drawRadar($('#radar'));updateOwnPositionPad();const courseInput=$('#ownCourse'),speedInput=$('#ownSpeed');if(document.activeElement!==courseInput)courseInput.value=Math.round(S.own._cmdC??S.own.c);if(document.activeElement!==speedInput)speedInput.value=Number(S.own._cmdS??S.own.s).toFixed(1);if($('#capLive'))$('#capLive').textContent=Math.round(S.own.c)+'°';if($('#speedLive'))$('#speedLive').textContent=Number(S.own.s).toFixed(1)+' kn';if($('#ownTypeLive'))$('#ownTypeLive')&&($('#ownTypeLive').textContent=ownShipTypeName(S.own.shipType));if($('#ownTypeSelect')){$('#ownTypeSelect').value=OWN_SHIP_PRESETS[S.own.shipType]?S.own.shipType:'cargo';}if(S.selected!=null&&S.targets[S.selected]){let a=S.targets[S.selected],m=motion(a);$('#targetDetail').textContent=`${a.name} · ${ownShipTypeName(a.shipType||'cargo')} · ${conditionLabel(a)} · Rv ${Number(m.brg).toFixed(1)}° · ${m.range.toFixed(1)} NM · cap ${Number(a.c).toFixed(1)}° · ${a.s.toFixed(1)} kn · CPA ${m.cpa.toFixed(1)} NM · TCPA ${isFinite(m.tcpa)?m.tcpa.toFixed(1):'—'} min`;}else if(S.selected==null){$('#targetDetail').textContent=window.radarTranslate?window.radarTranslate('Sélectionnez une cible sur la carte pour sa fiche ARPA.'):'Sélectionnez une cible sur la carte pour sa fiche ARPA.';}renderArpaTable();}
+function render(){if($('#sim').classList.contains('hidden'))return;$('#clock').textContent=String(Math.floor(S.time/60)).padStart(2,'0')+':'+String(Math.floor(S.time%60)).padStart(2,'0');const scenarioName=S.idx>=0&&scenarios[S.idx]?scenarios[S.idx].name:($('#scenario').textContent||'Exercice');$('#scenario').textContent=scenarioName;$('#rateVal').textContent=Number(S.rate).toFixed(1);const radarBadge=$('#radarBadge');if(radarBadge)radarBadge.textContent=(S.orient==='north'?'N-UP':S.orient==='course'?'C-UP':'H-UP')+' · '+Number(S.scale).toFixed(1)+' NM';$('#gainVal').textContent=Number(S.gain).toFixed(1);drawRadar($('#radar'));updateOwnPositionPad();const courseInput=$('#ownCourse'),speedInput=$('#ownSpeed');syncOwnSpeedControl(speedInput,S);if(document.activeElement!==courseInput)courseInput.value=Number(S.own._cmdC??S.own.c).toFixed(1);if(document.activeElement!==speedInput)speedInput.value=Number(S.own._cmdS).toFixed(1);if($('#capLive'))$('#capLive').textContent=Number(S.own.c).toFixed(1)+'°';if($('#speedLive'))$('#speedLive').textContent=Number(S.own.s).toFixed(1)+' kn';if($('#ownTypeLive'))$('#ownTypeLive')&&($('#ownTypeLive').textContent=ownShipTypeName(S.own.shipType));if($('#indexLinesToggle')){$('#indexLinesToggle').textContent='Parallèles index '+(S.settings.indexLines?'ON':'OFF');$('#indexLinesToggle').setAttribute('aria-pressed',String(!!S.settings.indexLines));$('#indexLinesSpacing').value=Number(S.settings.indexLineSpacing||1).toFixed(1)}if($('#ownTypeSelect')){$('#ownTypeSelect').value=OWN_SHIP_PRESETS[S.own.shipType]?S.own.shipType:'cargo';}if(S.selected!=null&&S.targets[S.selected]){let a=S.targets[S.selected],m=motion(a);$('#targetDetail').textContent=`${a.name} · ${ownShipTypeName(a.shipType||'cargo')} · ${conditionLabel(a)} · Rv ${Number(m.brg).toFixed(1)}° · ${m.range.toFixed(1)} NM · cap ${Number(a.c).toFixed(1)}° · ${a.s.toFixed(1)} kn · CPA ${m.cpa.toFixed(1)} NM · TCPA ${isFinite(m.tcpa)?m.tcpa.toFixed(1):'—'} min`;}else if(S.selected==null){$('#targetDetail').textContent=window.radarTranslate?window.radarTranslate('Sélectionnez une cible sur la carte pour sa fiche ARPA.'):'Sélectionnez une cible sur la carte pour sa fiche ARPA.';}renderArpaTable();}
 /**
  * Rôle : fonction toast; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -3917,7 +4053,7 @@ function toast(t){let q=$('#toast');q.textContent=t;q.style.display='block';setT
  * Aucun paramètre.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function refreshEditor(){drawRadar($('#editor'),{...E,targets:E.ships,coast:E.coast,orient:'north'},true);$('#shipList').innerHTML=E.ships.length?E.ships.map((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>`<div class="ship-row"><b>${a.name} <span style="color:${a.type==='normal'?'var(--green)':'var(--amber)'}">${a.type}</span></b><span>${Number(a.c).toFixed(1)}°</span><span>${Number(a.s).toFixed(1)}kn</span><button data-select="${i}">${E.selected===i?'ÉDITÉ':'Modifier'}</button></div>`).join(''):'Aucun contact.';if(E.selected!=null){let a=E.ships[E.selected];$('#selectedInfo').textContent=a.name;$('#editCourse').value=a.c;$('#editSpeed').value=a.s;$('#editType').value=a.type}}
+function refreshEditor(){drawRadar($('#editor'),{...E,targets:E.ships,coast:E.coast,orient:'north'},true);$('#shipList').innerHTML=E.ships.length?E.ships.map((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>`<div class="ship-row"><b>${a.name} <span style="color:${a.type==='normal'?'var(--green)':'var(--amber)'}">${a.type}</span></b><span>${Number(a.c).toFixed(1)}°</span><span>${Number(a.s).toFixed(1)}kn</span><button data-select="${i}">${E.selected===i?'ÉDITÉ':'Modifier'}</button></div>`).join(''):'Aucun contact.';if(E.selected!=null){let a=E.ships[E.selected];$('#selectedInfo').textContent=a.name;$('#editCourse').value=Number(a.c).toFixed(1);$('#editSpeed').value=Number(a.s).toFixed(1);$('#editType').value=a.type}}
 $('#collisionReset').onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>restoreExerciseSnapshot();
 $$('[data-tab]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{$$('[data-tab]').forEach(z/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} z Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>z.classList.toggle('active',z===b));$$('.mode').forEach(z/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} z Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>z.classList.toggle('hidden',z.id!==b.dataset.tab));if(b.dataset.tab==='ex')refreshEditor();else render()});$$('[data-rate]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.rate=+b.dataset.rate;$$('[data-rate]').forEach(z/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} z Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>z.classList.toggle('active',z===b));render()});$$('[data-vec]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.vec=b.dataset.vec;$$('[data-vec]').forEach(z/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} z Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>z.classList.toggle('active',z===b));render()});$$('[data-orient]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.orient=b.dataset.orient;if(S.orient==='course')S.cUpHeading=S.own.c;$$('[data-orient]').forEach(z/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} z Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>z.classList.toggle('active',z===b));render()});
 const RANGE_STEPS=[1.5,3,6,12,24];let rangeButtons=[];/**
@@ -3926,14 +4062,14 @@ const RANGE_STEPS=[1.5,3,6,12,24];let rangeButtons=[];/**
  * @param {*} n Paramètre transmis par l’appelant.
  * Appelant : gestionnaire d’interface (propriété on*).
  */
-function setRange(n){S.scale=n;rangeButtons.forEach(z/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} z Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>z.classList.toggle('active',+z.dataset.range===n));render()}RANGE_STEPS.forEach(n/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} n Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let b=document.createElement('button');b.dataset.range=n;b.textContent=n+' NM';b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>setRange(n);rangeButtons.push(b);$('#ranges').append(b)});setRange(S.scale);$('#radar').addEventListener('wheel',e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{e.preventDefault();let i=RANGE_STEPS.indexOf(S.scale);if(i<0)i=2;setRange(RANGE_STEPS[Math.max(0,Math.min(RANGE_STEPS.length-1,i+(e.deltaY>0?1:-1)))])},{passive:false});$$('[data-turn]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let p=ownShipPreset(S.own.shipType);S.own._cmdC=norm((S.own._cmdC??S.own.c)+Math.max(-p.maxClickTurn,Math.min(p.maxClickTurn,+b.dataset.turn)));render()});$$('[data-speed]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let p=ownShipPreset(S.own.shipType);S.own._cmdS=Math.max(0,Math.min(p.maxSpeed,(S.own._cmdS??S.own.s)+(+b.dataset.speed)));render()});/**
+function setRange(n){S.scale=n;rangeButtons.forEach(z/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} z Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>z.classList.toggle('active',+z.dataset.range===n));render()}RANGE_STEPS.forEach(n/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} n Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let b=document.createElement('button');b.dataset.range=n;b.textContent=Number(n).toFixed(1)+' NM';b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>setRange(n);rangeButtons.push(b);$('#ranges').append(b)});setRange(S.scale);$('#radar').addEventListener('wheel',e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{e.preventDefault();let i=RANGE_STEPS.indexOf(S.scale);if(i<0)i=2;setRange(RANGE_STEPS[Math.max(0,Math.min(RANGE_STEPS.length-1,i+(e.deltaY>0?1:-1)))])},{passive:false});$$('[data-turn]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let p=ownShipPreset(S.own.shipType);S.own._cmdC=norm((S.own._cmdC??S.own.c)+Math.max(-p.maxClickTurn,Math.min(p.maxClickTurn,+b.dataset.turn)));render()});$$('[data-speed]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{setOwnCommandSpeed((S.own._cmdS??S.own.s)+(+b.dataset.speed));render()});/**
  * Rôle : fonction commitHelmInput; voir le contexte de définition pour l’opération précise.
  * Paramètres :
  * @param {*} input Paramètre transmis par l’appelant.
  * @param {*} kind Paramètre transmis par l’appelant.
  * Appelant : gestionnaire enregistré via addEventListener.
  */
-function commitHelmInput(input,kind){const value=Number(String(input.value).replace(',','.'));if(!Number.isFinite(value)){render();return}if(kind==='course')S.own._cmdC=norm(Math.max(0,Math.min(359,value)));else S.own._cmdS=Math.max(0,Math.min(ownShipPreset(S.own.shipType).maxSpeed,value));render()}/**
+function commitHelmInput(input,kind){const value=Number(String(input.value).replace(',','.'));if(!Number.isFinite(value)){render();return}if(kind==='course')S.own._cmdC=norm(Math.max(0,Math.min(359,value)));else setOwnCommandSpeed(value);render()}/**
  * Rôle : fonction bindHelmInput; voir le contexte de définition pour l’opération précise.
  * Paramètres :
  * @param {*} input Paramètre transmis par l’appelant.
@@ -3964,7 +4100,7 @@ let one=null;try{one=JSON.parse(localStorage.getItem('radar-exercice')||'null')}
 // disponible dans le simu sans manipulation manuelle.
 try{let v19=JSON.parse(localStorage.getItem('radar-exercice-v19')||'null');if(v19&&v19.name&&!list.some(a=>a.name===v19.name+'_v19'))list.push({name:(v19.name||'Exercice générateur')+' · générateur',data:v19})}catch(e){}
 return list}
-function exerciseSummary(d){try{if(!d||!Array.isArray(d.ships))return '';let n=d.ships.length,own=d.own?'· own '+(+d.own.s||0).toFixed(1)+'kn cap '+Math.round(+d.own.c||0)+'°':'';return n+' navire'+(n>1?'s':'')+' '+own}catch(e){return ''}}
+function exerciseSummary(d){try{if(!d||!Array.isArray(d.ships))return '';let n=d.ships.length,own=d.own?'· own '+(+d.own.s||0).toFixed(1)+'kn cap '+(+d.own.c||0).toFixed(1)+'°':'';return n+' navire'+(n>1?'s':'')+' '+own}catch(e){return ''}}
 function renderExerciseChoices(container,list){container.innerHTML=list.map((a,i)=>{
   const meta=a._meta, tip=meta?`${meta.report}\nDate: ${meta.date}\nZone: ${meta.zone}\nOWN = ${meta.own_label} (heurté)\nCible = ${meta.struck_label}\nCitation: ${meta.citation}`:'';
   const label=a._kind==='bank'?(window.radarTranslate?window.radarTranslate('BEA mer/MAIB'):'BEA mer/MAIB')+(meta?': '+escapeHtml(meta.report||a.name):''):escapeHtml(a.name);
@@ -4036,15 +4172,16 @@ function(btn){btn.addEventListener('click',/**
 function(){var v=btn.dataset.pulse;if(v!=='SP'&&v!=='LP'&&v!=='MP')v='MP';if(S.settings.pulseWidth===v)return;S.settings.pulseWidth=v;updatePulseUI();saveSettings();render();});});})();
 // Gain ghosts / rain clouds toggles removed: they now come from the loaded exercise
 // (state.rainClouds / state.ghostEchoes, see lines 2330/2612). Defaults to false.
-const eblInput=$('#ebl');if(eblInput){eblInput.value=wrapEbl(S.settings.ebl);eblInput.oninput=eblInput.onchange=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.settings.ebl=wrapEbl(eblInput.value);eblInput.value=S.settings.ebl;saveSettings();render()};}
+const eblInput=$('#ebl');if(eblInput){eblInput.value=Number(wrapEbl(S.settings.ebl)).toFixed(1);eblInput.oninput=eblInput.onchange=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.settings.ebl=wrapEbl(eblInput.value);eblInput.value=Number(S.settings.ebl).toFixed(1);saveSettings();render()};}
 syncMeasureToggles();
 $('#recenterBtn').onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{
     S.settings.offsetX=0; S.settings.offsetY=0;
-    $('#offsetX').value=0; $('#offsetY').value=0;
+    $('#offsetX').value=(0).toFixed(1); $('#offsetY').value=(0).toFixed(1);
     saveSettings(); render();
 };
-["sea","rain","contrast","brightness"].forEach(id/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let input=$('#'+id);if(!input)return;$('#'+id+'Val').textContent=input.value;input.oninput=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{$('#'+id+'Val').textContent=input.value;S.settings[id]=+input.value;saveSettings();render()}});
+["sea","rain","contrast","brightness"].forEach(id/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let input=$('#'+id);if(!input)return;$('#'+id+'Val').textContent=Number(input.value).toFixed(1);input.oninput=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{$('#'+id+'Val').textContent=Number(input.value).toFixed(1);S.settings[id]=+input.value;saveSettings();render()}});
 ['vrmToggle','eblToggle'].forEach(id/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>$('#'+id).onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let k=id==='vrmToggle'?'vrmOn':'eblOn';S.settings[k]=!S.settings[k];let el=$('#'+id);el.classList.toggle('is-on',S.settings[k]);el.classList.toggle('is-off',!S.settings[k]);el.setAttribute('aria-pressed',String(S.settings[k]));el.textContent=(id==='vrmToggle'?'VRM ':'EBL ')+(S.settings[k]?'ON':'OFF');saveSettings();render()});
+$('#indexLinesToggle').onclick=()=>{S.settings.indexLines=!S.settings.indexLines;$('#indexLinesToggle').classList.toggle('is-on',S.settings.indexLines);$('#indexLinesToggle').classList.toggle('is-off',!S.settings.indexLines);$('#indexLinesToggle').setAttribute('aria-pressed',String(S.settings.indexLines));$('#indexLinesToggle').textContent='Index '+(S.settings.indexLines?'ON':'OFF');saveSettings();render()};$('#indexLinesSpacing').value=Number(S.settings.indexLineSpacing||1).toFixed(1);$('#indexLineAngle').value=Number(S.settings.indexLineAngle||0).toFixed(1);$('#indexLinesSpacing').oninput=$('#indexLinesSpacing').onchange=()=>{S.settings.indexLineSpacing=Math.max(.1,+$('#indexLinesSpacing').value||1);saveSettings();render()};$('#indexLineAngle').oninput=$('#indexLineAngle').onchange=()=>{S.settings.indexLineAngle=((+$('#indexLineAngle').value%360)+360)%360;$('#indexLineAngle').value=Number(S.settings.indexLineAngle).toFixed(1);saveSettings();render()};syncMeasureToggles();
 ['rings','headingLine','headingTicks','guardEnable','alarmEnable'].forEach(id/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>$('#'+id).onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let k=id==='guardEnable'?'guard':id==='alarmEnable'?'alarm':id;S.settings[k]=!S.settings[k];$('#'+id).classList.toggle('active',S.settings[k]);let label=id==='guardEnable'?'Zone de garde '+(S.settings[k]?'ON':'OFF'):id==='alarmEnable'?'Alarmes '+(S.settings[k]?'ON':'OFF'):id==='rings'?'Anneaux '+(S.settings[k]?'ON':'OFF'):id==='headingLine'?'Ligne de foi '+(S.settings[k]?'ON':'OFF'):'ON / OFF';$('#'+id).textContent=window.radarTranslate?window.radarTranslate(label):label;saveSettings();render()});
 $$('[data-trailmode]').forEach(b/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} b Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{const mode=b.dataset.trailmode;if(S.settings.trailMode!==mode){S.settings.trailMode=mode;/* Never bridge samples from the previous display frame. */S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>a._trail=[]);S.trailSample=S.time;saveSettings();}$$('[data-trailmode]').forEach(z/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} z Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>z.classList.toggle('active',z.dataset.trailmode===mode));render()});
 $('#clearTrails').onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>a._trail=[]);S.history=[];toast('Traces effacées')};
@@ -4109,7 +4246,7 @@ function clampOwnPair(x,y){let limit=Math.max(.1,S.scale*.82),px=+x||0,py=+y||0,
  * @param {*} y Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function setOwnOffset(x,y){let q=clampOwnPair(x,y);S.settings.offsetX=q[0];S.settings.offsetY=q[1];/* Le drapeau définit le nouveau départ de l'exercice courant. */if(S.initial)S.initial.ownPosition={x:q[0],y:q[1]};$('#offsetX').value=Number(S.settings.offsetX).toFixed(1);$('#offsetY').value=Number(S.settings.offsetY).toFixed(1);saveSettings();render();}
+function setOwnOffset(x,y){let q=clampOwnPair(x,y);S.settings.offsetX=q[0];S.settings.offsetY=q[1];/* Le déplacement d'affichage reste mémorisé séparément du départ absolu OWN. */if(S.initial)S.initial.ownPosition={x:q[0],y:q[1]};$('#offsetX').value=Number(S.settings.offsetX).toFixed(1);$('#offsetY').value=Number(S.settings.offsetY).toFixed(1);saveSettings();render();}
 /**
  * Rôle : fonction updateOwnPositionPad; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -4140,7 +4277,7 @@ function ownOffsetFromPadEvent(e){let pad=$('#ownPositionPad'),r=pad.getBounding
  * @param {*} tolerance Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function radarMeasurementHit(canvas,e,state=S,tolerance=8){let q=radarMeasurementPoint(canvas,e,state),eblHit=null,vrmHit=null;let ownX=q.m.cx+ownOffset(state)[0]/state.scale*q.m.R,ownY=q.m.cy-ownOffset(state)[1]/state.scale*q.m.R;if(state.settings?.eblOn){let a=rad(state.settings.ebl-orientHeading(state)),[ex,ey]=rayCircleBoundary(ownX,ownY,Math.sin(a),-Math.cos(a),q.m.cx,q.m.cy,q.m.R);let d=pointSegmentDistance(q.px,q.py,ownX,ownY,ex,ey);if(d<=tolerance)eblHit={type:'ebl',distance:d};}if(state.settings?.vrmOn&&state.settings?.vrm>0){let radius=q.m.R*state.settings.vrm/state.scale,d=Math.abs(q.distancePx-radius);if(d<=tolerance)vrmHit={type:'vrm',distance:d};}return eblHit&&vrmHit?(eblHit.distance<=vrmHit.distance?eblHit:vrmHit):(eblHit||vrmHit);}
+function radarMeasurementHit(canvas,e,state=S,tolerance=8){let q=radarMeasurementPoint(canvas,e,state),hits=[];let ownX=q.m.cx+ownOffset(state)[0]/state.scale*q.m.R,ownY=q.m.cy-ownOffset(state)[1]/state.scale*q.m.R;if(state.settings?.eblOn){let a=rad(state.settings.ebl-orientHeading(state)),[ex,ey]=rayCircleBoundary(ownX,ownY,Math.sin(a),-Math.cos(a),q.m.cx,q.m.cy,q.m.R),d=pointSegmentDistance(q.px,q.py,ownX,ownY,ex,ey);if(d<=tolerance)hits.push({type:'ebl',distance:d});}if(state.settings?.vrmOn&&state.settings?.vrm>0){let radius=q.m.R*state.settings.vrm/state.scale,d=Math.abs(q.distancePx-radius);if(d<=tolerance)hits.push({type:'vrm',distance:d});}if(state.settings?.indexLines){let a=rad(state.settings.indexLineAngle-orientHeading(state)),ux=Math.sin(a),uy=-Math.cos(a),px=uy,py=-ux,spacing=Math.max(.1,+state.settings.indexLineSpacing||1)*q.m.R/state.scale,cax=ownX+px*spacing,cay=ownY+py*spacing,[x1,y1]=rayCircleBoundary(ownX,ownY,ux,uy,q.m.cx,q.m.cy,q.m.R),[x2,y2]=rayCircleBoundary(ownX,ownY,-ux,-uy,q.m.cx,q.m.cy,q.m.R),[sx1,sy1]=rayCircleBoundary(cax,cay,ux,uy,q.m.cx,q.m.cy,q.m.R),[sx2,sy2]=rayCircleBoundary(cax,cay,-ux,-uy,q.m.cx,q.m.cy,q.m.R),ad=pointSegmentDistance(q.px,q.py,x1,y1,x2,y2),sd=pointSegmentDistance(q.px,q.py,sx1,sy1,sx2,sy2);if(ad<=tolerance)hits.push({type:'indexAngle',distance:ad});if(sd<=tolerance)hits.push({type:'indexSpacing',distance:sd});}return hits.sort((a,b)=>a.distance-b.distance)[0]||null;}
 /**
  * Rôle : fonction setInteractiveMeasurement; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -4148,8 +4285,14 @@ function radarMeasurementHit(canvas,e,state=S,tolerance=8){let q=radarMeasuremen
  * @param {*} q Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function setInteractiveMeasurement(kind,q){if(kind==='ebl'){S.settings.ebl=q.trueBearing;$('#ebl').value=Number(S.settings.ebl).toFixed(1);}else if(kind==='vrm'){S.settings.vrm=Math.max(0,Math.min(S.scale,q.distanceNm));$('#vrm').value=Number(S.settings.vrm).toFixed(1);}}
+function setInteractiveMeasurement(kind,q){if(kind==='ebl'){S.settings.ebl=q.trueBearing;$('#ebl').value=Number(S.settings.ebl).toFixed(1);}else if(kind==='vrm'){S.settings.vrm=Math.max(0,Math.min(S.scale,q.distanceNm));$('#vrm').value=Number(S.settings.vrm).toFixed(1);}else if(kind==='indexAngle'){S.settings.indexLineAngle=wrapEbl(q.trueBearing-orientHeading(S));$('#indexLineAngle').value=Number(S.settings.indexLineAngle).toFixed(1);}else if(kind==='indexSpacing'){let a=rad(S.settings.indexLineAngle-orientHeading(S)),px=-Math.cos(a),py=-Math.sin(a);S.settings.indexLineSpacing=Math.max(.1,Math.min(24,Math.abs(q.dx*px+q.dy*py)/q.m.R*S.scale));$('#indexLinesSpacing').value=Number(S.settings.indexLineSpacing).toFixed(1);}}
 let radarDrag=null,ownPositionDrag=null;
+/* Mémorise le départ OWN demandé sur le radar ; Reset et lancement depuis t=0 réutilisent son snapshot. */
+function defineSimulationStartAtPoint(point){if(!point||!Number.isFinite(+point.x)||!Number.isFinite(+point.y))return false;S.own.x=+point.x;S.own.y=+point.y;S.own._cmdC=Number.isFinite(+S.own._cmdC)?+S.own._cmdC:S.own.c;S.own._cmdS=Number.isFinite(+S.own._cmdS)?+S.own._cmdS:S.own.s;S.simulationStartFlag={x:S.own.x,y:S.own.y};if(S.initial){S.initial.own=clone(S.own);S.initial.ownPosition={x:+S.settings.offsetX||0,y:+S.settings.offsetY||0};S.initial.simulationStartFlag=clone(S.simulationStartFlag)}render();toast('Point de départ de la simulation défini');return true}
+const simulationStartMenu=$('#simulationStartMenu');
+$('#radar').addEventListener('contextmenu',e=>{e.preventDefault();const canvas=e.currentTarget,q=radarMeasurementPoint(canvas,e,S),tx=q.dx/q.m.R*S.scale,ty=-q.dy/q.m.R*S.scale,a=rad(orientHeading(S)),point={x:S.own.x+tx*Math.cos(a)+ty*Math.sin(a),y:S.own.y-tx*Math.sin(a)+ty*Math.cos(a)},box=canvas.parentElement.getBoundingClientRect();simulationStartMenu.style.left=Math.max(4,Math.min(box.width-236,e.clientX-box.left))+'px';simulationStartMenu.style.top=Math.max(4,Math.min(box.height-48,e.clientY-box.top))+'px';simulationStartMenu.dataset.startX=String(point[0]);simulationStartMenu.dataset.startY=String(point[1]);simulationStartMenu.classList.remove('hidden')});
+$('#setSimulationStartMenuItem').addEventListener('click',e=>{e.stopPropagation();defineSimulationStartAtPoint({x:+simulationStartMenu.dataset.startX,y:+simulationStartMenu.dataset.startY});simulationStartMenu.classList.add('hidden')});
+document.addEventListener('pointerdown',e=>{if(!simulationStartMenu.contains(e.target))simulationStartMenu.classList.add('hidden')});
 $('#radar').addEventListener('pointerdown',e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{
     /* v15: skip single-pointer drag handling while a 2-finger pinch is in progress on the radar. */
     let canvas=e.currentTarget;
@@ -4831,7 +4974,7 @@ function(){
     document.getElementById('sim')?.classList.toggle('arpa-open',open);
     table.setAttribute('aria-hidden',String(!open));
     toggle.setAttribute('aria-expanded',String(open));
-    toggle.textContent=open?'× Fermer CPA / TCPA':'☷ CPA / TCPA';
+    toggle.textContent=open?'× Fermer CPA / TCPA':' CPA / TCPA';
     /* Laisser le flux et le ResizeObserver stabiliser les boîtes avant le redraw. */
     requestAnimationFrame(()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{ window.dispatchEvent(new Event('resize')); if(typeof render==='function')render(); updateArpaTableMetrics(); });
   }
@@ -4871,9 +5014,517 @@ function(){
  */
 function(){'use strict';
   var lang='fr';
+  document.title=lang==='en'?"Radar Simulator":"Simulateur Radar";
   try{lang=localStorage.getItem('radarLang')==='en'?'en':'fr'}catch(e){}
   var T={
-    'Simulateur Radar':'Radar Simulator','Générateur d\'exercices':'Exercise generator','Ouvrir le générateur d’exercices':'Open exercise generator','↗ Générateur':'↗ Generator','CONDUITE DU NAVIRE':'SHIP CONTROL','CAP':'HDG','CAP °':'HDG °','VITESSE':'SPEED','VITESSE kn':'SPEED kn','Type de navire / Ship type':'Ship type','Cargo / Marchand':'Cargo / Merchant','Remorqueur':'Tug','Vedette / Patrouilleur':'Patrol boat','Pêche / Fishing':'Fishing','Voilier / Sailing yacht':'Sailing yacht','Ferry / NGV':'Fast ferry','Pétrolier / VLCC':'Tanker / VLCC','Remorqueur / Tug':'Tug','Sous-marin nucléaire / NUC':'Nuclear submarine / NUC','Navire de guerre / Warship':'Warship','Vedette / Patrol boat':'Patrol boat','Générer un exercice aléatoire':'Generate a random exercise','Générer une trajectoire type':'Generate a typical track','Côte réelle':'Real coast','Côte réelle locale':'Local real coast','Préréglage':'Preset','Pas-de-Calais · détroit du Pas':'Pas-de-Calais · Strait of Dover','Rade de Brest':'Brest Roads','Rayon':'Radius','Rayon de sélection':'Selection radius','Fond':'Basemap','Recentrer':'Recenter','Importer une côte GeoJSON, GPX ou OSM':'Import a GeoJSON, GPX or OSM coastline','Importer un fichier de côte':'Import coastline file','Fermer':'Close','Valider et importer':'Validate and import','Cliquez sur la carte pour placer le centre du cercle · OWN au centre par défaut.':'Click the map to place the circle centre · OWN is centred by default.','Type de scénario':'Scenario type','Anti-collision (radial)':'Collision avoidance (radial)','Croisement':'Crossing','Dépassement':'Overtaking','Mix aléatoire':'Random mix','Nombre de navires':'Number of vessels','Distance des contacts':'Contact distance','Proche':'Near','Standard':'Standard','Lointaine':'Far','Aléatoire':'Random','Composition de la flotte / types ARPA':'Fleet composition / ARPA types','Normal':'Normal','Pêche':'Fishing vessel','Voilier':'Sailing vessel','Mouillage':'Vessel at anchor','Ajouter une côte / île':'Add coastline / island','Créer des waypoints':'Create waypoints','Distance côte':'Coast distance','Type de côte':'Coast type','Île':'Island','Détroit':'Strait','Baie':'Bay','Cap':'Cape','Port':'Port','Archipel':'Archipelago','Nombre de waypoints':'Number of waypoints','Dégradation de l\'écho (export + aperçu)':'Echo degradation (export + preview)','Dégradation de l’écho':'Echo degradation','Aucune':'None','Légère':'Light','Moyenne':'Medium','Forte':'Strong','Conserver les réglages actuels':'Keep current settings','Mer / clapot':'Sea / swell','Pluie':'Rain','Bruit de fond':'Background noise','Échos faibles':'Weak echoes','Scintillement':'Flicker','Annuler':'Cancel','Supprimer':'Delete','Appliquer':'Apply','Terminer':'Finish','Quitter':'Exit','Supprimer forme':'Delete shape','Éditeur de côte · formes':'Coastline editor · shapes','Cercle / île':'Circle / island','Rectangle':'Rectangle','Ellipse':'Ellipse','Polygone libre':'Free polygon','Île allongée':'Elongated island','Inverser les sens':'Reverse directions','Largeur totale (NM)':'Total width (NM)','Inclinaison (°)':'Angle (°)','Glissez sur le radar pour dessiner':'Drag on the radar to draw','Waypoint de route':'Route waypoint','Nom':'Name','Type':'Type','Cap':'Heading','Vitesse':'Speed','Contact':'Target','Export':'Export','Import':'Import','Générer':'Generate','Aperçu':'Preview','▶ Aperçu':'▶ Preview','Ⅱ Pause':'Ⅱ Pause','Réinitialiser l’exercice':'Reset exercise','Tout effacer':'Clear all','Classique':'Classic','Moderne':'Modern','Échelle':'Range','CAP OWN':'OWN HEADING','Déplacer la barre':'Move toolbar','Poignée pour déplacer la barre':'Toolbar drag handle','Clic vide : ajouter · glisser : déplacer · clic droit : menu':'Empty click: add · drag: move · right-click: menu','CPA / TCPA — TABLEAU DE SITUATION':'CPA / TCPA — SITUATION TABLE','Distance':'Range','Relèvement':'Bearing','Réglages':'Settings','Créer la route':'Create route','Traits de pêche':'Fishing tracks','Route erratique NUC':'Erratic NUC track','Patrouille circulaire / loiter':'Circular patrol / loiter','Route en S / zigzag voilier':'S-track / sailing vessel zigzag','Navette de ferry':'Ferry shuttle','Parallèle à la côte':'Parallel to coastline','Virage brusque au CPA':'Hard turn at CPA','Orientation':'Orientation','Paramètre':'Parameter','Mode':'Mode','OUESSANT':'OUESSANT','BRIDGE / TRAINING INSTRUMENT':'BRIDGE / TRAINING INSTRUMENT','ANTICOLLISION':'ANTICOLLISION','OFFLINE':'OFFLINE','VEILLE':'STANDBY','RÉGLAGES AFFICHAGE & ÉCHO':'DISPLAY & ECHO SETTINGS','TRACES':'TRAILS','TRACES / VECTEURS':'TRAILS / VECTORS','Désactivées':'Disabled','Trace relative':'Relative trail','Trace vraie':'True trail','Effacer les traces':'Clear trails','Durée des vecteurs':'Vector duration','Historique de positions':'Position history','Aucun':'None','TRAITEMENT ÉCHO':'ECHO PROCESSING','Anti-clutter mer':'Sea clutter suppression','Anti-clutter pluie':'Rain clutter suppression','Contraste':'Contrast','Brillance':'Brightness','SCÉNARIOS':'SCENARIOS','Charger exercice':'Load exercise','Format partagé avec generateur.html · chargement à l’arrêt':'Format shared with generator.html · load while stopped','Mesures & ARPA':'Measurements & ARPA','Sélectionnez une cible sur la carte pour afficher sa fiche ARPA détaillée.':'Select a target on the radar to display its detailed ARPA data.','Touchez le radar : relèvement — · distance —':'Tap the radar: bearing — · range —','Seuil CPA':'CPA threshold','Seuil TCPA':'TCPA threshold','Rayon de garde':'Guard radius','N-UP':'N-UP','C-UP':'C-UP','H-UP':'H-UP','CPA / TCPA — SUIVI DES CIBLES':'CPA / TCPA — TARGET MONITOR','contact radar':'radar contact','pêche':'fishing vessel','mouillage':'vessel at anchor','CPA sous seuil / TCPA dans seuil':'CPA below threshold / TCPA within threshold','CIBLE':'TARGET','TYPE':'TYPE','RELÈV.':'BRG.','DIST.':'RANGE','CAP':'HDG.','VIT.':'SPD.','ÉTAT':'STATUS','DANGER':'DANGER','PASSÉ':'PAST','SURVEILLER':'MONITOR','OK':'OK','SIMULATEUR HORS LIGNE · données locales uniquement':'OFFLINE SIMULATOR · local data only','Collision détectée':'Collision detected','Recommencer':'Restart','Exercice chargé · simulation à l’arrêt':'Exercise loaded · simulation stopped','Exercice lancé':'Exercise started','Exercice généré':'Exercise generated','Côte bretonne chargée':'Brittany coastline loaded','Traces effacées':'Trails cleared','PAUSE':'PAUSED','EN LECTURE':'PLAYING','ALARME ZONE DE GARDE':'GUARD ZONE ALARM','ALARME CPA/TCPA':'CPA/TCPA ALARM','INFO DST : séparation / contre-sens':'TSS INFO: separation / wrong-way traffic','ÉCHOUEMENT':'GROUNDING','Sélectionnez une cible sur la carte pour sa fiche ARPA.':'Select a target on the radar for its ARPA data.','Touchez le radar : relèvement {bearing} · distance {range}':'Tap the radar: bearing {bearing} · range {range}','NAPM — Cargo / Marchand':'NAPM — Cargo / Merchant','NAPM — Ferry / NGV':'NAPM — Fast ferry / NGV','NAPM — Pétrolier / VLCC':'NAPM — Tanker / VLCC','NAPM — Remorqueur / Tug':'NAPM — Tug','NAPM — Navire de guerre / Warship':'NAPM — Warship','NAPM — Vedette / Patrol boat':'NAPM — Patrol boat','Pêche / Fishing':'Fishing / Fishing vessel','Voilier / Sailing yacht':'Sailing / Sailing yacht','NUC — Sous-marin nucléaire / NUC':'NUC — Nuclear submarine / NUC','Mouillage — Cargo / Marchand':'At anchor — Cargo / Merchant','Type':'Type','NAPM':'NAPM — mechanically propelled vessel','Moderne (gris)':'Modern (grey)','Classique (vert)':'Classic (green)','SCÉNARIO ACTIF':'ACTIVE SCENARIO','Veille côtière':'Coastal watch','Croisement bâbord':'Port-side crossing','Trafic dense':'Dense traffic','Anti-collision standard':'Standard collision avoidance','Réinitialiser l’affichage':'Reset layout','Fermer CPA / TCPA':'Close CPA / TCPA','Choisir un fichier JSON':'Choose a JSON file','Sélection de fichier JSON':'JSON file selection','Charger un exercice':'Load an exercise','Choisissez un exercice intégré ou sauvegardé localement.':'Choose a built-in or locally saved exercise.','Bruit de fond':'Background noise','ÉCHELLE':'Range','NAPM / Normal':'NAPM — mechanically propelled vessel','Données importées':'Data imported','Fichier d’export invalide':'Invalid export file','Fichier de côte invalide':'Invalid coastline file','ÉCHELLE & PRÉSENTATION':'RANGE & PRESENTATION','Vect. relatifs':'Relative vectors','Vect. vrais':'True vectors','GAIN':'GAIN','NOTRE NAVIRE':'OWN SHIP','CAP °':'HEADING °','VITESSE kn':'SPEED kn','OUTILS DE MESURE (EBL / VRM)':'MEASUREMENT TOOLS (EBL / VRM)','MESURE POINTEUR (CURSEUR)':'POINTER MEASUREMENT (CURSOR)','Décalage centre X (NM)':'Centre offset X (NM)','Décalage centre Y (NM)':'Centre offset Y (NM)','Glisser l’own ship':'Drag the own ship','sur le PPI ou ici.':'on the PPI or here.','X / Y synchronisés':'X / Y synchronized','Ligne de foi ON':'Heading line ON','Graduation de cap':'Heading graduation','ALARMES & LIMITES ARPA':'ALARMS & ARPA LIMITS','Alarmes ON':'Alarms ON','Zone de garde OFF':'Guard zone OFF','Zone de garde ON':'Guard zone ON','Alarme + anneau : une cible est signalée dès qu’elle entre dans ce rayon autour du navire.':'Alarm + ring: a target is flagged when it enters this radius around own ship.','Rayon de garde (NM)':'Guard radius (NM)','FICHE ARPA (CIBLE ACTIVE)':'ARPA SHEET (ACTIVE TARGET)','Sélectionnez une cible sur la carte pour afficher sa fiche ARPA détaillée.':'Select a target on the radar to display its detailed ARPA sheet.','Touchez le radar : relèvement — · distance —':'Tap the radar: bearing — · range —','DÉPLACER':'MOVE','Déposer un module ici':'Drop a module here','Vecteurs':'Vectors','Présentations':'Presentations','Anneaux ON':'Rings ON','Anneaux OFF':'Rings OFF','Ligne de foi OFF':'Heading line OFF','ON / OFF':'ON / OFF','CPA / TCPA — SUIVI DES CIBLES':'CPA / TCPA — TARGET MONITOR','Moderne (gris)':'Modern (grey)','Classique (vert)':'Classic (green)','Colonne latérale gauche — zone de dépôt':'Left sidebar — drop zone','Modules de commandes':'Control modules','Position de l\'own ship dans le PPI':'Own ship position on the PPI','Mini-carte de positionnement':'Position mini-map','Redimensionner la hauteur du tableau CPA/TCPA':'Resize CPA/TCPA table height','Appui :':'Tap:','Touchez le radar : relèvement ':'Tap the radar: bearing ','relèvement ':'bearing ','distance ':'range ','relèvement ':'bearing ','Rv ':'Brg. ','cap ':'heading ','Cible : ':'Target: ','distance ':'range ','passé':'past','ÉDITÉ':'EDITED','Modifier':'Edit','Aucun contact.':'No contacts.','déplacer':'move','Exercice personnalisé':'Custom exercise','Test ARPA & Mesures':'ARPA & Measurements test','Reset zoom':'Reset zoom','Réinitialiser le zoom':'Reset zoom','Zoom ×':'Zoom ×'};
+    "Simulateur Radar":"Radar Simulator",
+    "Générateur d\\'exercices":"Exercise generator",
+    "Ouvrir le générateur d’exercices":"Open exercise generator",
+    "↗ Générateur":"↗ Generator",
+    "CONDUITE DU NAVIRE":"SHIP CONTROL",
+    "CAP":"HDG.",
+    "CAP °":"HEADING °",
+    "VITESSE":"SPEED",
+    "VITESSE kn":"SPEED kn",
+    "Type de navire / Ship type":"Ship type",
+    "Cargo / Marchand":"Cargo / Merchant",
+    "Remorqueur":"Tug",
+    "Vedette / Patrouilleur":"Patrol boat",
+    "Pêche / Fishing":"Fishing vessel",
+    "Voilier / Sailing yacht":"Sailing yacht",
+    "Ferry / NGV":"Ferry / HSC",
+    "Pétrolier / VLCC":"Tanker / VLCC",
+    "Remorqueur / Tug":"Tug",
+    "Sous-marin nucléaire / NUC":"Nuclear submarine / NUC",
+    "Navire de guerre / Warship":"Warship",
+    "Vedette / Patrol boat":"Patrol boat",
+    "Générer un exercice aléatoire":"Generate a random exercise",
+    "Générer une trajectoire type":"Generate a typical track",
+    "Côte réelle":"Real coast",
+    "Côte réelle locale":"Local real coast",
+    "Préréglage":"Preset",
+    "Pas-de-Calais · détroit du Pas":"Pas-de-Calais · Strait of Dover",
+    "Rade de Brest":"Brest Roads",
+    "Rayon":"Radius",
+    "Rayon de sélection":"Selection radius",
+    "Fond":"Basemap",
+    "Recentrer":"Recenter",
+    "Importer une côte GeoJSON, GPX ou OSM":"Import a GeoJSON, GPX or OSM coastline",
+    "Importer un fichier de côte":"Import coastline file",
+    "Fermer":"Close",
+    "Valider et importer":"Validate and import",
+    "Cliquez sur la carte pour placer le centre du cercle · OWN au centre par défaut.":"Click the map to place the circle centre · OWN is centred by default.",
+    "Type de scénario":"Scenario type",
+    "Anti-collision (radial)":"Collision avoidance (radial)",
+    "Croisement":"Crossing",
+    "Dépassement":"Overtaking",
+    "Mix aléatoire":"Random mix",
+    "Nombre de navires":"Number of vessels",
+    "Distance des contacts":"Contact distance",
+    "Proche":"Near",
+    "Standard":"Standard",
+    "Lointaine":"Far",
+    "Aléatoire":"Random",
+    "Composition de la flotte / types ARPA":"Fleet composition / ARPA types",
+    "Normal":"Normal",
+    "Pêche":"Fishing vessel",
+    "Voilier":"Sailing vessel",
+    "Mouillage":"Vessel at anchor",
+    "Ajouter une côte / île":"Add coastline / island",
+    "Créer des waypoints":"Create waypoints",
+    "Distance côte":"Coast distance",
+    "Type de côte":"Coast type",
+    "Île":"Island",
+    "Détroit":"Strait",
+    "Baie":"Bay",
+    "Cap":"Heading",
+    "Port":"Port",
+    "Archipel":"Archipelago",
+    "Nombre de waypoints":"Number of waypoints",
+    "Dégradation de l\\'écho (export + aperçu)":"Echo degradation (export + preview)",
+    "Dégradation de l’écho":"Echo degradation",
+    "Aucune":"None",
+    "Légère":"Light",
+    "Moyenne":"Medium",
+    "Forte":"Strong",
+    "Conserver les réglages actuels":"Keep current settings",
+    "Mer / clapot":"Sea / swell",
+    "Pluie":"Rain",
+    "Bruit de fond":"Background noise",
+    "Échos faibles":"Weak echoes",
+    "Scintillement":"Flicker",
+    "Annuler":"Cancel",
+    "Supprimer":"Delete",
+    "Appliquer":"Apply",
+    "Terminer":"Finish",
+    "Quitter":"Exit",
+    "Supprimer forme":"Delete shape",
+    "Éditeur de côte · formes":"Coastline editor · shapes",
+    "Cercle / île":"Circle / island",
+    "Rectangle":"Rectangle",
+    "Ellipse":"Ellipse",
+    "Polygone libre":"Free polygon",
+    "Île allongée":"Elongated island",
+    "Inverser les sens":"Reverse directions",
+    "Largeur totale (NM)":"Total width (NM)",
+    "Inclinaison (°)":"Angle (°)",
+    "Glissez sur le radar pour dessiner":"Drag on the radar to draw",
+    "Waypoint de route":"Route waypoint",
+    "Nom":"Name",
+    "Type":"Type",
+    "Vitesse":"Speed",
+    "Contact":"Target",
+    "Export":"Export",
+    "Import":"Import",
+    "Générer":"Generate",
+    "Aperçu":"Preview",
+    "▶ Aperçu":"▶ Preview",
+    "Ⅱ Pause":"Ⅱ Pause",
+    "Réinitialiser l’exercice":"Reset exercise",
+    "Tout effacer":"Clear all",
+    "Classique":"Classic",
+    "Moderne":"Modern",
+    "Échelle":"Range",
+    "CAP OWN":"OWN HEADING",
+    "Déplacer la barre":"Move toolbar",
+    "Poignée pour déplacer la barre":"Toolbar drag handle",
+    "Clic vide : ajouter · glisser : déplacer · clic droit : menu":"Empty click: add · drag: move · right-click: menu",
+    "CPA / TCPA — TABLEAU DE SITUATION":"CPA / TCPA — SITUATION TABLE",
+    "Distance":"Range",
+    "Relèvement":"Bearing",
+    "Réglages":"Settings",
+    "Créer la route":"Create route",
+    "Traits de pêche":"Fishing tracks",
+    "Route erratique NUC":"Erratic NUC track",
+    "Patrouille circulaire / loiter":"Circular patrol / loiter",
+    "Route en S / zigzag voilier":"S-track / sailing vessel zigzag",
+    "Navette de ferry":"Ferry shuttle",
+    "Parallèle à la côte":"Parallel to coastline",
+    "Virage brusque au CPA":"Hard turn at CPA",
+    "Orientation":"Orientation",
+    "Paramètre":"Parameter",
+    "Mode":"Mode",
+    "OUESSANT":"OUESSANT",
+    "BRIDGE / TRAINING INSTRUMENT":"BRIDGE / TRAINING INSTRUMENT",
+    "ANTICOLLISION":"ANTICOLLISION",
+    "OFFLINE":"OFFLINE",
+    "VEILLE":"STANDBY",
+    "RÉGLAGES AFFICHAGE & ÉCHO":"DISPLAY & ECHO SETTINGS",
+    "TRACES":"TRAILS",
+    "TRACES / VECTEURS":"TRAILS / VECTORS",
+    "Désactivées":"Disabled",
+    "Trace relative":"Relative trail",
+    "Trace vraie":"True trail",
+    "Effacer les traces":"Clear trails",
+    "Durée des vecteurs":"Vector duration",
+    "Historique de positions":"Position history",
+    "Aucun":"None",
+    "TRAITEMENT ÉCHO":"ECHO PROCESSING",
+    "Anti-clutter mer":"Sea clutter suppression",
+    "Anti-clutter pluie":"Rain clutter suppression",
+    "Contraste":"Contrast",
+    "Brillance":"Brightness",
+    "SCÉNARIOS":"SCENARIOS",
+    "Charger exercice":"Load exercise",
+    "Format partagé avec generateur.html · chargement à l’arrêt":"Format shared with generator.html · load while stopped",
+    "Mesures & ARPA":"Measurements & ARPA",
+    "Sélectionnez une cible sur la carte pour afficher sa fiche ARPA détaillée.":"Select a target on the radar to display its detailed ARPA data.",
+    "Touchez le radar : relèvement — · distance —":"Tap the radar: bearing — · range —",
+    "Seuil CPA":"CPA threshold",
+    "Seuil TCPA":"TCPA threshold",
+    "Rayon de garde":"Guard radius",
+    "N-UP":"N-UP",
+    "C-UP":"C-UP",
+    "H-UP":"H-UP",
+    "CPA / TCPA — SUIVI DES CIBLES":"CPA / TCPA — TARGET MONITOR",
+    "contact radar":"radar contact",
+    "pêche":"fishing vessel",
+    "mouillage":"vessel at anchor",
+    "CPA sous seuil / TCPA dans seuil":"CPA below threshold / TCPA within threshold",
+    "CIBLE":"TARGET",
+    "TYPE":"TYPE",
+    "RELÈV.":"BRG.",
+    "DIST.":"RANGE",
+    "VIT.":"SPD.",
+    "ÉTAT":"STATUS",
+    "DANGER":"DANGER",
+    "PASSÉ":"PAST",
+    "SURVEILLER":"MONITOR",
+    "OK":"OK",
+    "SIMULATEUR HORS LIGNE · données locales uniquement":"OFFLINE SIMULATOR · local data only",
+    "Collision détectée":"Collision detected",
+    "Recommencer":"Restart",
+    "Exercice chargé · simulation à l’arrêt":"Exercise loaded · simulation stopped",
+    "Exercice lancé":"Exercise started",
+    "Exercice généré":"Exercise generated",
+    "Côte bretonne chargée":"Brittany coastline loaded",
+    "Traces effacées":"Trails cleared",
+    "PAUSE":"PAUSED",
+    "EN LECTURE":"PLAYING",
+    "ALARME ZONE DE GARDE":"GUARD ZONE ALARM",
+    "ALARME CPA/TCPA":"CPA/TCPA ALARM",
+    "INFO DST : séparation / contre-sens":"TSS INFO: separation / wrong-way traffic",
+    "ÉCHOUEMENT":"GROUNDING",
+    "Sélectionnez une cible sur la carte pour sa fiche ARPA.":"Select a target on the radar for its ARPA data.",
+    "Touchez le radar : relèvement {bearing} · distance {range}":"Tap the radar: bearing {bearing} · range {range}",
+    "NAPM — Cargo / Marchand":"NAPM — Cargo / Merchant",
+    "NAPM — Ferry / NGV":"NAPM — Fast ferry / NGV",
+    "NAPM — Pétrolier / VLCC":"NAPM — Tanker / VLCC",
+    "NAPM — Remorqueur / Tug":"NAPM — Tug",
+    "NAPM — Navire de guerre / Warship":"NAPM — Warship",
+    "NAPM — Vedette / Patrol boat":"NAPM — Patrol boat",
+    "NUC — Sous-marin nucléaire / NUC":"NUC — Nuclear submarine / NUC",
+    "Mouillage — Cargo / Marchand":"At anchor — Cargo / Merchant",
+    "NAPM":"NAPM — mechanically propelled vessel",
+    "Moderne (gris)":"Modern (grey)",
+    "Classique (vert)":"Classic (green)",
+    "SCÉNARIO ACTIF":"ACTIVE SCENARIO",
+    "Veille côtière":"Coastal watch",
+    "Croisement bâbord":"Port-side crossing",
+    "Trafic dense":"Dense traffic",
+    "Anti-collision standard":"Standard collision avoidance",
+    "Réinitialiser l’affichage":"Reset layout",
+    "Fermer CPA / TCPA":"Close CPA / TCPA",
+    "Choisir un fichier JSON":"Choose a JSON file",
+    "Sélection de fichier JSON":"JSON file selection",
+    "Charger un exercice":"Load an exercise",
+    "Choisissez un exercice intégré ou sauvegardé localement.":"Choose a built-in or locally saved exercise.",
+    "ÉCHELLE":"RANGE",
+    "NAPM / Normal":"NAPM — mechanically propelled vessel",
+    "Données importées":"Data imported",
+    "Fichier d’export invalide":"Invalid export file",
+    "Fichier de côte invalide":"Invalid coastline file",
+    "ÉCHELLE & PRÉSENTATION":"RANGE & PRESENTATION",
+    "Vect. relatifs":"Relative vectors",
+    "Vect. vrais":"True vectors",
+    "GAIN":"GAIN",
+    "NOTRE NAVIRE":"OWN SHIP",
+    "OUTILS DE MESURE (EBL / VRM)":"MEASUREMENT TOOLS (EBL / VRM)",
+    "MESURE POINTEUR (CURSEUR)":"POINTER MEASUREMENT (CURSOR)",
+    "Décalage centre X (NM)":"Centre offset X (NM)",
+    "Décalage centre Y (NM)":"Centre offset Y (NM)",
+    "Glisser l’own ship":"Drag the own ship",
+    "sur le PPI ou ici.":"on the PPI or here.",
+    "X / Y synchronisés":"X / Y synchronized",
+    "Ligne de foi ON":"Heading line ON",
+    "Graduation de cap":"Heading graduation",
+    "ALARMES & LIMITES ARPA":"ALARMS & ARPA LIMITS",
+    "Alarmes ON":"Alarms ON",
+    "Zone de garde OFF":"Guard zone OFF",
+    "Zone de garde ON":"Guard zone ON",
+    "Alarme + anneau : une cible est signalée dès qu’elle entre dans ce rayon autour du navire.":"Alarm + ring: a target is flagged when it enters this radius around own ship.",
+    "Rayon de garde (NM)":"Guard radius (NM)",
+    "FICHE ARPA (CIBLE ACTIVE)":"ARPA SHEET (ACTIVE TARGET)",
+    "DÉPLACER":"MOVE",
+    "Déposer un module ici":"Drop a module here",
+    "Vecteurs":"Vectors",
+    "Présentations":"Presentations",
+    "Anneaux ON":"Rings ON",
+    "Anneaux OFF":"Rings OFF",
+    "Ligne de foi OFF":"Heading line OFF",
+    "ON / OFF":"ON / OFF",
+    "Colonne latérale gauche — zone de dépôt":"Left sidebar — drop zone",
+    "Modules de commandes":"Control modules",
+    "Position de l\\'own ship dans le PPI":"Own ship position on the PPI",
+    "Mini-carte de positionnement":"Position mini-map",
+    "Redimensionner la hauteur du tableau CPA/TCPA":"Resize CPA/TCPA table height",
+    "Appui :":"Tap:",
+    "Touchez le radar : relèvement ":"Tap the radar: bearing ",
+    "relèvement ":"bearing ",
+    "distance ":"range ",
+    "Rv ":"Brg. ",
+    "cap ":"heading ",
+    "Cible : ":"Target: ",
+    "passé":"past",
+    "ÉDITÉ":"EDITED",
+    "Modifier":"Edit",
+    "Aucun contact.":"No contacts.",
+    "déplacer":"move",
+    "Exercice personnalisé":"Custom exercise",
+    "Test ARPA & Mesures":"ARPA & Measurements test",
+    "Reset zoom":"Reset zoom",
+    "Réinitialiser le zoom":"Reset zoom",
+    "Zoom ×":"Zoom ×",
+    "Conduite du navire":"Ship control",
+    "Français / English":"French / English",
+    "Ouvrir le dépôt GitHub":"Open GitHub repository",
+    "Own ship draggable":"Draggable own ship",
+    "Position de l'own ship dans le PPI":"Own ship position on the PPI",
+    "Radar band":"Radar band",
+    "Pulse length":"Pulse length",
+    "Tableau CPA et TCPA":"CPA and TCPA table",
+    "Bande X · 3 cm · meilleure résolution, sensible à la pluie · X-band: sharper picture, more rain sensitive":"X-band · 3 cm · higher resolution, more rain-sensitive",
+    "Bande S · 10 cm · portée plus longue, moins sensible à la pluie · S-band: longer range, less rain sensitive":"S-band · 10 cm · longer range, less rain-sensitive",
+    "Bande radar":"Radar band",
+    "SP · Short Pulse · SP: impulsion courte":"SP · Short Pulse",
+    "MP · Medium Pulse · MP: impulsion moyenne":"MP · Medium Pulse",
+    "LP · Long Pulse · LP: impulsion longue":"LP · Long Pulse",
+    "Rotate your phone to landscape":"Rotate your phone to landscape",
+    "Tournez votre téléphone en paysage":"Rotate your phone to landscape",
+    "Réessayer / Try again":"Try again",
+    "Plein écran / Full screen":"Full screen",
+    "Plein écran Paysage":"Landscape full screen",
+    "Plein écran paysage":"Landscape full screen",
+    "Plus tard":"Later",
+    "Utiliser le radar en paysage":"Use the radar in landscape",
+    "Pour une meilleure lisibilité, passez votre téléphone en plein écran paysage. Vous pourrez continuer sans changer de mode.":"For better readability, switch your phone to landscape full-screen mode. You can continue without changing modes.",
+    "Tournez votre téléphone en paysage pour une meilleure lisibilité.":"Rotate your phone to landscape for better readability.",
+    "CPA / TCPA":"CPA / TCPA",
+    "CPA":"CPA",
+    "TCPA":"TCPA",
+    "COLLISION":"COLLISION",
+    "CPA NM":"CPA NM",
+    "Traces":"Trails",
+    "EBL (°)":"EBL (°)",
+    "EBL OFF":"EBL OFF",
+    "VRM (NM)":"VRM (NM)",
+    "VRM OFF":"VRM OFF",
+    "Index OFF":"Index line OFF",
+    "Parallèle index désactivé":"Parallel indexing off",
+    "Parallèle index · angle EBL (°)":"Parallel index · EBL angle (°)",
+    "Parallèle index · espacement depuis OWN (NM)":"Parallel index · spacing from own ship (NM)",
+    "MESURE (EBL / VRM / PARALLÈLE INDEX)":"MEASUREMENTS (EBL / VRM / PARALLEL INDEX)",
+    "Définir le départ de la simulation":"Set simulation start point",
+    "Glisser l'own ship":"Drag own ship",
+    "Barre de conduite : dans le flux sous le radar, jamais en superposition.":"Helm bar: flows below the radar, never overlays it.",
+    "COLONNE CENTRALE : écran radar + barre de conduite, deux modules fixes en colonne":"CENTRE COLUMN: radar display + helm bar, two fixed stacked modules",
+    "COLONNE DROITE : COMMANDES, CONDUITE NAVIRE ET PARAMÈTRES":"RIGHT COLUMN: CONTROLS, SHIP HANDLING AND SETTINGS",
+    "SECTION SIMULATEUR AVEC DONNÉES / MESURES / ARPA À GAUCHE DU RADAR":"SIMULATOR SECTION WITH DATA / MEASUREMENTS / ARPA TO THE LEFT OF THE RADAR",
+    "En-tête : titre simple aligné à gauche; les actions restent dans la colonne de droite.":"Header: simple left-aligned title; actions remain in the right column.",
+    "Exercices intégrés + banque de cas réels reconstitués (BEA MER / MAIB / DMAIB / BSU) + sauvegardes locales. Citation au survol.":"Built-in exercises + reconstructed real-case library (BEA MER / MAIB / DMAIB / BSU) + local saves. Hover for citations.",
+    "SimuRadar":"Radar Simulator",
+    "Radar Simulator":"Radar Simulator",
+    "FR | EN":"FR | EN",
+    "GitHub":"GitHub",
+    "X-BAND":"X-BAND",
+    "S-BAND":"S-BAND",
+    "12.0 kn":"12.0 kn",
+    "+0.5 kn":"+0.5 kn",
+    "−0.5 kn":"−0.5 kn",
+    "▶ PLAY":"▶ PLAY",
+    "↻ RESET":"↻ RESET",
+    "1 min":"1 min",
+    "3 min":"3 min",
+    "6 min":"6 min",
+    "15 s":"15 s",
+    "min":"min",
+    "−30 s":"−30 s",
+    "+30 s":"+30 s",
+    "Afficher/masquer le tableau CPA":"Show/hide CPA table",
+    "Avancer de 30 s / Step forward 30 s":"Step forward 30 s",
+    "Reculer de 30 s / Step back 30 s":"Step back 30 s",
+    "Zoomer":"Zoom in",
+    "Dézoomer":"Zoom out",
+    "Outils radar":"Radar tools",
+    "Outils tactiles":"Touch controls",
+    "Navigation carte":"Map navigation",
+    "Outils de côte":"Coastline tools",
+    "Actions côte et DST":"Coastline and TSS actions",
+    "Intensité / Intensity":"Intensity",
+    "XTD en milles nautiques":"XTD in nautical miles",
+    "Proposer le plein écran paysage":"Offer landscape full-screen mode",
+    "Paramètre XTD du passage":"Passage plan XTD setting",
+    "Créer/éditer les formes de côte":"Create/edit coastline shapes",
+    "Tracer un dispositif de séparation du trafic":"Draw a traffic separation scheme",
+    "Créer une zone de pluie":"Create a rain zone",
+    "Effacer toutes les formes de côte":"Clear all coastline shapes",
+    "Basculer le plein écran":"Toggle full screen",
+    "Ouvrir les outils d’édition":"Open editing tools",
+    "Ouvrir le simulateur radar":"Open radar simulator",
+    "Charger un cas BEA mer / MAIB / banque par défaut":"Load a BEA mer / MAIB / default-bank case",
+    "Placer les waypoints du passage planning":"Place passage plan waypoints",
+    "Annuler la dernière modification":"Undo last change",
+    "Titre de la bande radar":"Radar band",
+    "Passage planning":"passage plan",
+    "XTD · 0,5 NM":"XTD · 0.5 NM",
+    "XTD (NM)":"XTD (NM)",
+    "Placer l’arrivée":"Place destination",
+    "Supprimer le point":"Delete point",
+    "Effacer la route":"Clear route",
+    "Terminer le tracé":"Finish drawing",
+    "TRACÉ CÔTE ACTIF · clics: points · Entrée/double-clic: terminer · Échap: annuler":"COASTLINE DRAWING ACTIVE · clicks: points · Enter/double-click: finish · Esc: cancel",
+    "Sélectionnez ensuite une forme et glissez une poignée pour l’ajuster, ou le corps pour la déplacer. Suppr efface.":"Select a shape, then drag a handle to resize it or its body to move it. Delete removes it.",
+    "Type de forme":"Shape type",
+    "Cercle":"Circle",
+    "Polygone":"Polygon",
+    "Appliquer le type":"Apply type",
+    "Édition du DST":"TSS editor",
+    "Voie en eau profonde":"Deep-water route",
+    "Zone de prudence":"Precautionary area",
+    "↔ Inverser les sens":"↔ Reverse directions",
+    "Forme":"Shape",
+    "Libre":"Freehand",
+    "Bande radar par défaut / Default radar band":"Default radar band",
+    "Proche · 0,7–1,3 NM":"Near · 0.7–1.3 NM",
+    "Standard · 1,1–2,2 NM":"Standard · 1.1–2.2 NM",
+    "Lointaine · 2–3,5 NM":"Far · 2–3.5 NM",
+    "Composition de la flotte / types et conditions":"Fleet composition / types and conditions",
+    "Chaque navire combine un type et une condition. Les conditions sont appliquées aux navires générés.":"Each vessel combines a type and a condition. Conditions are applied to generated vessels.",
+    "Éléments de la zone":"Zone elements",
+    "Forme arrondie":"Rounded shape",
+    "Types de navires personnalisés":"Custom vessel types",
+    "Créer à partir de…":"Create from…",
+    "Cargo":"Cargo",
+    "Vraquier":"Bulk carrier",
+    "Pétrolier":"Tanker",
+    "Ferry":"Ferry",
+    "Navire de guerre":"Warship",
+    "Vedette":"Patrol boat",
+    "NUC":"NUC",
+    "Vitesse min (nœuds)":"Minimum speed (knots)",
+    "Vitesse max (nœuds)":"Maximum speed (knots)",
+    "Taux de giration (°/s)":"Rate of turn (°/s)",
+    "Longueur (m)":"Length (m)",
+    "Largeur (m)":"Beam (m)",
+    "Taille d’écho (NM)":"Echo size (NM)",
+    "Couleur":"Colour",
+    "Nouveau type":"New type",
+    "Enregistrer le type":"Save type",
+    "Types enregistrés":"Saved types",
+    "Cap °":"Heading °",
+    "Vitesse kn":"Speed kn",
+    "Type de navire":"Vessel type",
+    "Position X (NM)":"X position (NM)",
+    "Position Y (NM)":"Y position (NM)",
+    "Éditer la trajectoire et les manœuvres":"Edit track and manoeuvres",
+    "Point de départ OWN":"OWN start point",
+    "État de la mer (Douglas 0–9)":"Sea state (Douglas 0–9)",
+    "Échelle Douglas :":"Douglas scale:",
+    "Ouessant":"Ouessant",
+    "Marseille":"Marseille",
+    "Gibraltar":"Gibraltar",
+    "Solent":"Solent",
+    "Esri World Street Map":"Esri World Street Map",
+    "Esri World Imagery":"Esri World Imagery",
+    "Esri Ocean":"Esri Ocean",
+    "OpenTopoMap":"OpenTopoMap",
+    "Paramètre 1":"Parameter 1",
+    "Paramètre 2":"Parameter 2",
+    "Orientation °":"Orientation °",
+    "Waypoints (1–10)":"Waypoints (1–10)",
+    "Portée / segment (NM)":"Range / segment (NM)",
+    "Longueur des traits (NM), nombre de traits et orientation.":"Track length (NM), number of tracks and orientation.",
+    "BEA mer / MAIB · Default bank":"BEA mer / MAIB · Default bank",
+    "Cas réels":"Real cases",
+    "reconstitués":"reconstructed",
+    "Citation console :":"Console citation:",
+    "Aussi accessibles via":"Also accessible via",
+    "chargerBanque(i)":"chargerBanque(i)",
+    "RÉGLAGES":"SETTINGS",
+    "Fichier":"File",
+    "Banque de cas":"Case library",
+    "Générer le scénario":"Generate scenario",
+    "Outils":"Tools",
+    "Côte":"Coastline",
+    "DST":"TSS",
+    "Effacer les côtes":"Clear coastlines",
+    "Affichage":"Display",
+    "Plein écran":"Full screen",
+    "Édition":"Editing",
+    "Outils d’édition":"Editing tools",
+    "Simulateur":"Simulator",
+    "Own/nav.":"Own ship/vessels",
+    "Route":"Route",
+    "Flotte":"Fleet",
+    "Régl.":"Settings",
+    "Suppr.":"Delete",
+    "Sélect.":"Select",
+    "Effacer":"Clear",
+    "× Effacer la route":"× Clear route",
+    "CÔTE & DST":"COAST & TSS",
+    "Commandes générales du scénario":"General scenario controls",
+    "Interface smartphone du générateur : commandes et tiroirs dédiés, sans modifier les commandes bureau.":"Generator smartphone interface: dedicated controls and drawers, without changing desktop controls.",
+    "Dessiner une côte":"Draw a coastline",
+    "Côte réelle · carte et import":"Real coastline · map and import",
+    "Créer un DST":"Create a TSS",
+    "Supprimer le point sélectionné":"Delete selected point",
+    "OWN & NAVIRES":"OWN SHIP & VESSELS",
+    "Régler le départ OWN":"Set OWN start point",
+    "Supprimer le navire sélectionné":"Delete selected vessel",
+    "État de la mer":"sea state",
+    "Route active : clic vide = ajouter en fin · glisser waypoint = déplacer · double-clic waypoint = éditer · Échap pour terminer":"Active route: click empty space to add at end · drag waypoint to move · double-click waypoint to edit · Esc to finish",
+    "Passage : clics pour les waypoints · Placer arrivée puis clic sur la carte":"Passage plan: click to place waypoints · Choose destination, then click the map",
+    "Cliquez sur la carte pour fixer le point d’arrivée":"Click the map to set the destination",
+    "Sélectionnez un point de passage":"Select a passage waypoint",
+    "Waypoint refusé : segment sur la terre":"Waypoint rejected: route segment crosses land",
+    "Waypoint ajouté":"Waypoint added",
+    "Route réinitialisée":"Route reset",
+    "Waypoint supprimé":"Waypoint deleted",
+    "Waypoint modifié":"Waypoint updated",
+    "DST généré":"TSS generated",
+    "DST supprimé":"TSS deleted",
+    "Éditer le DST":"Edit TSS",
+    "Éditer la zone de pluie":"Edit rain zone",
+    "Éditer la forme de côte":"Edit coastline shape",
+    "Arrivée du passage placée":"Passage destination set",
+    "Polygone ajouté":"Polygon added",
+    "Forme ajoutée":"Shape added",
+    "Forme supprimée":"Shape deleted",
+    "Arrêtez l’aperçu avant de modifier le passage":"Stop the preview before editing the passage plan",
+    "Exercice revenu à l’état de départ":"Exercise reset to starting state",
+    "Simulation arrêtée":"Simulation stopped",
+    "Exercice réinitialisé":"Exercise reset",
+    "Plein écran indisponible":"Full screen unavailable",
+    "Ajouter une forme":"Add shape",
+    "Au moins 3 sommets requis":"At least 3 vertices required",
+    "Erreur: zone de pluie non créée":"Error: rain zone was not created",
+    "Erreur: ouverture du sélecteur impossible":"Error: could not open the selector",
+    "En-tête du sélecteur pluie .rain-picker-head introuvable":"Rain selector header .rain-picker-head not found",
+    "OWN":"OWN",
+    "own ship":"own ship",
+    "notre navire":"own ship",
+    "Navire propre":"own ship",
+    "Cible":"target",
+    "cible":"target",
+    "target":"target",
+    "Tableau CPA/TCPA à la demande, hors des colonnes dockables.":"CPA/TCPA table on demand, outside the dockable columns.",
+    "Tableau CPA/TCPA flottant, affiché uniquement à la demande. Le bouton est intégré à l’en-tête pour rester dans le flux et ne recouvrir aucun module.":"Floating CPA/TCPA table, shown on demand only. Its button is integrated into the header to remain in the flow and avoid covering any module.",
+    "Alerte CPA sous seuil / TCPA dans seuil":"CPA below threshold / TCPA within threshold",
+    "RELÈV. °":"BRG. °",
+    "DIST. NM":"RANGE NM",
+    "VIT. kn":"SPD. kn",
+    "×0.5":"×0.5"
+  };
   var R={};Object.keys(T).forEach(    /**
    * Rôle : fonction callback anonyme (function); voir le contexte de définition pour l’opération précise.
    * Paramètres :
@@ -4969,7 +5620,7 @@ function(){'use strict';
    * @param {*} x Paramètre transmis par l’appelant.
    * Appelant : gestionnaire d’interface (propriété on*).
    */
-  function setLanguage(x){var next=x==='en'?'en':'fr';if(next===lang){walk(document);updateCanvasText();return}lang=next;try{localStorage.setItem('radarLang',lang)}catch(e){};updateCanvasText();walk(document);if(typeof render==='function')render();if(typeof draw==='function')draw();var b=document.getElementById('radarLangToggle');if(b){b.title=lang==='en'?'Switch to French':'Passer en anglais';b.setAttribute('aria-label',b.title)}}
+  function setLanguage(x){var next=x==='en'?'en':'fr';document.title=next==='en'?"Radar Simulator":"Simulateur Radar";if(next===lang){walk(document);updateCanvasText();return}lang=next;try{localStorage.setItem('radarLang',lang)}catch(e){};updateCanvasText();walk(document);if(typeof render==='function')render();if(typeof draw==='function')draw();var b=document.getElementById('radarLangToggle');if(b){b.title=lang==='en'?'Switch to French':'Passer en anglais';b.setAttribute('aria-label',b.title)}}
   var bar=document.querySelector('.toolbar')||document.querySelector('header.top');if(bar){var b=document.getElementById('radarLangToggle')||document.createElement('button');b.id='radarLangToggle';b.type='button';b.className='radar-lang-toggle';b.textContent='FR | EN';b.onclick=    /**
    * Rôle : fonction callback anonyme (function); voir le contexte de définition pour l’opération précise.
    * Paramètres :
@@ -5064,6 +5715,7 @@ function(){
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+<!-- Aide mobile en orientation portrait : dialogue modal guidant l’utilisateur vers l’affichage paysage. -->
 <div id="mobileOrientationOverlay" role="dialog" aria-modal="true" aria-labelledby="mobileOrientationTitle" hidden>
   <div class="orientation-card">
     <div class="orientation-icon" aria-hidden="true">↻</div>
@@ -5357,6 +6009,7 @@ body.phone-mode #radarZoomReset{position:static!important;display:inline-flex!im
 body.phone-mode #phoneLandscapeButton{position:fixed;right:8px;top:7px;z-index:55;min-height:34px;padding:5px 9px;border:1px solid #9ba9ad;border-radius:8px;background:#172126ed;color:#fff;font-weight:700;touch-action:manipulation}
 @media(prefers-reduced-motion:reduce){body.phone-mode #leftDock,body.phone-mode #rightDock{transition:none!important}}
 </style>
+<!-- Interface téléphone : ce contrôleur ajoute les commandes tactiles et les panneaux mobiles au canevas. -->
 <script id="phone-mode-dedicated-v16-js">
 (function(){'use strict';
 const body=document.body, qs=new URLSearchParams(location.search);
@@ -5365,13 +6018,13 @@ function sync(){body.classList.toggle('phone-mode',detect())}sync();addEventList
 if(!body.classList.contains('phone-mode'))return;
 const layout=document.querySelector('#sim.mode>.layout'),left=document.getElementById('leftDock'),right=document.getElementById('rightDock'),canvas=document.getElementById('radar'),radarbox=canvas&&canvas.closest('.radarbox');if(!layout||!left||!right||!canvas)return;
 const zoomControls=document.createElement('div');zoomControls.id='radarZoomControls';zoomControls.setAttribute('aria-label','Zoom radar');const zoomOut=document.createElement('button');zoomOut.type='button';zoomOut.id='radarZoomOut';zoomOut.setAttribute('aria-label','Réduire le zoom');zoomOut.textContent='−';const zoomIn=document.createElement('button');zoomIn.type='button';zoomIn.id='radarZoomIn';zoomIn.setAttribute('aria-label','Augmenter le zoom');zoomIn.textContent='＋';const resetControl=document.getElementById('radarZoomReset');zoomControls.append(zoomOut,resetControl,zoomIn);radarbox.appendChild(zoomControls);
-const tabs=document.createElement('div');tabs.id='phoneDrawerTabs';tabs.innerHTML='<button id="phoneOpenLeft" type="button" aria-label="Ouvrir les mesures">☰ Mesures</button><button id="phoneOpenRight" type="button" aria-label="Ouvrir les commandes">Commandes ☰</button>';layout.appendChild(tabs);
+const tabs=document.createElement('div');tabs.id='phoneDrawerTabs';tabs.innerHTML='<button id="phoneOpenLeft" type="button" aria-label="Ouvrir les mesures"> Mesures</button><button id="phoneOpenRight" type="button" aria-label="Ouvrir les commandes">Commandes </button>';layout.appendChild(tabs);
  document.querySelectorAll('#leftResizer,#rightResizer,.layout-resizer').forEach(el=>el.remove());
 /* Phone drawers are fixed-width; no finger-resize handlers. */
 function close(){body.classList.remove('phone-left-open','phone-right-open');document.getElementById('phoneOpenLeft').setAttribute('aria-expanded','false');document.getElementById('phoneOpenRight').setAttribute('aria-expanded','false')}
 function toggle(side){let c=side==='left'?'phone-left-open':'phone-right-open',other=side==='left'?'phone-right-open':'phone-left-open',b=document.getElementById(side==='left'?'phoneOpenLeft':'phoneOpenRight');body.classList.remove(other);body.classList.toggle(c);b.setAttribute('aria-expanded',body.classList.contains(c));}
 document.getElementById('phoneOpenLeft').addEventListener('click',()=>toggle('left'));document.getElementById('phoneOpenRight').addEventListener('click',()=>toggle('right'));canvas.addEventListener('click',e=>{if(e.target===canvas&&body.classList.contains('phone-left-open')||e.target===canvas&&body.classList.contains('phone-right-open'))close()});
-if(radarbox){let b=document.createElement('button');b.id='phoneLandscapeButton';b.type='button';b.textContent='⛶ Paysage';b.setAttribute('aria-label','Plein écran paysage');b.addEventListener('click',()=>{let fn=radarbox.requestFullscreen||radarbox.webkitRequestFullscreen;if(fn){const promise=fn.call(radarbox);if(promise&&promise.catch)promise.catch(()=>{})}else if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})});document.body.appendChild(b)}
+if(radarbox){let b=document.createElement('button');b.id='phoneLandscapeButton';b.type='button';b.textContent='Plein écran Paysage';b.setAttribute('aria-label','Plein écran paysage');b.addEventListener('click',()=>{let fn=radarbox.requestFullscreen||radarbox.webkitRequestFullscreen;if(fn){const promise=fn.call(radarbox);if(promise&&promise.catch)promise.catch(()=>{})}else if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})});document.body.appendChild(b)}
 /* Existing canvas renderer preserves radarView on every redraw. Own touch controller uses its zoom/pan transform. */
 const active=new Map();let pinch=null,pan=null,lastTap={t:0,x:0,y:0};
 function pos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
