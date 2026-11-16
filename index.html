@@ -76,6 +76,7 @@ button[data-turn]:not([data-turn^="-"]){color:#9af0c5;border-color:#4d9d78;backg
 
 .collision-overlay{position:fixed;inset:0;z-index:1900;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(70,4,18,.74);backdrop-filter:blur(5px)}.collision-overlay.is-open{display:flex}.collision-card{width:min(520px,100%);padding:26px 22px;text-align:center;background:linear-gradient(145deg,#5d1728,#260c19);border:2px solid #ff7180;border-radius:22px;box-shadow:0 0 0 5px #ff718022,0 24px 80px #000c}.collision-card h2{margin:0 0 10px;color:#fff;font-size:clamp(30px,8vw,54px);letter-spacing:.08em}.collision-card p{margin:0 0 20px;color:#ffd8dd;font-size:16px}.collision-card button{background:#fff;color:#3b0c18;border-color:#fff;font-weight:800;min-width:190px}
 
+.arrival-overlay{position:fixed;inset:0;z-index:1850;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(5,18,20,.68);backdrop-filter:blur(4px)}.arrival-overlay.is-open{display:flex}.arrival-card{width:min(390px,100%);padding:20px;text-align:center;background:linear-gradient(150deg,#173d36,#101d20);border:1px solid #71e2bb;border-radius:16px;box-shadow:0 0 0 4px #71e2bb22,0 18px 60px #000b}.arrival-card h2{margin:0 0 8px;color:#a7ffdf;font-size:22px;letter-spacing:.08em}.arrival-card p{margin:0 0 16px;color:#e0f7ef}.arrival-card strong{font-size:1.2em;color:#fff}.arrival-card button{min-width:130px;background:#a7ffdf;color:#10231f;border-color:#a7ffdf;font-weight:800}body.theme-classic .arrival-overlay{background:rgba(0,18,3,.76)}body.theme-classic .arrival-card{background:#06150a;border-color:#66ff66}body.theme-classic .arrival-card h2,body.theme-classic .arrival-card p,body.theme-classic .arrival-card strong{color:#66ff66}
 .exercise-overlay{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,7,18,.78);backdrop-filter:blur(5px)}.exercise-overlay.is-open{display:flex}.exercise-modal{width:min(560px,100%);max-height:min(720px,90vh);overflow:auto;background:linear-gradient(145deg,#30373b,#202529);border:1px solid #596168;border-radius:22px;padding:20px;box-shadow:0 24px 80px #000b}.exercise-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.exercise-modal h2{margin:0;color:var(--accent);font-size:18px}.exercise-modal .small{margin:4px 0 14px}.exercise-modal-close{min-width:46px;font-size:20px;line-height:1}.exercise-modal-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 16px}.exercise-modal-list button{text-align:left;min-height:54px}.exercise-file-row{border-top:1px solid var(--line);padding-top:14px}.exercise-file-row button{width:100%}.exercise-modal:focus{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:520px){.exercise-modal-list{grid-template-columns:1fr}}
 
 /* Barre de contrôles radar : utilitaires lisibles à droite de l'échelle */
@@ -2071,8 +2072,8 @@ body:not(.theme-classic) #indexLinesToggle.measure-toggle.is-on,body:not(.theme-
       <label>Historique de positions <select id="historyStep"><option value="0">Aucun</option><option value="15">15 s</option><option value="60">1 min</option></select></label>
     </div></details>
     <details open><summary>TRAITEMENT ÉCHO</summary><div class="body">
-      <label>Anti-clutter mer <input id="sea" type="range" min="0" max="100" value="0" disabled><b id="seaVal">25.0</b></label>
-      <label>Anti-clutter pluie <input id="rain" type="range" min="0" max="100" value="0" disabled><b id="rainVal">0.0</b></label>
+      <label>Anti-clutter mer <input id="sea" type="range" min="0" max="100" step="1" value="0"><b id="seaVal">0.0</b></label>
+      <label>Anti-clutter pluie <input id="rain" type="range" min="0" max="100" step="1" value="0"><b id="rainVal">0.0</b></label>
       <label>Contraste <input id="contrast" type="range" min="50" max="150" value="100.0"><b id="contrastVal">100.0</b></label>
       <label>Brillance <input id="brightness" type="range" min="30" max="150" value="100.0"><b id="brightnessVal">100.0</b></label>
       <div class="enh-control" role="group" aria-label="ENH — agrandissement visuel des échos">
@@ -2108,7 +2109,7 @@ body:not(.theme-classic) #indexLinesToggle.measure-toggle.is-on,body:not(.theme-
   </div>
 </div>
 
-<div class="footer">SIMULATEUR HORS LIGNE · données locales uniquement</div></div><div id="collisionOverlay" class="collision-overlay" role="alertdialog" aria-modal="true" aria-labelledby="collisionTitle"><div class="collision-card"><h2 id="collisionTitle">COLLISION</h2><p id="collisionMessage">Collision détectée</p><button id="collisionReset" type="button">↻ Recommencer</button></div></div><div id="toast" class="toast"></div>
+<div class="footer">SIMULATEUR HORS LIGNE · données locales uniquement</div></div><div id="collisionOverlay" class="collision-overlay" role="alertdialog" aria-modal="true" aria-labelledby="collisionTitle"><div class="collision-card"><h2 id="collisionTitle">COLLISION</h2><p id="collisionMessage">Collision détectée</p><button id="collisionReset" type="button">↻ Recommencer</button></div></div><div id="toast" class="toast"></div><div id="arrivalOverlay" class="arrival-overlay" role="dialog" aria-modal="true" aria-labelledby="arrivalTitle"><div class="arrival-card"><h2 id="arrivalTitle">ARRIVÉE ATTEINTE</h2><p>Temps de simulation écoulé<br><strong id="arrivalElapsed">00:00:00.0</strong></p><button id="arrivalClose" type="button">Continuer</button></div></div>
 <!-- Fenêtre flottante de chargement : la boîte de dialogue est libellée par son titre, l’arrière-plan restant masqué tant qu’elle est ouverte. -->
 <div id="exerciseModal" class="exercise-overlay" aria-hidden="true" role="presentation">
 <div class="exercise-modal" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" tabindex="-1">
@@ -2633,12 +2634,13 @@ function normalizeRainZones(x){
  * @param {*} state Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function rainZoneVisible(z,state){
-  // Visibility rule: zone disappears when anti-clutter RAIN slider > intensity (0-100 scale, strict '>').
-  // Slider is state.settings.rain (0-100); intensity is 0-100. Same scale, no conversion.
-  const ac=Math.max(0,Math.min(100,+(state?.settings?.rain||0)));
-  return ac<=((+z?.intensity||0)-1e-9);
-}
+function rainZoneVisible(z,state){return !!(z&&Array.isArray(z.points)&&z.points.length>=3&&(+z.intensity||0)>0);}
+function rainPixelVisibility(d,intensite){const a=Math.max(0,Math.min(100,Number(intensite)||0))/100,depth=Math.max(0,Math.min(1,Number(d)||0));return Math.max(.28,1-a*depth*.72)}
+function echoReflectivity(a){const size=Number(a?.custom?.echoSize)>0?Number(a.custom.echoSize):shipSizeNm(a||{});return Math.max(.10,Math.min(.90,.10+(size-.01)/.07*.78))}
+function seaTargetVisibility(distNM,refl){const a=Math.max(0,Math.min(100,Number(S?.settings?.sea)||0))/100,d=Math.max(0,Number(distNM)||0),m=Math.max(.05,effectiveMaxRange(S)),weak=Math.max(.20,Math.min(.45,Number(refl)||.20)),near=Math.max(.10,1-.90*Math.min(d,m)/m);return Math.max(0,Math.min(1,1-a*1.60*near*(1-weak)))}
+function buoyRadarEcho(type){return ({port:.36,starboard:.36,north:.42,south:.42,east:.42,west:.42,isolated:.20,wreck:.22,safe:.45})[String(type||'safe').toLowerCase()]??.32}
+function rainTargetVisibility(ac,depthNorm,reflectivity){const a=Math.max(0,Math.min(100,Number(ac)||0))/100,d=Math.max(0,Math.min(1,Number(depthNorm)||0)),refl=Math.max(.1,Math.min(.9,Number(reflectivity)||.1));return Math.max(0,Math.min(1,1-a*d*(1-refl*.75)*1.2))}
+function rainZoneDepthAtPoint(z,x,y){const pts=Array.isArray(z?.points)?z.points:[];if(pts.length<3||!pointInRainZone(z,x,y))return 0;let minD=Infinity,minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(let i=0;i<pts.length;i++){const [ax,ay]=pts[i],[bx,by]=pts[(i+1)%pts.length];minX=Math.min(minX,ax);maxX=Math.max(maxX,ax);minY=Math.min(minY,ay);maxY=Math.max(maxY,ay);const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy||1)));minD=Math.min(minD,Math.hypot(x-(ax+t*dx),y-(ay+t*dy)))}const thickness=Math.max(.001,Math.min(maxX-minX,maxY-minY)*.22);return Math.max(0,Math.min(1,minD/thickness))}
 /**
  * Rôle : fonction pointInRainZone; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -2682,11 +2684,15 @@ function targetInAnyRainZone(state,a){
 function normalizePassagePlanning(p){
   if(!p||typeof p!=='object')return null;
   const point=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y)?{x:+q.x,y:+q.y}:null;
-  const depart=point(p.depart),arrivee=point(p.arrivee),points=Array.isArray(p.points)?p.points.map(point).filter(Boolean):[];
-  return depart||arrivee||points.length?{depart,points,arrivee,xtd:Number.isFinite(+p.xtd)?Math.max(0,Math.min(5,+p.xtd)):.5}:null;
+  let depart=point(p.depart),arrivee=point(p.arrivee),sourcePoints=Array.isArray(p.points)?p.points:(Array.isArray(p.waypoints)?p.waypoints:(Array.isArray(p.markers)?p.markers:[])),points=sourcePoints.map(q=>{const z=point(q);if(z&&typeof q.type==='string')z.type=q.type;if(z&&typeof q.kind==='string')z.kind=q.kind;return z}).filter(Boolean);
+  /* Lit également l'ancien export du générateur où tous les points étaient dans points[]. */
+  if(!depart&&!arrivee&&points.length>=2){depart=points[0];arrivee=points[points.length-1];points=points.slice(1,-1)}
+  const colors=p.markerColors||{};
+  const markerColors={depart:/^#[0-9a-f]{6}$/i.test(colors.depart||'')?colors.depart:'#55f0b1',arrivee:/^#[0-9a-f]{6}$/i.test(colors.arrivee||'')?colors.arrivee:'#ff5964'};
+  const validPassagePoint=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y);const typedArrival=validPassagePoint(p.arrival)?p.arrival:null;return depart||arrivee||points.length||typedArrival?{depart,points,arrivee,arrival:typedArrival,xtd:Number.isFinite(+p.xtd)?Math.max(0,Math.min(5,+p.xtd)):.5,markerColors}:null;
 }
 function normalizeExercise(x,skipStart=false){if(!x||typeof x!=='object'||!x.own)throw Error('Format JSON incompatible');let ships=Array.isArray(x.ships)?x.ships:(Array.isArray(x.targets)?x.targets.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:a.x,y:a.y,c:a.c,s:a.s,name:a.name,type:a.type,shipType:a.shipType})):null);if(!ships)throw Error('Format JSON incompatible');let customShipTypes=Array.isArray(x.customShipTypes)?x.customShipTypes.filter(t=>t&&t.id).map(t=>({id:String(t.id),name:String(t.name||'Navire'),speed:Math.max(0,+t.speed||0),speedMin:Math.max(0,(!Number.isFinite(+t.speedMin)&&!Number.isFinite(+t.speedMax)&&Number.isFinite(+t.speed)&&t.speed!=='')?+t.speed:(Number.isFinite(+t.speedMin)?+t.speedMin:0)),speedMax:Math.max(Math.max(0,(!Number.isFinite(+t.speedMin)&&!Number.isFinite(+t.speedMax)&&Number.isFinite(+t.speed)&&t.speed!=='')?+t.speed:(Number.isFinite(+t.speedMin)?+t.speedMin:0)),Number.isFinite(+t.speedMax)?+t.speedMax:(Number.isFinite(+t.speed)?Math.max(0,+t.speed):12)),turnRate:Math.max(.1,+t.turnRate||3),length:Math.max(1,+t.length||1),beam:Math.max(1,+t.beam||1),echo:Math.max(.01,+t.echo||.08),color:/^#[0-9a-f]{6}$/i.test(t.color||'')?t.color:'#49d6b3'})):[];const resolveCustom=v=>{const t=customShipTypes.find(q=>q.id===v?.customTypeId);if(t)return {name:t.name,speed:t.speed,speedMin:t.speedMin,speedMax:t.speedMax,turnRate:t.turnRate,length:t.length,width:t.beam,echoSize:t.echo,color:t.color};if(v?.custom&&typeof v.custom==='object')return {...v.custom};return undefined};const normalizedSpeed=(v,custom,fallback)=>{const raw=custom||{},hasSpeed=Number.isFinite(+raw.speed)&&raw.speed!=='',legacy=hasSpeed?Math.max(0,+raw.speed):fallback,hasBounds=Number.isFinite(+raw.speedMin)||Number.isFinite(+raw.speedMax),lo=hasSpeed&&!hasBounds?legacy:Math.max(0,Number.isFinite(+raw.speedMin)?+raw.speedMin:0),hi=hasSpeed&&!hasBounds?legacy:Math.max(lo,Number.isFinite(+raw.speedMax)?+raw.speedMax:legacy);return Math.max(lo,Math.min(hi,Number.isFinite(+v)?+v:lo))};let out={version:'radar-exercice-1',name:String(x.name||'Exercice'),customShipTypes,own:{x:+(x.own.x||0),y:+(x.own.y||0),c:norm(+(x.own.c||0)),s:normalizedSpeed(x.own.s,resolveCustom(x.own),ownShipPreset(x.own.shipType).maxSpeed),custom:resolveCustom(x.own),customTypeId:x.own.customTypeId||undefined,type:['normal','fish','nuc','anchor','sailboat'].includes(x.own.type)?x.own.type:'normal',shipType:canonicalShipType(x.own.shipType||x.own.type),condition:canonicalCondition(x.own.condition,x.own.type)},/* V96: per-target ghostEcho preserved (was lost in normalization). */
-ships:ships.map((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:+a.x||0,y:+a.y||0,c:norm(+a.c||0),s:(a.condition==='anchor'||a.type==='anchor')?0:normalizedSpeed(a.s,resolveCustom(a),ownShipPreset(a.shipType||'cargo').maxSpeed),shipType:OWN_SHIP_PRESETS[a.shipType]?a.shipType:'cargo',name:String(a.name||'C-'+String(i+1).padStart(2,'0')),type:['normal','fish','nuc','anchor','sailboat'].includes(a.type)?a.type:'normal',condition:canonicalCondition(a.condition,a.type),ghostEcho:!!a.ghostEcho,custom:resolveCustom(a),customTypeId:a.customTypeId||undefined,maneuvers:Array.isArray(a.maneuvers)?a.maneuvers.map(m/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} m Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({cap:m?.cap==null?null:norm(+m.cap),vitesse:m?.vitesse==null?null:Math.max(0,+m.vitesse),x:+(m?.x??0)||0,y:+(m?.y??m?.lat??0)||0,lat:+(m?.lat??m?.y??0)||0})).filter(m/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} m Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Number.isFinite(m.x)&&Number.isFinite(m.y)):[]})),coast:normalizeCoasts(x),dsts:Array.isArray(x.dsts)?x.dsts.map(normalizeDST).filter(Boolean):[],rainZones:normalizeRainZones(x),passage:normalizePassagePlanning(x.passage),balises:Array.isArray(x.balises)?x.balises.filter(b=>b&&Number.isFinite(+b.x)&&Number.isFinite(+b.y)).map(b=>({type:String(b.type||'safe'),x:+b.x,y:+b.y,intensity:Math.max(0,Math.min(100,Number.isFinite(+b.intensity)?+b.intensity:100))})):[],antiClutter:(()=>{const a=x.antiClutter||{};return {rain:Math.max(0,Math.min(100,+a.rain||0)),sea:Math.max(0,Math.min(100,+a.sea||0))}})(),scale:+x.scale||6,vec:x.vec||'rel',band:x.band==='S'?'S':'X',echoDegradation:(()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{const d=x.echoDegradation||{};const n=k/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} k Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Math.max(0,Math.min(100,Number.isFinite(+d[k])?+d[k]:0));const ss=Number.isFinite(+d.seaState)?Math.max(0,Math.min(9,Math.round(+d.seaState))):0;return {sea:n('sea'),rain:n('rain'),noise:n('noise'),weak:n('weak'),flicker:n('flicker'),rainClouds:!!d.rainClouds,ghostEchoes:!!d.ghostEchoes,seaState:ss}})()};if(!skipStart&&x.simulationStart&&x.simulationStart.own)out.simulationStart=normalizeExercise({...x.simulationStart,customShipTypes:x.customShipTypes||x.simulationStart.customShipTypes},true);return out;}
+ships:ships.map((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({x:+a.x||0,y:+a.y||0,c:norm(+a.c||0),s:(a.condition==='anchor'||a.type==='anchor')?0:normalizedSpeed(a.s,resolveCustom(a),ownShipPreset(a.shipType||'cargo').maxSpeed),shipType:OWN_SHIP_PRESETS[a.shipType]?a.shipType:'cargo',name:String(a.name||'C-'+String(i+1).padStart(2,'0')),type:['normal','fish','nuc','anchor','sailboat'].includes(a.type)?a.type:'normal',condition:canonicalCondition(a.condition,a.type),ghostEcho:!!a.ghostEcho,custom:resolveCustom(a),customTypeId:a.customTypeId||undefined,maneuvers:Array.isArray(a.maneuvers)?a.maneuvers.map(m/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} m Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>({cap:m?.cap==null?null:norm(+m.cap),vitesse:m?.vitesse==null?null:Math.max(0,+m.vitesse),x:+(m?.x??0)||0,y:+(m?.y??m?.lat??0)||0,lat:+(m?.lat??m?.y??0)||0})).filter(m/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} m Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Number.isFinite(m.x)&&Number.isFinite(m.y)):[]})),coast:normalizeCoasts(x),dsts:Array.isArray(x.dsts)?x.dsts.map(normalizeDST).filter(Boolean):[],rainZones:normalizeRainZones(x),passage:normalizePassagePlanning(x.passage),balises:Array.isArray(x.balises)?x.balises.filter(b=>b&&Number.isFinite(+b.x)&&Number.isFinite(+b.y)).map(b=>({type:String(b.type||'safe'),x:+b.x,y:+b.y,intensity:Math.max(0,Math.min(100,Number.isFinite(+b.intensity)?+b.intensity:100))})):[],antiClutter:(()=>{const a=x.antiClutter||{};return {rain:Math.max(0,Math.min(100,+a.rain||0)),sea:Math.max(0,Math.min(100,+a.sea||0))}})(),scale:+x.scale||6,vec:x.vec||'rel',band:x.band==='S'?'S':'X',echoDegradation:(()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{const d=x.echoDegradation||{};const n=k/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} k Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>Math.max(0,Math.min(100,Number.isFinite(+d[k])?+d[k]:0));const ss=Number.isFinite(+d.seaState)?Math.max(0,Math.min(9,Math.round(+d.seaState))):0;return {sea:n('sea'),rain:n('rain'),noise:n('noise'),weak:n('weak'),flicker:n('flicker'),rainClouds:!!d.rainClouds,ghostEchoes:!!d.ghostEchoes,seaState:ss}})()};if(!skipStart&&x.simulationStart&&x.simulationStart.own)out.simulationStart=normalizeExercise({...x.simulationStart,customShipTypes:x.customShipTypes||x.simulationStart.customShipTypes},true);if(x.simulationStart?.passage)out.simulationStart.passage=normalizePassagePlanning(x.simulationStart.passage);return out;}
 /* Snapshot propre à l'exercice actif. Il ne contient volontairement aucune préférence
    d'affichage (range, orientation, vecteurs, modules, langue, EBL/VRM, etc.). */
 /**
@@ -2695,14 +2701,14 @@ ships:ships.map((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le
  * Aucun paramètre.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-function captureExerciseSnapshot(){return {own:clone(S.own),targets:clone(S.targets),coast:clone(S.coast),dsts:clone(S.dsts||[]),rainZones:clone(S.rainZones||[]),balises:clone(S.balises||[]),passage:clone(S.passage||null),antiClutter:{rain:+S.settings.rain||0,sea:+S.settings.sea||0},simulationStartFlag:clone(S.simulationStartFlag),time:0,cUpHeading:S.own.c,trailSample:0,trailSeq:0,trails:[],history:[],selected:null,lastAlarm:false,collision:null,dstAlert:false,ownPosition:{x:+S.settings.offsetX||0,y:+S.settings.offsetY||0}}}
+function captureExerciseSnapshot(){return {own:clone(S.own),targets:clone(S.targets),coast:clone(S.coast),dsts:clone(S.dsts||[]),rainZones:clone(S.rainZones||[]),balises:clone(S.balises||[]),passage:clone(S.passage||null),antiClutter:{rain:+S.settings.rain||0,sea:+S.settings.sea||0},simulationStartFlag:clone(S.simulationStartFlag),time:0,cUpHeading:S.own.c,trailSample:0,trailSeq:0,trails:[],history:[],selected:null,lastAlarm:false,collision:null,dstAlert:false,arrivalNotified:false,ownPosition:{x:+S.settings.offsetX||0,y:+S.settings.offsetY||0}}}
 /**
  * Rôle : fonction restoreExerciseSnapshot; voir le contexte de définition pour l’opération précise.
  * Paramètres :
  * Aucun paramètre.
  * Appelant : gestionnaire d’interface (propriété on*).
  */
-function restoreExerciseSnapshot(){if(!S.initial)return;const i=S.initial;S.own=clone(i.own);S.targets=clone(i.targets);S.coast=clone(i.coast);S.dsts=clone(i.dsts||[]);S.rainZones=clone(i.rainZones||[]);S.balises=clone(i.balises||[]);S.passage=clone(i.passage||null);S.simulationStartFlag=clone(i.simulationStartFlag||null);S.time=0;S.cUpHeading=i.cUpHeading??S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.selected=null;S.selectedBalise=null;S.lastAlarm=false;S.collision=null;S.dstAlert=false;S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});/* Le drapeau own ship fait partie du point de départ, pas des préférences visuelles. */if(i.ownPosition){S.settings.offsetX=i.ownPosition.x;S.settings.offsetY=i.ownPosition.y;$('#offsetX').value=Number(S.settings.offsetX).toFixed(1);$('#offsetY').value=Number(S.settings.offsetY).toFixed(1);}/* V96: anti-clutter mer/pluie forcés à 0 au Reset. */
+function restoreExerciseSnapshot(){if(!S.initial)return;const i=S.initial;S.own=clone(i.own);S.targets=clone(i.targets);S.coast=clone(i.coast);S.dsts=clone(i.dsts||[]);S.rainZones=clone(i.rainZones||[]);S.balises=clone(i.balises||[]);S.passage=clone(i.passage||null);S.simulationStartFlag=clone(i.simulationStartFlag||null);S.time=0;S.arrivalNotified=false;closeArrival();S.cUpHeading=i.cUpHeading??S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.selected=null;S.selectedBalise=null;S.lastAlarm=false;S.collision=null;S.dstAlert=false;S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});/* Le drapeau own ship fait partie du point de départ, pas des préférences visuelles. */if(i.ownPosition){S.settings.offsetX=i.ownPosition.x;S.settings.offsetY=i.ownPosition.y;$('#offsetX').value=Number(S.settings.offsetX).toFixed(1);$('#offsetY').value=Number(S.settings.offsetY).toFixed(1);}/* V96: anti-clutter mer/pluie forcés à 0 au Reset. */
 resetAntiClutter();closeCollision();S._sweepEpoch=null;S._coastCache=null;S.paused=true;$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='VEILLE';render()}
 /* resolveStartScene(ex) — filet de sécurité au chargement d'un exercice.
    Certains exercices générés portent un bloc "simulationStart" destiné à représenter
@@ -2780,7 +2786,7 @@ function resetAntiClutter(){
  * @param {*} x Paramètre transmis par l’appelant.
  * Appelant : gestionnaire d’interface (propriété on*).
  */
-function loadExercise(x){let b=normalizeExercise(resolveStartScene(x));let start=b.simulationStart||b;S.simulationStartFlag=null;S.idx=-1;S.customShipTypes=clone(b.customShipTypes||[]);S.own=clone(start.own);S.own.isOwn=true;S.own.id='own';S.own.shipType=OWN_SHIP_PRESETS[S.own.shipType]?S.own.shipType:'cargo';S.own.s=clampOwnSpeed(S.own.s,S.own);S.own._cmdC=S.own.c;S.own._cmdS=clampOwnSpeed(S.own.s,S.own);S.targets=clone(start.ships);S.coast=clone(start.coast);S.dsts=clone(start.dsts||[]);S.rainZones=clone(start.rainZones||[]);S.balises=Array.isArray(start.balises)?clone(start.balises):[];S.passage=clone(start.passage||null);S.settings.sea=+(start.antiClutter?.sea||0);S.settings.rain=+(start.antiClutter?.rain||0);$('#sea').value=S.settings.sea;$('#seaVal').textContent=Number(S.settings.sea).toFixed(1);$('#rain').value=S.settings.rain;$('#rainVal').textContent=Number(S.settings.rain).toFixed(1);S.scale=start.scale;S.vec=start.vec||S.vec;S.band=b.band==='S'?'S':'X';if(window.setRadarBand)window.setRadarBand(S.band);S.echoDegradation=start.echoDegradation||{sea:0,rain:0,noise:0,weak:0,flicker:0,rainClouds:false,ghostEchoes:false,seaState:0};syncRateUI();S.time=0;S.paused=true;S.cUpHeading=S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});S.selected=null;S.selectedBalise=null;S.lastAlarm=false;S.collision=null;S.initial=captureExerciseSnapshot();S._sweepEpoch=null;S._coastCache=null;closeCollision();$('#scenario').textContent=b.name;$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='VEILLE';render();toast('Exercice chargé · simulation à l’arrêt')}
+function loadExercise(x){let b=normalizeExercise(resolveStartScene(x));let start=b.simulationStart||b;S.simulationStartFlag=null;S.idx=-1;S.customShipTypes=clone(b.customShipTypes||[]);S.own=clone(start.own);S.own.isOwn=true;S.own.id='own';S.own.shipType=OWN_SHIP_PRESETS[S.own.shipType]?S.own.shipType:'cargo';S.own.s=clampOwnSpeed(S.own.s,S.own);S.own._cmdC=S.own.c;S.own._cmdS=clampOwnSpeed(S.own.s,S.own);S.targets=clone(start.ships);S.coast=clone(start.coast);S.dsts=clone(start.dsts||[]);S.rainZones=clone(start.rainZones||[]);S.balises=Array.isArray(start.balises)?clone(start.balises):[];S.passage=clone(start.passage||null);S.simulationStartFlag=null;S.arrivalNotified=false;closeArrival();S.settings.sea=+(start.antiClutter?.sea||0);S.settings.rain=+(start.antiClutter?.rain||0);$('#sea').value=S.settings.sea;$('#seaVal').textContent=Number(S.settings.sea).toFixed(1);$('#rain').value=S.settings.rain;$('#rainVal').textContent=Number(S.settings.rain).toFixed(1);S.scale=start.scale;S.vec=start.vec||S.vec;S.band=b.band==='S'?'S':'X';if(window.setRadarBand)window.setRadarBand(S.band);S.echoDegradation=start.echoDegradation||{sea:0,rain:0,noise:0,weak:0,flicker:0,rainClouds:false,ghostEchoes:false,seaState:0};syncRateUI();S.time=0;S.paused=true;S.cUpHeading=S.own.c;S.trailSample=0;S.trailSeq=0;S.trails=[];S.history=[];S.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=[];delete a._sweepEpoch;});S.selected=null;S.selectedBalise=null;S.lastAlarm=false;S.collision=null;S.initial=captureExerciseSnapshot();S._sweepEpoch=null;S._coastCache=null;closeCollision();$('#scenario').textContent=b.name;$('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='VEILLE';render();toast('Exercice chargé · simulation à l’arrêt')}
 
 /* Seuil de risque RIPAM : CPA prédit strictement inférieur à 0,5 NM. */
 const COLREG_CPA_NM = 0.5;
@@ -2999,6 +3005,21 @@ function coastDistance(px,py,shape){
  * @param {*} prevTargets Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
+/* Anti-échouement pour les cibles : prédit leur corridor proche, puis choisit un cap
+   dont la trajectoire laisse le plus de marge à toutes les formes de côte. */
+function applyCoastAvoidance(v,dt,state=S){
+  const coast=state.coast||[];if(!coast.length||!(v.s>0)||!(dt>0))return false;
+  const distance=(x,y)=>{let best=Infinity;for(const shape of coast)best=Math.min(best,coastDistance(x,y,shape));return best};
+  const d0=distance(v.x,v.y),horizon=Math.max(.45,Math.min(1.1,v.s/60*.9));
+  const pathClearance=course=>{let min=Infinity;for(let i=1;i<=12;i++){const nm=horizon*i/12,x=v.x+Math.sin(rad(course))*nm,y=v.y+Math.cos(rad(course))*nm;min=Math.min(min,distance(x,y))}const endX=v.x+Math.sin(rad(course))*horizon,endY=v.y+Math.cos(rad(course))*horizon;return {clearance:min,escape:distance(endX,endY)}};
+  const ahead=pathClearance(v.c);
+  if(d0>.28&&ahead.clearance>.22)return false;
+  let bestCourse=v.c,bestScore=-Infinity;
+  for(let offset=-180;offset<180;offset+=15){const course=norm(v.c+offset),path=pathClearance(course),turnPenalty=Math.abs(offset)*.00035,score=path.clearance+path.escape*.35-turnPenalty;if(score>bestScore){bestScore=score;bestCourse=course}}
+  const diff=((bestCourse-v.c+540)%360)-180,rate=Math.max(2,vesselPerformance(v).turnRate*3);
+  if(Math.abs(diff)<1&&d0<.12){bestCourse=norm(v.c+90);}
+  v.c=norm(v.c+Math.sign(diff||1)*Math.min(Math.abs(diff||90),rate*dt));v._coastAvoid=true;return true;
+}
 function collisionCheck(prevOwn,prevTargets){if(S.collision)return;const threshold=.1;for(const coast of (S.coast||[])){let d=coastDistance(S.own.x,S.own.y,coast),pts=coast.points||[],crossed=false;if(prevOwn&&pts.length>1){for(let i=1;i<pts.length;i++)if(segmentsIntersect(prevOwn.x,prevOwn.y,S.own.x,S.own.y,pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1]))crossed=true;if(coast.type==='polygon'&&segmentsIntersect(prevOwn.x,prevOwn.y,S.own.x,S.own.y,pts[pts.length-1][0],pts[pts.length-1][1],pts[0][0],pts[0][1]))crossed=true}if((Number.isFinite(d)&&d<=threshold)||crossed){showCollision(null,Number.isFinite(d)?d:0,'ÉCHOUEMENT');return}}let hit=null;for(const a of S.targets){let before=prevTargets&&prevTargets.get(a);let d=before?segmentDistance(before.x-before.ox,before.y-before.oy,a.x-S.own.x,a.y-S.own.y):Math.hypot(a.x-S.own.x,a.y-S.own.y);if(d<=threshold){hit={a,d};break}}if(hit)showCollision(hit.a,hit.d)} /**
  * Rôle : fonction dstAlertCheck; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -3066,12 +3087,13 @@ function echoDetection(a,state=S){
   // Soft cutoff: keep target visible until very near maxR, with low threshold
   let threshold=.02+(1-state.gain/100)*.30;
   const strength=100*typeFactor*rangeFactor;
-  /* FTC/STC sont des seuils d’intensité : le relèvement nettoie aussi les petits échos faibles. */
-  const antiSea=Math.max(0,Math.min(100,+state.settings.sea||0)),antiRain=Math.max(0,Math.min(100,+state.settings.rain||0));
+  /* STC/FTC modulent la visibilité, pas la portée ni la résolution radar. */
   if(strength<=threshold*100)return false;
-  if(strength<=antiSea*0.65)return false;
-  const rain=targetInAnyRainZone(state,a);if(rain&&strength<=Math.max(antiRain*0.65,+rain.intensity||0))return false;
-  return strength>threshold*100;
+  const seaVis=seaTargetVisibility(m.range,echoReflectivity(a));
+  if(seaVis<=.36)return false;
+  const rain=targetInAnyRainZone(state,a);
+  if(rain&&rainTargetVisibility(+state.settings?.rain||0,rainZoneDepthAtPoint(rain,a.x,a.y),echoReflectivity(a))<=.035)return false;
+  return true;
 }
 
 /**
@@ -3120,7 +3142,10 @@ function echoStyle(a,state=S){
      the mode limit disappears. Beyond the mode's maxRangeNM range=0 → fade=0. */
   let platAlpha=Math.min(1,Math.max(0.65,(+state.gain||0)/100*typeFactor));
   let fade=range>=0.85?Math.max(0,1-(range-0.85)/0.15):1;
-  let alpha=Math.min(1,platAlpha*brightness*sweepFade*(prof.blur>.9?.82:1)*fade)*(1-ac*(.12+.78*smallTarget));
+  let seaVisibility=seaTargetVisibility(m.range,echoReflectivity(a));
+  const rainZone=targetInAnyRainZone(state,a);
+  let rainVisibility=rainZone?rainTargetVisibility(+state.settings?.rain||0,rainZoneDepthAtPoint(rainZone,a.x,a.y),echoReflectivity(a)):1;
+  let alpha=Math.min(1,platAlpha*brightness*sweepFade*(prof.blur>.9?.82:1)*fade)*seaVisibility*rainVisibility;
   let glow=(3+strength*8*brightness)*(prof.blur*.9+.6);
   return {
     alpha, size: 0, /* legacy field, no longer used directly */
@@ -3191,7 +3216,7 @@ function seaClutterParameters(state){
   const threshold=ss*10;
   const antiSea=Math.max(0,Math.min(100,+state.settings?.sea||0));
   /* L'AC conserve la règle N×10 % : l'intensité tombe à zéro au seuil. */
-  const residual=Math.max(0,(threshold-antiSea)/threshold);
+  const residual=.08+.92*Math.pow(1-antiSea/100,1.55);
   const bandBoost=state.band==='S'?.85:1;
   const gainBoost=Math.max(.6,Math.min(1.6,(+state.gain||50)/60));
   return {ss,intensity:Math.min(1,ss/9)*bandBoost*residual*gainBoost,
@@ -3221,7 +3246,8 @@ function drawSeaClutterCloud(x,cx,cy,R,state,sea){
   const enhCrans=Math.min(enhLevel,2);
   // Inclure le phosphore dans la clé évite de réutiliser un sprite de clutter
   // de l'ancien thème après le basculement classique/moderne.
-  const key=[sea.ss,scale,canvas.width||0,canvas.height||0,R,enhLevel,THEME.clutter].join(':');
+  const antiSea=Math.max(0,Math.min(100,+state.settings?.sea||0));
+  const key=[sea.ss,scale,canvas.width||0,canvas.height||0,R,enhLevel,antiSea,THEME.clutter].join(':');
   let cache=state._seaClutterCache;
   if(!cache||cache.key!==key){
     const pad=2+enhCrans*1.35+(enhLevel===3?5.2:0),size=Math.max(4,Math.ceil(radPx*2+pad*2));
@@ -3232,7 +3258,7 @@ function drawSeaClutterCloud(x,cx,cy,R,state,sea){
     for(let n=0;n<density;n++){
       const rr=Math.pow(random(),1.65)*radPx,ang=random()*Math.PI*2;
       const centralBoost=enhLevel===3&&rr<radPx*.34?5.2:0;
-      const dot=0.8+random()*1.7+enhCrans*1.35+centralBoost,alpha=0.18+random()*0.58;
+      const dot=0.8+random()*1.7+enhCrans*1.35+centralBoost,alpha=(0.18+random()*0.58)*(1-(antiSea/100)*(1-rr/radPx));
       sc.globalAlpha=alpha;sc.fillStyle=THEME.clutter;
       sc.fillRect(center+Math.cos(ang)*rr-dot/2,center+Math.sin(ang)*rr-dot/2,dot,dot);
     }
@@ -3247,11 +3273,15 @@ function drawClutter(x,cx,cy,R,state){
   let brightness=Math.max(.3,Math.min(1.5,(+state.settings.brightness||100)/100));
   let d=state.echoDegradation||{};
   let baseSea=(+d.sea||0)/100,baseRain=(+d.rain||0)/100,baseNoise=(+d.noise||0)/100;
-  let seaAmt=Math.max(0,Math.floor((+state.settings.sea||0)*(state.gain/100)*.55));
-  let rainAmt=Math.max(0,Math.floor((+state.settings.rain||0)*(state.gain/100)*.35));
+  const antiSea=Math.max(0,Math.min(100,+state.settings.sea||0)),antiRain=Math.max(0,Math.min(100,+state.settings.rain||0));
+  const seaLevel=Math.max(+d.sea||0,(+d.seaState||0)*10),rainLevel=+d.rain||0;
+  const seaResidual=seaLevel>0?.08+.92*Math.pow(1-antiSea/100,1.55):0;
+  const rainResidual=rainLevel>0?Math.pow(1-antiRain/100,1.25):0;
+  let seaAmt=Math.max(0,Math.floor(seaLevel*seaResidual*(state.gain/100)*.55));
+  let rainAmt=Math.max(0,Math.floor(rainLevel*rainResidual*(state.gain/100)*.35));
   let noiseAmt=Math.max(0,Math.floor((+baseNoise||0)*(state.gain/100)*28));
-  let baseOpSea=Math.max(0,Math.min(1,(state.gain/100)*.26 - (+state.settings.sea||0)/140 + baseSea*.18));
-  let baseOpRain=Math.max(0,Math.min(1,(state.gain/100)*.22 - (+state.settings.rain||0)/180 + baseRain*.16));
+  let baseOpSea=Math.max(0,Math.min(1,(state.gain/100)*.26*seaResidual + baseSea*.18*seaResidual));
+  let baseOpRain=Math.max(0,Math.min(1,(state.gain/100)*.22*rainResidual + baseRain*.16*rainResidual));
   let baseOpNoise=Math.max(0,Math.min(1,baseNoise*.35 + (state.gain/100)*.10));
   x.save();
   /* Sea clutter: strongest near centre, quadratic falloff with range (Transas-style). */
@@ -3278,7 +3308,7 @@ function drawClutter(x,cx,cy,R,state){
   }
 
 /* Rain clouds (anti-clutter pluie non/b mal réglé) : nappes d'échos type côte. */
-if(state.echoDegradation?.rainClouds){x.save();let n=Math.max(1,Math.floor((+state.settings.rain||0)*.045));for(let i=0;i<n;i++){let seed=(i*13+state.time*.001)|0;let rcx=cx+R*((seed*173%97)/97-.5);let rcy=cy+R*((seed*257%97)/97-.5);let rx=R*((seed*31%12)/12+.04);let ry=R*((seed*41%8)/8+.03);let enh=enhancementPx(state,rcx,rcy,cx,cy,R);rx+=enh;ry+=enh;x.fillStyle='rgba(180,180,180,0.18)';x.beginPath();x.ellipse(rcx,rcy,rx,ry,0,0,7);x.fill();x.strokeStyle='rgba(220,220,220,0.28)';x.lineWidth=1;x.stroke();}x.restore();}
+if(state.echoDegradation?.rainClouds&&rainLevel>antiRain){x.save();let n=Math.max(1,Math.floor((rainLevel-antiRain)*.045));for(let i=0;i<n;i++){let seed=(i*13+state.time*.001)|0;let rcx=cx+R*((seed*173%97)/97-.5);let rcy=cy+R*((seed*257%97)/97-.5);let rx=R*((seed*31%12)/12+.04);let ry=R*((seed*41%8)/8+.03);let enh=enhancementPx(state,rcx,rcy,cx,cy,R);rx+=enh;ry+=enh;x.fillStyle='rgba(180,180,180,0.18)';x.beginPath();x.ellipse(rcx,rcy,rx,ry,0,0,7);x.fill();x.strokeStyle='rgba(220,220,220,0.28)';x.lineWidth=1;x.stroke();}x.restore();}
 /* Rain clutter: spread evenly across the PPI, less near own ship (looks like precipitation). */
   if(baseOpRain>0 && rainAmt>0){
     let op=Math.floor(baseOpRain*brightness*255);
@@ -3480,6 +3510,35 @@ function applyColregAvoidance(v,other,dt,state,opts={}){
   v._colreg={active:true,encounterKey,side:d.side,offset,heading:desired,maneuver:d.maneuver};
   v.c=norm(v.c+Math.sign(diff)*Math.min(Math.abs(diff),rate*dt));v._colregCPA=d.cpa;return true;
 }
+function formatElapsedSimulationTime(seconds){const t=Math.max(0,+seconds||0),hours=Math.floor(t/3600),minutes=Math.floor((t%3600)/60),secs=t%60;return String(hours).padStart(2,'0')+':'+String(minutes).padStart(2,'0')+':'+secs.toFixed(1).padStart(4,'0')}
+function closeArrival(){const o=$('#arrivalOverlay');if(o)o.classList.remove('is-open')}
+function resolvePassageArrival(state=S){
+  const p=state?.passage;if(!p||typeof p!=='object')return null;
+  const valid=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y);
+  const waypoints=[...(Array.isArray(p.waypoints)?p.waypoints:[]),...(Array.isArray(p.points)?p.points:[])].filter(valid);
+  /* Le dernier waypoint du plan prévaut; champs d’arrivée historiques en repli. */
+  if(valid(p.arrivee))return p.arrivee;
+  if(waypoints.length)return waypoints[waypoints.length-1];
+  if(valid(p.arrival))return p.arrival;
+  return [...(Array.isArray(p.markers)?p.markers:[]),...(Array.isArray(p.points)?p.points:[])].reverse().find(q=>valid(q)&&String(q.type||q.kind||'').toLowerCase()==='arrival')||null;
+}
+function checkPassageArrival(previous,state=S){
+  const p=resolvePassageArrival(state);
+  if(!p||state.arrivalNotified||state.collision)return false;
+  /* Le segment précédent→courant couvre les franchissements entre deux ticks. */
+  const radius=.08,ox=previous?.x??state.own.x,oy=previous?.y??state.own.y;
+  const dx=state.own.x-ox,dy=state.own.y-oy,px=ox-p.x,py=oy-p.y;
+  const len2=dx*dx+dy*dy;
+  const t=len2?Math.max(0,Math.min(1,-(px*dx+py*dy)/len2)):0;
+  const segmentDistance=Math.hypot(px+t*dx,py+t*dy);
+  const currentDistance=Math.hypot(state.own.x-p.x,state.own.y-p.y);
+  if(currentDistance>radius&&segmentDistance>radius)return false;
+  state.arrivalNotified=true;state.paused=true;
+  $('#pause').textContent='▶ PLAY';$('#pause').classList.add('primary');$('#status').textContent='ARRIVÉE';
+  const elapsed=previous?.time!=null?previous.time+t*(state.time-previous.time):state.time;
+  $('#arrivalElapsed').textContent=formatElapsedSimulationTime(elapsed);$('#arrivalOverlay').classList.add('is-open');playEventSound('arrival');return true
+}
+
 function step(dt,state=S){
   /* OWN conserve exclusivement son cap/vitesse commandés par l’élève; aucune décision COLREG ne lui est appliquée. */
   let ox=state.own.x,oy=state.own.y;
@@ -3505,13 +3564,14 @@ function step(dt,state=S){
     applyColregAvoidance(a,b,dt,state,{encounterKey:keyA,decision:decisionA});
     applyColregAvoidance(b,a,dt,state,{encounterKey:keyB,decision:decisionB});
   }
+  targets.forEach(a=>applyCoastAvoidance(a,dt,state));
   targets.forEach(a=>{
     const tp=vesselPerformance(a);if(a.condition==='anchor'){a.s=0;return;}
     a.s=Math.max(tp.minSpeed,Math.min(tp.maxSpeed,Math.max(0,a.s)));if(a.type==='anchor')return;
     if(a.condition==='nuc')a.c=norm(a.c+(Math.random()-.5)*10*Math.sqrt(Math.max(dt,0)));
     let v=vel(a.c,a.s);a.x+=v[0]*dt/3600;a.y+=v[1]*dt/3600;
   });
-  let oldTime=state.time;state.time+=dt;let st=state.settings;if(st.trailLen>0){let sample=state.trailSample||0;while(state.time-sample>=TRAIL_INTERVAL){sample+=TRAIL_INTERVAL;state.trailSeq=(state.trailSeq||0)+1;state.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=a._trail||[];if(Number.isFinite(a.x)&&Number.isFinite(a.y)&&Number.isFinite(state.own.x)&&Number.isFinite(state.own.y))a._trail.push({x:a.x,y:a.y,ownX:state.own.x,ownY:state.own.y,t:sample,seq:state.trailSeq});a._trail=a._trail.filter(p/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} p Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let q=trailSampleValues(p);return validTrailSample(p)&&state.time-q.t<=st.trailLen})})}state.trailSample=sample}else{state.targets?.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>a._trail=[]);state.trailSample=state.time}if(st.historyStep>0&&Math.floor(state.time/st.historyStep)!==Math.floor(oldTime/st.historyStep)){state.history.push({t:state.time,targets:state.targets.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>[a.x,a.y])});if(state.history.length>360)state.history.splice(0,state.history.length-360);}collisionCheck({x:ox,y:oy},prevTargets);alarmCheck();
+  let oldTime=state.time;state.time+=dt;let st=state.settings;if(st.trailLen>0){let sample=state.trailSample||0;while(state.time-sample>=TRAIL_INTERVAL){sample+=TRAIL_INTERVAL;state.trailSeq=(state.trailSeq||0)+1;state.targets.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{a._trail=a._trail||[];if(Number.isFinite(a.x)&&Number.isFinite(a.y)&&Number.isFinite(state.own.x)&&Number.isFinite(state.own.y))a._trail.push({x:a.x,y:a.y,ownX:state.own.x,ownY:state.own.y,t:sample,seq:state.trailSeq});a._trail=a._trail.filter(p/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} p Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let q=trailSampleValues(p);return validTrailSample(p)&&state.time-q.t<=st.trailLen})})}state.trailSample=sample}else{state.targets?.forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>a._trail=[]);state.trailSample=state.time}if(st.historyStep>0&&Math.floor(state.time/st.historyStep)!==Math.floor(oldTime/st.historyStep)){state.history.push({t:state.time,targets:state.targets.map(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>[a.x,a.y])});if(state.history.length>360)state.history.splice(0,state.history.length-360);}collisionCheck({x:ox,y:oy},prevTargets);checkPassageArrival({x:ox,y:oy,time:oldTime},state);alarmCheck();
   /* Lot 2: sweep refresh tick. Once every profile.refreshSec simulated seconds,
      mark every in-range target (passing effective range + detection) with the
      current sweep epoch. This drives the echo afterglow in echoStyle. The
@@ -3697,8 +3757,19 @@ function applyRadarDisplayTransform(x, d){
  * @param {*} editor Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
+/* Seul un passage planifié complet (départ, au moins un segment, arrivée) autorise le tracé et ses drapeaux. */
+function hasPassagePlanning(state){
+  const p=state?.passage;if(!p||typeof p!=='object')return false;
+  const valid=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y);
+  const points=[...(Array.isArray(p.waypoints)?p.waypoints:[]),...(Array.isArray(p.points)?p.points:[])].filter(valid);
+  const start=valid(p.depart)?p.depart:points[0];
+  const end=valid(p.arrivee)?p.arrivee:(valid(p.arrival)?p.arrival:points[points.length-1]);
+  return !!(valid(start)&&valid(end)&&(start.x!==end.x||start.y!==end.y));
+}
+
 /* Dessine le petit drapeau jaune mémorisé au point de départ OWN sur le PPI. */
-function drawSimulationStartFlag(ctx,state,cx,cy,R){const p=state.simulationStartFlag;if(!p||!Number.isFinite(+p.x)||!Number.isFinite(+p.y))return;const [px,py]=screenPoint(+p.x-state.own.x,+p.y-state.own.y,state,cx,cy,R);ctx.save();ctx.lineWidth=2.5;ctx.strokeStyle=THEME.ebl;ctx.fillStyle=THEME.ebl;ctx.beginPath();ctx.moveTo(px,py+9);ctx.lineTo(px,py-11);ctx.stroke();ctx.beginPath();ctx.moveTo(px,py-11);ctx.lineTo(px+13,py-7);ctx.lineTo(px,py-2);ctx.closePath();ctx.fill();ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText('D',px+5,py+14);ctx.restore()}
+function drawSimulationStartFlag(ctx,state,cx,cy,R){if(!hasPassagePlanning(state))return;const p=state.simulationStartFlag;if(!p||!Number.isFinite(+p.x)||!Number.isFinite(+p.y))return;const [px,py]=screenPoint(+p.x-state.own.x,+p.y-state.own.y,state,cx,cy,R);drawRouteFlag(ctx,px,py,'DÉPART','#55f0b1')}
+function drawRouteFlag(ctx,px,py,label,color){ctx.save();const pulse=.82+.18*Math.sin(Date.now()/260);ctx.globalAlpha=pulse;ctx.shadowColor=color;ctx.shadowBlur=15;ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.arc(px,py,11,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(px,py+12);ctx.lineTo(px,py-17);ctx.stroke();ctx.beginPath();ctx.moveTo(px,py-17);ctx.lineTo(px+23,py-11);ctx.lineTo(px,py-4);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.font='bold 11px monospace';ctx.textAlign='left';ctx.textBaseline='middle';const textW=ctx.measureText(label).width;ctx.fillStyle='rgba(8,14,16,.92)';ctx.fillRect(px+8,py+15,textW+10,18);ctx.strokeStyle=color;ctx.lineWidth=1;ctx.strokeRect(px+8,py+15,textW+10,18);ctx.fillStyle=color;ctx.fillText(label,px+13,py+24);ctx.restore()}
 /* ENH : dilation de l'image uniquement. Les valeurs de cibles et le modèle radar restent inchangés. */
 function enhancementPx(state,px,py,cx,cy,R){
   if(!state||!state.settings||!state.settings.enhOn||!Number.isFinite(px)||!Number.isFinite(py))return 0;
@@ -3951,32 +4022,50 @@ drawBalises(x,state,cx,cy,R);
  * @param {*} R Paramètre transmis par l’appelant.
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
-/* Dessine la route indicative et deux fanions distincts sur le PPI; ne modifie jamais own ni les alarmes. */
+function drawPassageStartFlag(ctx,state,cx,cy,R){
+  if(!hasPassagePlanning(state))return;
+  const p=state?.passage||{},valid=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y);
+  const q=valid(p.depart)?p.depart:(Array.isArray(p.points)&&valid(p.points[0])?p.points[0]:state?.simulationStartFlag);
+  if(!valid(q))return;
+  const [px,py]=screenPoint(+q.x-state.own.x,+q.y-state.own.y,state,cx,cy,R),colors=p.markerColors||{};
+  const color=/^#[0-9a-f]{6}$/i.test(colors.depart||'')?colors.depart:'#55f0b1';
+  drawRouteFlag(ctx,px,py,'DÉPART',color);
+}
+function drawPassageArrivalFlag(ctx,state,cx,cy,R){
+  if(!hasPassagePlanning(state))return;
+  const p=state?.passage||{},valid=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y),pts=Array.isArray(p.points)?p.points.filter(valid):[];
+  const typed=[...(Array.isArray(p.waypoints)?p.waypoints:[]),...pts,...(Array.isArray(p.markers)?p.markers:[])].reverse().find(q=>valid(q)&&(String(q.type||q.kind||'').toLowerCase()==='arrival'));
+  const q=valid(p.arrivee)?p.arrivee:(pts.length?pts[pts.length-1]:(valid(p.arrival)?p.arrival:typed));
+  if(!valid(q))return;
+  const [px,py]=screenPoint(+q.x-state.own.x,+q.y-state.own.y,state,cx,cy,R),colors=p.markerColors||{};
+  const color=/^#[0-9a-f]{6}$/i.test(colors.depart||'')?colors.depart:'#55f0b1';
+  drawRouteFlag(ctx,px,py,'ARRIVÉE',color);
+}
 function drawPassagePlanning(x,state,cx,cy,R){
+  if(!hasPassagePlanning(state))return;
   const p=state&&state.passage;if(!p||typeof p!=='object')return;
   const valid=q=>q&&Number.isFinite(+q.x)&&Number.isFinite(+q.y);
-  const seq=[p.depart,...(Array.isArray(p.points)?p.points:[]),p.arrivee].filter(valid);
-  if(seq.length<2)return;
-  /* L'itinéraire est ordonné départ → waypoints → arrivée; le premier tronçon est renforcé. */
-  /* Couloir XTD indicatif uniquement : aucune contrainte de navigation ni alarme. */
-  const half=Number.isFinite(+p.xtd)?Math.max(0,+p.xtd):.5;if(half>0){const sides=sgn=>seq.map((q,i)=>{const a=seq[Math.max(0,i-1)],b=seq[Math.min(seq.length-1,i+1)],dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy)||1;return{x:q.x+sgn*(-dy/l)*half,y:q.y+sgn*(dx/l)*half}}),left=sides(1).map(q=>screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R)),right=sides(-1).map(q=>screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R));x.save();x.fillStyle='rgba(43,190,112,.20)';x.beginPath();left.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));right.slice().reverse().forEach(q=>x.lineTo(q[0],q[1]));x.closePath();x.fill();x.strokeStyle='rgba(244,66,82,.95)';x.lineWidth=1.5;x.setLineDash([6,5]);for(const edge of [left,right]){x.beginPath();edge.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));x.stroke()}x.restore()}
-  x.save();x.strokeStyle=THEME.ebl;x.lineWidth=2;x.setLineDash([7,5]);x.beginPath();
-  seq.forEach((q,i)=>{const z=screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R);i?x.lineTo(z[0],z[1]):x.moveTo(z[0],z[1])});x.stroke();x.setLineDash([]);if(seq.length>1){const a=screenPoint(seq[0].x-state.own.x,seq[0].y-state.own.y,state,cx,cy,R),b=screenPoint(seq[1].x-state.own.x,seq[1].y-state.own.y,state,cx,cy,R);x.strokeStyle=THEME.echo;x.lineWidth=3;x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()}
-  /* Nœuds de route dessinés en cercles neutres : seul le départ OWN porte un fanion. */
-  const node=q=>{if(!valid(q))return;const z=screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R);x.beginPath();x.arc(z[0],z[1],4,0,Math.PI*2);x.fillStyle=THEME.echo;x.fill();x.strokeStyle=THEME.bg;x.lineWidth=1.5;x.stroke()};
-  node(p.depart);(Array.isArray(p.points)?p.points:[]).forEach(node);node(p.arrivee);
-   /* Fanions et libellés distincts garantissent la lecture départ puis arrivée. */
-   const flag=(q,label,color)=>{if(!valid(q))return;const [fx,fy]=screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R);x.strokeStyle=color;x.fillStyle=color;x.lineWidth=2.5;x.beginPath();x.moveTo(fx,fy+9);x.lineTo(fx,fy-12);x.stroke();x.beginPath();x.moveTo(fx,fy-12);x.lineTo(fx+18,fy-7);x.lineTo(fx,fy-2);x.closePath();x.fill();x.font='bold 9px monospace';x.textAlign='left';x.fillText(label,fx+4,fy+19)};flag(p.depart,'DÉPART',THEME.own);flag(p.arrivee,'ARRIVÉE',THEME.ebl);x.restore();
+  const raw=[p.depart,...(Array.isArray(p.points)?p.points:[]),p.arrivee].filter(valid);
+  const seq=raw.filter((q,i)=>!i||q.x!==raw[i-1].x||q.y!==raw[i-1].y);
+  if(seq.length>=2){
+    /* Route indicative et couloir XTD, sans contrainte de navigation ni alarme. */
+    const half=Number.isFinite(+p.xtd)?Math.max(0,+p.xtd):.5;
+    if(half>0){const sides=sgn=>seq.map((q,i)=>{const a=seq[Math.max(0,i-1)],b=seq[Math.min(seq.length-1,i+1)],dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy)||1;return{x:+q.x+sgn*(-dy/l)*half,y:+q.y+sgn*(dx/l)*half}}),left=sides(1).map(q=>screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R)),right=sides(-1).map(q=>screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R));x.save();x.fillStyle='rgba(43,190,112,.20)';x.beginPath();left.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));right.slice().reverse().forEach(q=>x.lineTo(q[0],q[1]));x.closePath();x.fill();x.strokeStyle='rgba(244,66,82,.95)';x.lineWidth=1.5;x.setLineDash([6,5]);for(const edge of [left,right]){x.beginPath();edge.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));x.stroke()}x.restore()}
+    x.save();x.strokeStyle=THEME.ebl;x.lineWidth=2;x.setLineDash([7,5]);x.beginPath();seq.forEach((q,i)=>{const z=screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R);i?x.lineTo(z[0],z[1]):x.moveTo(z[0],z[1])});x.stroke();x.setLineDash([]);const a=screenPoint(seq[0].x-state.own.x,seq[0].y-state.own.y,state,cx,cy,R),b=screenPoint(seq[1].x-state.own.x,seq[1].y-state.own.y,state,cx,cy,R);x.strokeStyle=THEME.echo;x.lineWidth=3;x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();
+    const node=q=>{const z=screenPoint(q.x-state.own.x,q.y-state.own.y,state,cx,cy,R);x.beginPath();x.arc(z[0],z[1],4,0,Math.PI*2);x.fillStyle=THEME.echo;x.fill();x.strokeStyle=THEME.bg;x.lineWidth=1.5;x.stroke()};seq.forEach(node);x.restore();
+  }
+  /* Fanions visibles aussi sur les passages réduits à leurs marqueurs. */
+  drawPassageStartFlag(x,state,cx,cy,R);drawPassageArrivalFlag(x,state,cx,cy,R);
 }
-
 /* Rend les balises comme de simples échos radar : leur catégorie reste dans la fiche au clic. */
 function drawBalises(ctx,state,cx,cy,R){
   for(const b of (state.balises||[])){
     if(!b||!Number.isFinite(+b.x)||!Number.isFinite(+b.y))continue;
     const echoStrength=Number.isFinite(+b.intensity)?+b.intensity:65;
-    if(echoStrength<=Math.max(+state.settings?.sea||0,+state.settings?.rain||0))continue;
+    const range=Math.hypot(+b.x-state.own.x,+b.y-state.own.y),refl=buoyRadarEcho(b.type),seaVis=seaTargetVisibility(range,refl),rainZone=targetInAnyRainZone(state,b),rainVis=rainZone?rainTargetVisibility(+state.settings?.rain||0,rainZoneDepthAtPoint(rainZone,b.x,b.y),refl):1,visibility=seaVis*rainVis;
+    if(visibility<.02)continue;
     const [px,py]=screenPoint(+b.x-state.own.x,+b.y-state.own.y,state,cx,cy,R);
-    const alpha=Math.max(.24,Math.min(1,echoStrength/100));
+    const alpha=Math.max(0,Math.min(1,echoStrength/100))*visibility;
     const selected=state===S&&state.balises[state.selectedBalise]===b;
     ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=THEME.echo;
     /* Petit noyau et halo diffus, semblables à un retour de cible sur le PPI. */
@@ -3994,22 +4083,13 @@ function drawRainZones(x,state,cx,cy,R){
     const pts=Array.isArray(z.points)?z.points:[];
     if(pts.length<3)return;
     const screenPts=pts.map(p/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} p Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>screenPoint(p[0]-state.own.x,p[1]-state.own.y,state,cx,cy,R));
-    /* Bleu pâle: fill léger + stroke plus net, légère ombre bleue */
-    const intensity=Math.max(0,Math.min(100,+z.intensity||0));
-    const fillAlpha=Math.floor(28+intensity*.22).toString(16).padStart(2,'0');
-    const strokeAlpha=Math.floor(110+intensity*.6).toString(16).padStart(2,'0');
-    x.fillStyle=THEME.echo+fillAlpha;
-    x.strokeStyle=THEME.echo+strokeAlpha;
+    /* FTC par profondeur au bord : front toujours visible, cœur affaibli graduellement. */
+    const intensity=Math.max(0,Math.min(100,+z.intensity||0)),fillAlpha=Math.floor(28+intensity*.22),strokeAlpha=Math.floor(110+intensity*.6).toString(16).padStart(2,'0');
     const enh=enhancementPx(state,screenPts.reduce((a,p)=>a+p[0],0)/screenPts.length,screenPts.reduce((a,p)=>a+p[1],0)/screenPts.length,cx,cy,R);
-    x.lineWidth=1.4+enh*2;
-    x.shadowColor=THEME.echo;
-    x.shadowBlur=Math.min(6,1+intensity/30);
-    x.beginPath();
-    screenPts.forEach((p,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} p Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});
-    x.closePath();
-    x.fill();
-    x.stroke();
-    x.shadowBlur=0;
+    const minX=Math.floor(Math.min(...screenPts.map(p=>p[0]))),maxX=Math.ceil(Math.max(...screenPts.map(p=>p[0]))),minY=Math.floor(Math.min(...screenPts.map(p=>p[1]))),maxY=Math.ceil(Math.max(...screenPts.map(p=>p[1]))),sw=Math.max(1,maxX-minX),sh=Math.max(1,maxY-minY);
+    const local=screenPts.map(p=>[p[0]-minX,p[1]-minY]),sprite=document.createElement('canvas');sprite.width=sw;sprite.height=sh;const sc=sprite.getContext('2d'),image=sc.createImageData(sw,sh),hex=(THEME.echo||'#ffd84a').slice(1),rgb=[parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)],ac=Math.max(0,Math.min(100,+state.settings?.rain||0));
+    for(let py=0;py<sh;py++)for(let px=0;px<sw;px++){if(!pointInRainZone({points:local},px+.5,py+.5))continue;let depth=Infinity;for(let k=0;k<local.length;k++){const a=local[k],b=local[(k+1)%local.length],dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((px+.5-a[0])*dx+(py+.5-a[1])*dy)/(dx*dx+dy*dy||1)));depth=Math.min(depth,Math.min(1,Math.hypot(px+.5-a[0]-t*dx,py+.5-a[1]-t*dy)/(Math.min(sw,sh)*.22||1)))}const o=(py*sw+px)*4;image.data[o]=rgb[0];image.data[o+1]=rgb[1];image.data[o+2]=rgb[2];image.data[o+3]=Math.round(fillAlpha*rainPixelVisibility(depth,ac))}
+    sc.putImageData(image,0,0);x.drawImage(sprite,minX,minY);x.strokeStyle=THEME.echo+strokeAlpha;x.lineWidth=1.4+enh*2;x.shadowColor=THEME.echo;x.shadowBlur=Math.min(6,1+intensity/30);x.beginPath();screenPts.forEach((p,i)=>{i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.stroke();x.shadowBlur=0;
   });
   x.restore();
 }
@@ -4017,7 +4097,6 @@ function drawRainZones(x,state,cx,cy,R){
    mimicking the digitised history dots shown on marine radar PPI screens.
    Older samples get a smaller radius to convey recency. */
 (state.targets||[]).forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{
-  if(targetInAnyRainZone(state,a))return;
   if(a._trail && state.settings?.trailLen>0 && a._trail.length>1){
     let col=targetColor(a,state).color;
     let rel=state.settings.trailMode==='rel';
@@ -4050,9 +4129,9 @@ function drawRainZones(x,state,cx,cy,R){
     }
     x.restore();
   }
-});(state.targets||state.ships||[]).forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{if(targetInAnyRainZone(state,a))return;const de=degradedEcho(a,state);const intermittentLoss=(!editor && de.loss>0 && de.flick>0 && Math.sin((state.time||0)*1.7+a.x*4.3+a.y*2.1)>0.25 && de.loss>0.35);if(!editor&&(!echoDetection(a,state)||de.loss>0.92||intermittentLoss))return;let m=editor?{...a,range:Math.hypot(a.x-state.own.x,a.y-state.own.y),brg:0}:motion(a,state.own);if(m.range>effectiveMaxRange(state)*1.05)return;let q=transform(a.x-state.own.x,a.y-state.own.y,state.own,state.orient,state),pt=screenPoint(a.x-state.own.x,a.y-state.own.y,state,cx,cy,R),px=pt[0],py=pt[1],col=targetColor(a,state).color;if(!editor){const sea=seaClutterParameters(state);if(sea.intensity>0)drawSeaClutterCloud(x,px,py,R,state,sea);}/* v70-rateAwareSweep: pin the echo's sweep epoch to the current rate-scaled
+});(state.targets||state.ships||[]).forEach(a/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{const de=degradedEcho(a,state);const intermittentLoss=(!editor && de.loss>0 && de.flick>0 && Math.sin((state.time||0)*1.7+a.x*4.3+a.y*2.1)>0.25 && de.loss>0.35);if(!editor&&(!echoDetection(a,state)||de.loss>0.92||intermittentLoss))return;let m=editor?{...a,range:Math.hypot(a.x-state.own.x,a.y-state.own.y),brg:0}:motion(a,state.own);if(m.range>effectiveMaxRange(state)*1.05)return;let q=transform(a.x-state.own.x,a.y-state.own.y,state.own,state.orient,state),pt=screenPoint(a.x-state.own.x,a.y-state.own.y,state,cx,cy,R),px=pt[0],py=pt[1],col=targetColor(a,state).color;if(!editor){const sea=seaClutterParameters(state);if(sea.intensity>0)drawSeaClutterCloud(x,px,py,R,state,sea);}/* v70-rateAwareSweep: pin the echo's sweep epoch to the current rate-scaled
      epoch so that at rate=8 the afterglow stays attached to the moving target
-     instead of lagging behind (echo/target desync). */a._sweepEpoch=currentSweepEpoch(state);let es=editor?{alpha:Math.max(.25,1-degradedEcho(a,state).loss),size:5,glow:0,radialResNM:0.04,azimuthResNM:0.06,shipLenNM:0.04,band:'X',pulseWidth:'MP'}:echoStyle(a,state);if(!editor){const de=degradedEcho(a,state);es.alpha*=Math.max(.18,1-de.loss*.72);es.glow=Math.max(0,es.glow-de.clutter*3)}/* Dimensions personnalisées (m) converties en NM; echoSize (NM) indique une taille d'écho explicite. */if(a.custom){const c=a.custom;if(Number(c.echoSize)>0){es.radialResNM=Number(c.echoSize);es.azimuthResNM=Number(c.echoSize)}else if(Number(c.length)>0){es.shipLenNM=Number(c.length)/1852;es.radialResNM=Math.max(es.radialResNM,es.shipLenNM)}if(Number(c.width)>0)es.azimuthResNM=Math.max(es.azimuthResNM,Number(c.width)/1852);if(/^#[0-9a-f]{6}$/i.test(c.color||''))col=c.color}x.strokeStyle=col;x.fillStyle=col;x.globalAlpha=es.alpha;x.shadowColor=col;const enh=editor?0:enhancementPx(state,px,py,cx,cy,R);x.shadowBlur=Math.min(24,es.glow+enh*1.7);x.lineWidth=((state.selected!=null && a===state.targets[state.selected])?3:2)+enh*1.4;x.beginPath();/* Convert physical echo sizes from NM to screen pixels using the current
+     instead of lagging behind (echo/target desync). */a._sweepEpoch=currentSweepEpoch(state);let es=editor?{alpha:Math.max(.25,1-degradedEcho(a,state).loss),size:5,glow:0,radialResNM:0.04,azimuthResNM:0.06,shipLenNM:0.04,band:'X',pulseWidth:'MP'}:echoStyle(a,state);if(!editor){const de=degradedEcho(a,state);es.alpha*=Math.max(0,1-de.loss*.72);es.glow=Math.max(0,es.glow-de.clutter*3)}/* Dimensions personnalisées (m) converties en NM; echoSize (NM) indique une taille d'écho explicite. */if(a.custom){const c=a.custom;if(Number(c.echoSize)>0){es.radialResNM=Number(c.echoSize);es.azimuthResNM=Number(c.echoSize)}else if(Number(c.length)>0){es.shipLenNM=Number(c.length)/1852;es.radialResNM=Math.max(es.radialResNM,es.shipLenNM)}if(Number(c.width)>0)es.azimuthResNM=Math.max(es.azimuthResNM,Number(c.width)/1852);if(/^#[0-9a-f]{6}$/i.test(c.color||''))col=c.color}x.strokeStyle=col;x.fillStyle=col;x.globalAlpha=es.alpha;x.shadowColor=col;const enh=editor?0:enhancementPx(state,px,py,cx,cy,R);x.shadowBlur=Math.min(24,es.glow+enh*1.7);x.lineWidth=((state.selected!=null && a===state.targets[state.selected])?3:2)+enh*1.4;x.beginPath();/* Convert physical echo sizes from NM to screen pixels using the current
      scale:  pxPerNm = R / state.scale .  The echo is rendered as an ellipse
      aligned to the OWN->target radial: rx = radialResNM * pxPerNm,
      ry = azimuthResNM * pxPerNm (clamped so far targets don't disappear). */
@@ -4139,7 +4218,7 @@ function renderArpaTable(){let rows=S.targets.map((a,i)/**  * Rôle : fonction c
  * Appelant : appel direct ou liaison visible dans le fichier.
  */
 function beaconTypeName(type){return ({port:'latérale bâbord',starboard:'latérale tribord',north:'cardinale Nord',south:'cardinale Sud',east:'cardinale Est',west:'cardinale Ouest',isolated:'danger isolé',wreck:'épave',safe:'eaux saines'})[String(type||'safe').toLowerCase()]||String(type||'balise')}
-function render(){if($('#sim').classList.contains('hidden'))return;$('#clock').textContent=String(Math.floor(S.time/60)).padStart(2,'0')+':'+String(Math.floor(S.time%60)).padStart(2,'0');const scenarioName=S.idx>=0&&scenarios[S.idx]?scenarios[S.idx].name:($('#scenario').textContent||'Exercice');$('#scenario').textContent=scenarioName;$('#rateVal').textContent=Number(S.rate).toFixed(1);const radarBadge=$('#radarBadge');if(radarBadge)radarBadge.textContent=(S.orient==='north'?'N-UP':S.orient==='course'?'C-UP':'H-UP')+' · '+Number(S.scale).toFixed(1)+' NM';$('#gainVal').textContent=Number(S.gain).toFixed(1);drawRadar($('#radar'));updateOwnPositionPad();const courseInput=$('#ownCourse'),speedInput=$('#ownSpeed');syncOwnSpeedControl(speedInput,S);if(document.activeElement!==courseInput)courseInput.value=Number(S.own._cmdC??S.own.c).toFixed(1);if(document.activeElement!==speedInput)speedInput.value=Number(S.own._cmdS).toFixed(1);if($('#capLive'))$('#capLive').textContent=Number(S.own.c).toFixed(1)+'°';if($('#speedLive'))$('#speedLive').textContent=Number(S.own.s).toFixed(1)+' kn';if($('#ownTypeLive'))$('#ownTypeLive')&&($('#ownTypeLive').textContent=ownShipTypeName(S.own.shipType));if($('#indexLinesToggle')){$('#indexLinesToggle').textContent='Parallèles index '+(S.settings.indexLines?'ON':'OFF');$('#indexLinesToggle').setAttribute('aria-pressed',String(!!S.settings.indexLines));$('#indexLinesSpacing').value=Number(S.settings.indexLineSpacing||1).toFixed(1)}if($('#ownTypeSelect')){$('#ownTypeSelect').value=OWN_SHIP_PRESETS[S.own.shipType]?S.own.shipType:'cargo';}if(Number.isInteger(S.selectedBalise)&&S.balises[S.selectedBalise]){const b=S.balises[S.selectedBalise],bm=motion({x:+b.x,y:+b.y,c:0,s:0});$('#targetDetail').textContent=`Balise ${beaconTypeName(b.type)} · Rv ${Number(bm.brg).toFixed(1)}° · ${bm.range.toFixed(1)} NM`;}else if(S.selected!=null&&S.targets[S.selected]){let a=S.targets[S.selected],m=motion(a);$('#targetDetail').textContent=`${a.name} · ${ownShipTypeName(a.shipType||'cargo')} · ${conditionLabel(a)} · Rv ${Number(m.brg).toFixed(1)}° · ${m.range.toFixed(1)} NM · cap ${Number(a.c).toFixed(1)}° · ${a.s.toFixed(1)} kn · CPA ${m.cpa.toFixed(1)} NM · TCPA ${isFinite(m.tcpa)?m.tcpa.toFixed(1):'—'} min`;}else if(S.selected==null){$('#targetDetail').textContent=window.radarTranslate?window.radarTranslate('Sélectionnez une cible sur la carte pour sa fiche ARPA.'):'Sélectionnez une cible sur la carte pour sa fiche ARPA.';}renderArpaTable();}
+function render(){if($('#sim').classList.contains('hidden'))return;$('#clock').textContent=String(Math.floor(S.time/60)).padStart(2,'0')+':'+String(Math.floor(S.time%60)).padStart(2,'0');const scenarioName=S.idx>=0&&scenarios[S.idx]?scenarios[S.idx].name:($('#scenario').textContent||'Exercice');$('#scenario').textContent=scenarioName;$('#rateVal').textContent=Number(S.rate).toFixed(1);const radarBadge=$('#radarBadge');if(radarBadge)radarBadge.textContent=(S.orient==='north'?'N-UP':S.orient==='course'?'C-UP':'H-UP')+' · '+Number(S.scale).toFixed(1)+' NM';$('#gainVal').textContent=Number(S.gain).toFixed(1);const seaInput=$('#sea'),rainInput=$('#rain');if(seaInput){seaInput.value=Number(S.settings.sea)||0;$('#seaVal').textContent=Number(S.settings.sea||0).toFixed(1)}if(rainInput){rainInput.value=Number(S.settings.rain)||0;$('#rainVal').textContent=Number(S.settings.rain||0).toFixed(1)}drawRadar($('#radar'));updateOwnPositionPad();const courseInput=$('#ownCourse'),speedInput=$('#ownSpeed');syncOwnSpeedControl(speedInput,S);if(document.activeElement!==courseInput)courseInput.value=Number(S.own._cmdC??S.own.c).toFixed(1);if(document.activeElement!==speedInput)speedInput.value=Number(S.own._cmdS).toFixed(1);if($('#capLive'))$('#capLive').textContent=Number(S.own.c).toFixed(1)+'°';if($('#speedLive'))$('#speedLive').textContent=Number(S.own.s).toFixed(1)+' kn';if($('#ownTypeLive'))$('#ownTypeLive')&&($('#ownTypeLive').textContent=ownShipTypeName(S.own.shipType));if($('#indexLinesToggle')){$('#indexLinesToggle').textContent='Parallèles index '+(S.settings.indexLines?'ON':'OFF');$('#indexLinesToggle').setAttribute('aria-pressed',String(!!S.settings.indexLines));$('#indexLinesSpacing').value=Number(S.settings.indexLineSpacing||1).toFixed(1)}if($('#ownTypeSelect')){$('#ownTypeSelect').value=OWN_SHIP_PRESETS[S.own.shipType]?S.own.shipType:'cargo';}if(Number.isInteger(S.selectedBalise)&&S.balises[S.selectedBalise]){const b=S.balises[S.selectedBalise],bm=motion({x:+b.x,y:+b.y,c:0,s:0});$('#targetDetail').textContent=`Balise ${beaconTypeName(b.type)} · Rv ${Number(bm.brg).toFixed(1)}° · ${bm.range.toFixed(1)} NM`;}else if(S.selected!=null&&S.targets[S.selected]){let a=S.targets[S.selected],m=motion(a);$('#targetDetail').textContent=`${a.name} · ${ownShipTypeName(a.shipType||'cargo')} · ${conditionLabel(a)} · Rv ${Number(m.brg).toFixed(1)}° · ${m.range.toFixed(1)} NM · cap ${Number(a.c).toFixed(1)}° · ${a.s.toFixed(1)} kn · CPA ${m.cpa.toFixed(1)} NM · TCPA ${isFinite(m.tcpa)?m.tcpa.toFixed(1):'—'} min`;}else if(S.selected==null){$('#targetDetail').textContent=window.radarTranslate?window.radarTranslate('Sélectionnez une cible sur la carte pour sa fiche ARPA.'):'Sélectionnez une cible sur la carte pour sa fiche ARPA.';}renderArpaTable();}
 /**
  * Rôle : fonction toast; voir le contexte de définition pour l’opération précise.
  * Paramètres :
@@ -4178,10 +4257,9 @@ function commitHelmInput(input,kind){const value=Number(String(input.value).repl
  */
 function bindHelmInput(input,kind){input.addEventListener('change',()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>commitHelmInput(input,kind));input.addEventListener('blur',()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>commitHelmInput(input,kind));input.addEventListener('keydown',e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{if(e.key==='Enter'){e.preventDefault();commitHelmInput(input,kind);input.blur()}})}bindHelmInput($('#ownCourse'),'course');bindHelmInput($('#ownSpeed'),'speed');
 // Type de navire OWN : défini par l'exercice / le générateur uniquement, affiché en lecture seule dans le simu.
-$('#gain').oninput=e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.gain=+e.target.value;render()};$('#pause').onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{if(S.collision)return;const wasPaused=S.paused;S.paused=!S.paused;/* V96: anti-clutter mer/pluie forcés à 0 au démarrage depuis t=0. */
-if(wasPaused&&!S.paused&&S.time===0){resetAntiClutter();}$('#pause').textContent=S.paused?'▶ PLAY':'Ⅱ PAUSE';$('#pause').classList.toggle('primary',!S.paused);$('#status').textContent=S.paused?'PAUSE':'EN LECTURE';};// Reset = recommencer l'exercice courant, sans recharger le scénario par défaut
+$('#gain').oninput=e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{S.gain=+e.target.value;render()};$('#pause').onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{if(S.collision)return;const wasPaused=S.paused;S.paused=!S.paused;$('#pause').textContent=S.paused?'▶ PLAY':'Ⅱ PAUSE';$('#pause').classList.toggle('primary',!S.paused);$('#status').textContent=S.paused?'PAUSE':'EN LECTURE';};// Reset = recommencer l'exercice courant, sans recharger le scénario par défaut
 //   et sans toucher aux réglages d'affichage.
-$('#reset').onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>restoreExerciseSnapshot();
+$('#arrivalClose').onclick=()=>closeArrival();$('#reset').onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>restoreExerciseSnapshot();
 scenarios.forEach((a,i)/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} a Paramètre transmis par l’appelant.  * @param {*} i Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let b=document.createElement('button');b.textContent=a.name;b.onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>loadScenario(i);$('#scens').append(b)});/* Bank entries are surfaced through the Charger exercice modal — they keep their citation tooltip and RECONSTRUIT badge. */
 /**
  * Rôle : fonction escapeHtml; voir le contexte de définition pour l’opération précise.
@@ -4234,9 +4312,9 @@ $('#exerciseModal').addEventListener('click',e/**  * Rôle : fonction callback a
 $('#chooseExerciseFile').addEventListener('click',()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>$('#exerciseFile').click());
 $('#exerciseFile').addEventListener('change',e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let f=e.target.files[0];if(!f)return;let r=new FileReader;r.onload=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{try{loadExercise(JSON.parse(r.result));closeExerciseModal();refreshExerciseList()}catch(err){toast(err.message)}};r.readAsText(f);e.target.value=''});
 $('#exerciseFileDirect').addEventListener('change',e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let f=e.target.files[0];if(!f)return;let r=new FileReader;r.onload=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{try{loadExercise(JSON.parse(r.result));refreshExerciseList()}catch(err){toast(err.message)}};r.readAsText(f);e.target.value=''});
-window.addEventListener('resize',()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>render());window.addEventListener('orientationchange',()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>setTimeout(render,120));document.addEventListener('keydown',e/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} e Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{if(e.key==='Escape')closeExerciseModal()});refreshExerciseList();
+window.addEventListener('resize',()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>render());window.addEventListener('orientationchange',()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>setTimeout(render,120));document.addEventListener('keydown',e/**  * Rôle : raccourcis de barre; ignorer les champs de saisie focalisés.  * Paramètres : @param {*} e événement clavier.  * Appelant : document keydown.  */ =>{if(e.key==='Escape'){closeExerciseModal();closeArrival();return}if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;const el=e.target,tag=(el?.tagName||'').toLowerCase();if(el?.isContentEditable||['input','textarea','select'].includes(tag))return;if($('#sim').classList.contains('hidden'))return;e.preventDefault();if(e.key==='ArrowUp'||e.key==='ArrowDown'){const dir=e.key==='ArrowUp'?1:-1,base=Number(S.own._cmdS??S.own.s);setOwnCommandSpeed(base+dir*.1)}else{const dir=e.key==='ArrowRight'?1:-1;S.own._cmdC=norm((Number(S.own._cmdC??S.own.c)+dir+360)%360)}render()});refreshExerciseList();
 
-["trailLen","vectorDuration","historyStep","sea","rain","contrast","brightness","vrm","ebl","offsetX","offsetY","guardRadius","cpaLimit","tcpaLimit"].forEach(id/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let k=id;bindSetting(id,k,id==='trailLen'||id==='vectorDuration'||id==='historyStep'||id==='sea'||id==='rain'||id==='contrast'||id==='brightness'||id==='vrm'||id==='ebl'||id==='offsetX'||id==='offsetY'||id==='guardRadius'||id==='cpaLimit'||id==='tcpaLimit'?'number':'value')});
+["trailLen","vectorDuration","historyStep","contrast","brightness","vrm","ebl","offsetX","offsetY","guardRadius","cpaLimit","tcpaLimit"].forEach(id/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let k=id;bindSetting(id,k,id==='trailLen'||id==='vectorDuration'||id==='historyStep'||id==='sea'||id==='rain'||id==='contrast'||id==='brightness'||id==='vrm'||id==='ebl'||id==='offsetX'||id==='offsetY'||id==='guardRadius'||id==='cpaLimit'||id==='tcpaLimit'?'number':'value')});
 // pulseWidth is now a segmented button group (SP/MP/LP) with the same .band-selector CSS as the X/S band control.
 /**
  * Rôle : fonction updatePulseUI; voir le contexte de définition pour l’opération précise.
@@ -4282,7 +4360,7 @@ $('#recenterBtn').onclick=()/**  * Rôle : fonction callback anonyme (flèche); 
 const enhToggle=$('#enhToggle'),enhLevelButtons=$$('[data-enh-level]'),enhPpiLabel=$('#enhPpiLabel');
 function syncEnhUI(){const on=!!S.settings.enhOn,level=Math.max(1,Math.min(3,Math.round(+S.settings.enh||1)));S.settings.enh=level;if(enhToggle){const label=on?'ENH ON':'ENH OFF';enhToggle.textContent=window.radarTranslate?window.radarTranslate(label):label;enhToggle.classList.toggle('is-on',on);enhToggle.setAttribute('aria-pressed',String(on));enhToggle.title=window.radarTranslate?(on?'Désactive l’agrandissement visuel ENH':'Active ou désactive l’agrandissement visuel ENH'):(on?'Turn ENH visual enlargement off':'Toggle ENH visual enlargement')}enhLevelButtons.forEach(btn=>{const selected=Number(btn.dataset.enhLevel)===level;btn.classList.toggle('active',selected);btn.disabled=!on;btn.setAttribute('aria-pressed',String(selected))});if(enhPpiLabel){enhPpiLabel.hidden=!on;enhPpiLabel.textContent='ENH '+level}}
 if(enhToggle)enhToggle.onclick=()=>{S.settings.enhOn=!S.settings.enhOn;syncEnhUI();saveSettings();render()};enhLevelButtons.forEach(btn=>btn.onclick=()=>{if(!S.settings.enhOn)return;S.settings.enh=Number(btn.dataset.enhLevel);syncEnhUI();saveSettings();render()});syncEnhUI();
-["sea","rain","contrast","brightness"].forEach(id/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let input=$('#'+id);if(!input)return;$('#'+id+'Val').textContent=Number(input.value).toFixed(1);input.oninput=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{$('#'+id+'Val').textContent=Number(input.value).toFixed(1);S.settings[id]=+input.value;saveSettings();render()}});
+["sea","rain"].forEach(id=>{const input=$('#'+id);if(!input)return;input.oninput=()=>{$('#'+id+'Val').textContent=Number(input.value).toFixed(1);S.settings[id]=+input.value;saveSettings();render()}});["contrast","brightness"].forEach(id=>{const input=$('#'+id);if(!input)return;input.oninput=()=>{$('#'+id+'Val').textContent=Number(input.value).toFixed(1);S.settings[id]=+input.value;saveSettings();render()}});
 ['vrmToggle','eblToggle'].forEach(id/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * @param {*} id Paramètre transmis par l’appelant.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>$('#'+id).onclick=()/**  * Rôle : fonction callback anonyme (flèche); voir le contexte de définition pour l’opération précise.  * Paramètres :  * Aucun paramètre.  * Appelant : callback d’expression; appel par le code qui détient ou invoque la fonction.  */ =>{let k=id==='vrmToggle'?'vrmOn':'eblOn';S.settings[k]=!S.settings[k];let el=$('#'+id);el.classList.toggle('is-on',S.settings[k]);el.classList.toggle('is-off',!S.settings[k]);el.setAttribute('aria-pressed',String(S.settings[k]));el.textContent=(id==='vrmToggle'?'VRM ':'EBL ')+(S.settings[k]?'ON':'OFF');saveSettings();render()});
 $('#indexLinesToggle').onclick=()=>{S.settings.indexLines=!S.settings.indexLines;$('#indexLinesToggle').classList.toggle('is-on',S.settings.indexLines);$('#indexLinesToggle').classList.toggle('is-off',!S.settings.indexLines);$('#indexLinesToggle').setAttribute('aria-pressed',String(S.settings.indexLines));$('#indexLinesToggle').textContent='Index '+(S.settings.indexLines?'ON':'OFF');saveSettings();render()};$('#indexLinesSpacing').value=Number(S.settings.indexLineSpacing||1).toFixed(1);$('#indexLineAngle').value=Number(S.settings.indexLineAngle||0).toFixed(1);$('#indexLinesSpacing').oninput=$('#indexLinesSpacing').onchange=()=>{S.settings.indexLineSpacing=Math.max(.1,+$('#indexLinesSpacing').value||1);saveSettings();render()};
 // Angle EBL : garder le texte saisi intact et interpréter virgule/point à validation.
@@ -5762,9 +5840,9 @@ function(){'use strict';
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',waitForDomAndObserve)}else{waitForDomAndObserve()}
 })();
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+
+
+
 
 <script id="worker-collapse-fix">
 (/**
@@ -5820,12 +5898,12 @@ function(){
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',waitForDomAndObserveCollapse);}else{waitForDomAndObserveCollapse();}
 })();
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+
+
+
+
+
+
 <!-- Aide mobile en orientation portrait : dialogue modal guidant l’utilisateur vers l’affichage paysage. -->
 <div id="mobileOrientationOverlay" role="dialog" aria-modal="true" aria-labelledby="mobileOrientationTitle" hidden>
   <div class="orientation-card">
@@ -5937,24 +6015,24 @@ function(){
   show();
 })();
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <script id="x-s-band-runtime">
 /* X/S band runtime: persisted like language, applied to imports and echo physics. */
 (/**
@@ -6063,28 +6141,28 @@ function(){
    */
   function(x){oldSet(x);setTimeout(updateBandUI,0)}}
 })();
-</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <style id="phone-mode-dedicated-v16">
 /* Strictly scoped phone-only shell. Desktop cascade and layout remain untouched. */
 body.phone-mode{--phone-drawer-w:33vw;padding:0!important;height:100dvh!important;min-height:0!important;overflow:hidden!important}
@@ -6165,12 +6243,13 @@ body.phone-mode .panel button,body.phone-mode .panel select,body.phone-mode .pan
 body.phone-mode .helm-bar button{min-height:42px!important}
 body.phone-mode .helm-setpoints input{min-height:40px!important}
 </style>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+
+
 <style id="enh-classic-active-state">
 /* ENH segmented controls follow the classic radar palette when classic mode is active. */
 body.theme-classic .enh-control .band-selector button.active,
 body.theme-classic .enh-control .enh-toggle.is-on{background:#286334;color:#effff0;border-color:#8cff8c}
 </style>
+
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 </body></html>
