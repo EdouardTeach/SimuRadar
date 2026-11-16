@@ -2,7 +2,10 @@
   "name": "simuradar-desktop",
   "version": "1.0.0",
   "description": "SimuRadar — simulateur et générateur radar maritime",
-  "author": "SimuRadar",
+  "author": {
+  "name": "EdouardTeach",
+  "email": "edouardteach@users.noreply.github.com"
+},
   "license": "UNLICENSED",
   "main": "main.js",
   "scripts": {
