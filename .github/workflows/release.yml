@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: 22
       - name: Installer les dépendances
-        run: npm ci
+        run: npm install
       - name: Compiler les paquets
         run: npx electron-builder ${{ matrix.args }} --publish never
       - name: Conserver les fichiers de publication
