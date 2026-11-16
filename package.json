@@ -1,0 +1,42 @@
+{
+  "name": "simuradar-desktop",
+  "version": "1.0.0",
+  "description": "SimuRadar — simulateur et générateur radar maritime",
+  "author": "SimuRadar",
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:linux": "electron-builder --linux AppImage deb --publish never",
+    "dist:win": "electron-builder --win nsis portable --publish never",
+    "dist:mac": "electron-builder --mac dmg zip --publish never"
+  },
+  "devDependencies": {
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "fr.simuradar.desktop",
+    "productName": "SimuRadar",
+    "directories": { "buildResources": "assets", "output": "dist" },
+    "files": ["main.js", "content-server.js", "package.json", "app/**/*", "assets/icon.png"],
+    "asar": true,
+    "linux": {
+      "category": "Education",
+      "target": ["AppImage", "deb"],
+      "icon": "assets/icons"
+    },
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "assets/icon.icns",
+      "identity": null,
+      "hardenedRuntime": false
+    }
+  }
+}
